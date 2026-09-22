@@ -16,6 +16,7 @@ from uuid import UUID
 
 from sqlalchemy import Select, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import noload
 
 from app.core.access import AccessContext
 from app.core.db import Base
@@ -122,10 +123,18 @@ class ScopedRepository[T: Base]:
         return row
 
     async def get_for_update(self, ctx: AccessContext, permission: str, record_id: UUID) -> T:
-        """Fetch and lock, for a read-modify-write inside one transaction."""
+        """Fetch and lock, for a read-modify-write inside one transaction.
+
+        `noload("*")` turns off every relationship's eager load for this
+        query. Without it, any `lazy="joined"` relationship (several models
+        have one for a cheap read-time join) turns into a LEFT OUTER JOIN,
+        and PostgreSQL refuses `FOR UPDATE` across an outer join — a locking
+        fetch has no business eager-loading relationships anyway.
+        """
         stmt = (
             self.base_query(ctx, permission)
             .where(self.model.id == record_id)  # type: ignore[attr-defined]
+            .options(noload("*"))
             .with_for_update()
         )
         row: T | None = (await self.session.execute(stmt)).scalars().unique().one_or_none()
@@ -202,3 +211,11 @@ class ScopedRepository[T: Base]:
             )
         instance.deleted_at = utcnow()
         await self.session.flush()
+        # `updated_at` has `onupdate=func.now()`, a server-side expression.
+        # Flushing the UPDATE marks it expired rather than refreshing it
+        # inline, so a route handler that serialises the response straight
+        # after this call (as this is the one write path here that flushes
+        # before returning) would otherwise need a lazy reload outside of an
+        # `await` — which raises MissingGreenlet. Refreshing here keeps every
+        # attribute safe to read synchronously afterwards.
+        await self.session.refresh(instance)

@@ -159,7 +159,12 @@ STANDARD_ROLES: Final[tuple[RoleDef, ...]] = (
             "materials.view",
             "materials.create",
             "materials.update",
+            "materials.deactivate",
+            # Conversion factors price every delivery (§20), the same way
+            # rates do; the role that owns pricing owns both.
             "units.view",
+            "units.manage",
+            "units.manage_conversions",
             "warehouses.view",
             "projects.view",
             "sites.view",

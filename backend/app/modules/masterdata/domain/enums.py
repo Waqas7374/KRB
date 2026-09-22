@@ -52,3 +52,21 @@ class WarehouseType(StrEnum):
     TRANSIT = "TRANSIT"
     # Material rejected at receiving, held pending return to the vendor.
     QUARANTINE = "QUARANTINE"
+
+
+class CalibrationStatus(StrEnum):
+    """A weighbridge reading's lifecycle.
+
+    §20 forbids a hard-coded conversion factor; it does not say where a
+    correct one comes from. This is the answer: an admin logs real readings
+    (truck weight vs measured volume) rather than typing a number they read
+    somewhere, and a person confirms the derived factor before it prices
+    anything.
+    """
+
+    PENDING = "PENDING"
+    # Used to derive a confirmed conversion factor.
+    APPLIED = "APPLIED"
+    # Excluded as an outlier or a bad reading — kept, never deleted, because a
+    # discarded reading is itself evidence of what went wrong.
+    DISCARDED = "DISCARDED"

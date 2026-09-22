@@ -24,16 +24,20 @@ every delivery of that material.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from uuid import UUID
 
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import noload
 
-from app.core.errors import ConversionNotConfiguredError
+from app.core.access import AccessContext
+from app.core.errors import BusinessRuleError, ConversionNotConfiguredError
 from app.core.logging import get_logger
-from app.core.types import today_utc
+from app.core.types import today_utc, uuid7
+from app.modules.audit.domain.enums import AuditAction
+from app.modules.audit.services.writer import record as record_audit
 from app.modules.masterdata.domain.enums import ConversionScope
 from app.modules.masterdata.models import Unit, UnitConversion
 
@@ -318,3 +322,100 @@ class UnitConverter:
 
     async def _unit_precision(self, unit_id: UUID) -> int:
         return (await self._unit(unit_id)).precision
+
+
+# -----------------------------------------------------------------------------
+# Writing factors
+# -----------------------------------------------------------------------------
+# There is deliberately no function that updates a factor in place. A
+# conversion row is superseded, never edited: the old row is closed with
+# `effective_to` and a new one inserted, so a document priced last month can
+# still be recomputed with the factor that was actually used then.
+
+
+async def supersede_factor(
+    session: AsyncSession,
+    ctx: AccessContext,
+    *,
+    from_unit_id: UUID,
+    to_unit_id: UUID,
+    factor: Decimal,
+    scope_type: str,
+    material_id: UUID | None,
+    vendor_id: UUID | None,
+    effective_from: date,
+    basis_note: str | None,
+) -> UnitConversion:
+    """Close the current factor for this pair/scope and insert a new one.
+
+    Used both by direct admin entry and by calibration confirmation
+    (`masterdata.services.calibration`), so the two paths produce identical,
+    equally auditable rows.
+    """
+    current = (
+        await session.execute(
+            select(UnitConversion)
+            # `from_unit`/`to_unit` are lazy="joined"; PostgreSQL refuses
+            # FOR UPDATE across the resulting outer joins, so eager loading
+            # is switched off for this one locking query. See the identical
+            # note on ScopedRepository.get_for_update in core/crud.py.
+            .options(noload("*"))
+            .where(
+                UnitConversion.company_id == ctx.company_id,
+                UnitConversion.from_unit_id == from_unit_id,
+                UnitConversion.to_unit_id == to_unit_id,
+                UnitConversion.scope_type == scope_type,
+                UnitConversion.material_id.is_(None)
+                if material_id is None
+                else UnitConversion.material_id == material_id,
+                UnitConversion.vendor_id.is_(None)
+                if vendor_id is None
+                else UnitConversion.vendor_id == vendor_id,
+                UnitConversion.deleted_at.is_(None),
+                UnitConversion.effective_to.is_(None),
+            )
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+
+    if current is not None:
+        if current.effective_from >= effective_from:
+            raise BusinessRuleError(
+                "effective_date_not_after_current",
+                f"The current factor is effective from {current.effective_from}; "
+                f"a new one must take effect after that date, not {effective_from}.",
+            )
+        current.effective_to = effective_from - timedelta(days=1)
+        current.version += 1
+
+    new_row = UnitConversion(
+        id=uuid7(),
+        company_id=ctx.company_id,
+        from_unit_id=from_unit_id,
+        to_unit_id=to_unit_id,
+        factor=factor,
+        scope_type=scope_type,
+        material_id=material_id,
+        vendor_id=vendor_id,
+        effective_from=effective_from,
+        basis_note=basis_note,
+        supersedes_id=current.id if current else None,
+    )
+    session.add(new_row)
+    await session.flush()
+
+    old_value = current.factor if current else None
+    await record_audit(
+        session,
+        action=AuditAction.RATE_CHANGE,
+        entity_type="UnitConversion",
+        entity_id=new_row.id,
+        company_id=ctx.company_id,
+        summary=(
+            f"Unit conversion factor {'changed from ' + str(old_value) if old_value else 'set'} "
+            f"to {factor}, effective {effective_from}"
+        ),
+        old_values={"factor": str(old_value)} if old_value else None,
+        new_values={"factor": str(factor), "effective_from": str(effective_from)},
+    )
+    return new_row

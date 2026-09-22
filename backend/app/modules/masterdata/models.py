@@ -35,6 +35,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.constraints import enum_check, positive
 from app.core.db import MasterDataModel
 from app.modules.masterdata.domain.enums import (
+    CalibrationStatus,
     ConversionScope,
     MaterialTracking,
     UnitDimension,
@@ -347,6 +348,88 @@ class Warehouse(MasterDataModel):
     )
 
 
+class UnitConversionCalibration(MasterDataModel):
+    """One weighbridge reading, logged towards deriving a conversion factor.
+
+    §20 forbids a hard-coded factor; it says nothing about where a correct one
+    comes from. This table is that answer: an administrator records real
+    (weight, volume) pairs from actual truck loads rather than typing a number
+    from memory, reviews the spread across several readings, and only then
+    confirms a factor — which becomes an ordinary effective-dated
+    `unit_conversions` row via `applied_conversion_id`.
+
+    Readings are never deleted, including discarded ones: a discarded reading
+    is itself evidence of what went wrong with a particular truck or day.
+    """
+
+    __tablename__ = "unit_conversion_calibrations"
+    __audited__ = True
+
+    material_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("materials.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    # A calibration may be vendor-specific (this supplier's trucks run heavy)
+    # or general for the material.
+    vendor_id: Mapped[UUID | None] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("vendors.id", ondelete="CASCADE"), index=True
+    )
+
+    from_unit_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("units.id", ondelete="RESTRICT"), nullable=False
+    )
+    to_unit_id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("units.id", ondelete="RESTRICT"), nullable=False
+    )
+
+    # The two sides of one physical measurement — e.g. weighbridge weight in
+    # TON and a measured/dumped volume in CFT for the same truckload.
+    source_quantity: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
+    target_quantity: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
+    # Denormalised target_quantity / source_quantity, stored so the reading is
+    # self-describing without recomputing it, and so a changed formula later
+    # cannot silently reinterpret old readings.
+    implied_factor: Mapped[Decimal] = mapped_column(Numeric(24, 12), nullable=False)
+
+    truck_number: Mapped[str | None] = mapped_column(String(20))
+    weighbridge_ref: Mapped[str | None] = mapped_column(
+        String(80), comment="Weighbridge slip / docket number, for traceability"
+    )
+    recorded_at: Mapped[date] = mapped_column(Date, nullable=False)
+    notes: Mapped[str | None] = mapped_column(String(500))
+
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default=CalibrationStatus.PENDING.value
+    )
+    applied_conversion_id: Mapped[UUID | None] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("unit_conversions.id", ondelete="SET NULL")
+    )
+    discard_reason: Mapped[str | None] = mapped_column(String(300))
+
+    __table_args__ = (
+        positive("source_quantity"),
+        positive("target_quantity"),
+        positive("implied_factor"),
+        enum_check("status", CalibrationStatus),
+        CheckConstraint(
+            "status <> 'DISCARDED' OR discard_reason IS NOT NULL",
+            name="discard_requires_reason",
+        ),
+        CheckConstraint("from_unit_id <> to_unit_id", name="units_differ"),
+        Index(
+            "ix_calibrations_pending",
+            "company_id",
+            "material_id",
+            "vendor_id",
+            "from_unit_id",
+            "to_unit_id",
+            postgresql_where="status = 'PENDING'",
+        ),
+    )
+
+
 __all__ = [
     "Material",
     "MaterialCategory",
@@ -354,5 +437,6 @@ __all__ = [
     "TruckType",
     "Unit",
     "UnitConversion",
+    "UnitConversionCalibration",
     "Warehouse",
 ]
