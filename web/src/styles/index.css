@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+/* =============================================================================
+   Design tokens — docs/08-frontend-and-design-system.md
+   Dense, quiet, high-contrast. No gradients, no decorative colour. Status
+   colours are reserved for status and never used for emphasis.
+   ========================================================================== */
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* ERP screens are read, not admired: 14px body. */
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.875rem;
+  --text-lg: 1rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+
+:root {
+  --bg: hsl(0 0% 100%);
+  --surface: hsl(210 20% 98%);
+  --surface-raised: hsl(0 0% 100%);
+  --border: hsl(214 20% 89%);
+  --border-strong: hsl(214 18% 78%);
+  --fg: hsl(222 30% 12%);
+  --fg-muted: hsl(215 16% 45%);
+  --fg-subtle: hsl(215 14% 60%);
+
+  --primary: hsl(221 70% 42%);
+  --primary-fg: hsl(0 0% 100%);
+  --primary-hover: hsl(221 70% 36%);
+
+  --success: hsl(152 60% 32%);
+  --success-bg: hsl(152 55% 95%);
+  --warning: hsl(35 85% 38%);
+  --warning-bg: hsl(40 90% 95%);
+  --danger: hsl(0 68% 45%);
+  --danger-bg: hsl(0 80% 96%);
+  --info: hsl(205 70% 40%);
+  --info-bg: hsl(205 80% 96%);
+
+  --focus-ring: hsl(221 80% 52%);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: hsl(222 24% 9%);
+    --surface: hsl(222 22% 12%);
+    --surface-raised: hsl(222 20% 15%);
+    --border: hsl(220 15% 22%);
+    --border-strong: hsl(220 14% 32%);
+    --fg: hsl(210 20% 94%);
+    --fg-muted: hsl(215 14% 66%);
+    --fg-subtle: hsl(215 12% 52%);
+
+    --primary: hsl(217 85% 62%);
+    --primary-fg: hsl(222 40% 10%);
+    --primary-hover: hsl(217 85% 70%);
+
+    --success: hsl(152 50% 58%);
+    --success-bg: hsl(152 30% 16%);
+    --warning: hsl(38 80% 62%);
+    --warning-bg: hsl(38 40% 16%);
+    --danger: hsl(0 70% 66%);
+    --danger-bg: hsl(0 40% 18%);
+    --info: hsl(205 75% 65%);
+    --info-bg: hsl(205 40% 17%);
+
+    --focus-ring: hsl(217 90% 66%);
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: hsl(222 24% 9%);
+  --surface: hsl(222 22% 12%);
+  --surface-raised: hsl(222 20% 15%);
+  --border: hsl(220 15% 22%);
+  --border-strong: hsl(220 14% 32%);
+  --fg: hsl(210 20% 94%);
+  --fg-muted: hsl(215 14% 66%);
+  --fg-subtle: hsl(215 12% 52%);
+  --primary: hsl(217 85% 62%);
+  --primary-fg: hsl(222 40% 10%);
+  --primary-hover: hsl(217 85% 70%);
+  --success: hsl(152 50% 58%);
+  --success-bg: hsl(152 30% 16%);
+  --warning: hsl(38 80% 62%);
+  --warning-bg: hsl(38 40% 16%);
+  --danger: hsl(0 70% 66%);
+  --danger-bg: hsl(0 40% 18%);
+  --info: hsl(205 75% 65%);
+  --info-bg: hsl(205 40% 17%);
+  --focus-ring: hsl(217 90% 66%);
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Amounts and quantities must align in columns. */
+  .tabular,
+  td[data-numeric],
+  th[data-numeric] {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* Respect the OS setting rather than animating regardless. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

@@ -1,0 +1,103 @@
+[importlinter]
+root_package = app
+# Required because the pure-domain contract forbids external packages
+# (sqlalchemy, fastapi, ...) from being imported by domain modules.
+include_external_packages = True
+
+# -----------------------------------------------------------------------------
+# 1. core and platform are the foundation and know nothing above them
+# -----------------------------------------------------------------------------
+# This is the rule that actually bites. `app/core` defines the shared kernel
+# (AccessContext, errors, db, pagination) and `app/platform` the infrastructure
+# services (numbering, storage, locking). Neither may reach into a business
+# module, because that is how a "shared" helper quietly becomes a dependency
+# cycle. The unit-conversion engine was moved out of `platform` and into
+# `modules/masterdata/services` for exactly this reason: it reads master-data
+# tables, so it belongs to the module that owns them.
+[importlinter:contract:foundation-independence]
+name = core and platform do not depend on modules or the API layer
+type = forbidden
+source_modules =
+    app.core
+    app.platform
+forbidden_modules =
+    app.modules
+    app.api
+    app.seeds
+    app.workers
+
+# -----------------------------------------------------------------------------
+# 2. The domain layer stays pure
+# -----------------------------------------------------------------------------
+# Domain packages hold enums, value objects and business rules. Keeping ORM and
+# framework imports out of them is what makes those rules testable without a
+# database and reusable from a Celery task.
+[importlinter:contract:pure-domain]
+name = Domain is free of infrastructure
+type = forbidden
+source_modules =
+    app.modules.access.domain
+    app.modules.audit.domain
+    app.modules.documents.domain
+    app.modules.identity.domain
+    app.modules.masterdata.domain
+    app.modules.notifications.domain
+    app.modules.org.domain
+    app.modules.vendors.domain
+    app.platform.domain
+forbidden_modules =
+    sqlalchemy
+    fastapi
+    redis
+    celery
+    boto3
+    httpx
+    app.core.db
+
+# -----------------------------------------------------------------------------
+# 3. Layering inside each module
+# -----------------------------------------------------------------------------
+# api -> services -> repositories -> domain, per module. A router must not
+# reach past its service layer into a query, and a service must not import a
+# router.
+[importlinter:contract:module-layers]
+name = Layering inside each module
+type = layers
+# Parentheses mark a layer as optional: not every module has a repositories
+# package, and only some expose an api.
+layers =
+    (api)
+    (services)
+    (repositories)
+    (domain)
+containers =
+    app.modules.access
+    app.modules.audit
+    app.modules.documents
+    app.modules.identity
+    app.modules.masterdata
+    app.modules.notifications
+    app.modules.org
+    app.modules.vendors
+
+# -----------------------------------------------------------------------------
+# 4. Seeds and workers are entry points, not dependencies
+# -----------------------------------------------------------------------------
+# Nothing in the application may import the seeder or a Celery task module:
+# they are top-level entry points, and importing one would drag its side
+# effects into a request path.
+[importlinter:contract:entry-points-are-leaves]
+name = Nothing imports the seeds or worker tasks
+type = forbidden
+source_modules =
+    app.core
+    app.platform
+    app.modules
+    app.api
+forbidden_modules =
+    app.seeds
+    app.workers
+
+# Cross-module access is restricted to each module's `services`, `schemas` and
+# `domain.enums`. import-linter cannot express "own internals are fine", so
+# that rule is enforced by tests/unit/test_architecture.py, which walks the AST.
