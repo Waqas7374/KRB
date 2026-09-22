@@ -30,11 +30,11 @@ from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.constraints import enum_check
-from app.core.db import BaseModel, CompanyModel
+from app.core.db import BaseModel, CompanyModel, VersionMixin
 from app.modules.identity.domain.enums import DevicePlatform, UserStatus
 
 
-class User(CompanyModel):
+class User(CompanyModel, VersionMixin):
     __tablename__ = "users"
     __audited__ = True
     __audit_exclude__ = ("password_hash", "permissions_version")

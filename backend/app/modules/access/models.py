@@ -28,7 +28,7 @@ from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.constraints import enum_check
-from app.core.db import BaseModel, CompanyModel
+from app.core.db import BaseModel, CompanyModel, VersionMixin
 from app.modules.access.domain.enums import ScopeType
 
 
@@ -55,7 +55,7 @@ class Permission(BaseModel):
         return self.code
 
 
-class Role(CompanyModel):
+class Role(CompanyModel, VersionMixin):
     """A named bundle of permissions.
 
     System roles are seeded and may be edited (except Super Administrator), so
