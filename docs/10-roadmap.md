@@ -20,6 +20,10 @@ pipeline green on an empty test suite · `/health`, `/ready`, `/version`.
 
 ## Phase 1 — Foundation (≈2.5 weeks)
 
+**Backend: done** (2026-09-24) — see [14-phase-1-delivery](14-phase-1-delivery.md)
+for what was built, the bugs found and fixed by live testing, and test/coverage
+numbers. **Frontend: not started.**
+
 Companies, projects, project phases, sites (PostGIS geofence), departments, cost centres ·
 users, sessions, refresh rotation, lockout, password reset · permissions, roles, scoped grants,
 `AccessContext` + `scope_filter` · materials, categories, units, **unit conversions** · vendors,
@@ -30,7 +34,8 @@ Frontend: shell, navigation, auth, DataTable, FilterBar, saved views, and full C
 sites, users/roles, materials, units/conversions, vendors.
 
 **Done when:** creating a vendor in the browser creates a row in PostgreSQL with an audit entry, an
-Auditor role can read it and cannot write it, and the authorisation test matrix passes.
+Auditor role can read it and cannot write it, and the authorisation test matrix passes. (The API-level
+equivalent is met; the browser part is not, since the frontend has not been built yet.)
 
 ---
 
