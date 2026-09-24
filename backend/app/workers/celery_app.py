@@ -15,15 +15,26 @@ from __future__ import annotations
 from typing import Any
 
 from celery import Celery
+from celery.schedules import schedule
 
 from app.core.config import settings
 from app.core.logging import configure_logging
+from app.models_registry import import_all_models
+
+# Every task module here is imported at process start (via `include` below),
+# and SQLAlchemy only resolves a model's string-based ForeignKey targets once
+# all referenced tables exist in Base.metadata. The API populates that
+# metadata via import_all_models() in app.main; the worker has no equivalent
+# entrypoint, so without this call the first flush that touches a
+# cross-module FK (e.g. Notification.company_id -> Company) blows up with
+# NoReferencedTableError the first time it runs in a fresh worker process.
+import_all_models()
 
 celery_app = Celery(
     "krb_erp",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
-    include=["app.workers.tasks.diagnostics"],
+    include=["app.workers.tasks.diagnostics", "app.workers.tasks.outbox"],
 )
 
 celery_app.conf.update(
@@ -48,14 +59,25 @@ celery_app.conf.update(
     },
 )
 
-celery_app.conf.beat_schedule = {}
+celery_app.conf.beat_schedule = {
+    # The outbox is the reliability backbone: a committed transaction always
+    # produces its events, a rolled-back one never does. Drained close to
+    # real time; the slower sweep is a safety net for ticks beat itself
+    # might miss.
+    "outbox.drain": {
+        "task": "outbox.drain",
+        "schedule": schedule(run_every=1.0),
+        "options": {"queue": "outbox"},
+    },
+    "outbox.retry_failed": {
+        "task": "outbox.retry_failed",
+        "schedule": schedule(run_every=60.0),
+        "options": {"queue": "outbox"},
+    },
+}
 
 # Added to beat_schedule as each feature lands, in the phase noted.
 PLANNED_SCHEDULE: dict[str, dict[str, Any]] = {
-    # Phase 1 — the outbox is the reliability backbone: a committed
-    # transaction always produces its events, a rolled-back one never does.
-    "outbox.drain": {"every_seconds": 1, "phase": 1},
-    "outbox.retry_failed": {"every_seconds": 60, "phase": 1},
     "maintenance.expire_sessions": {"cron": "30 3 * * *", "phase": 1},
     # Phase 2
     "approvals.remind": {"cron": "0 * * * *", "phase": 2},

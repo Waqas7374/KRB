@@ -16,6 +16,13 @@ htmlcov/
 .coverage
 coverage.xml
 
+# Celery beat's local schedule database — runtime state, not source.
+celerybeat-schedule
+celerybeat-schedule.*
+
+# Local tool state
+.claude/
+
 # Node
 node_modules/
 dist/

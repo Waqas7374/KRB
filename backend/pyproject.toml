@@ -127,7 +127,7 @@ disallow_untyped_decorators = false
 exclude = ["alembic/versions/"]
 
 [[tool.mypy.overrides]]
-module = ["geoalchemy2.*", "celery.*", "weasyprint.*", "uuid_utils.*", "shapely.*"]
+module = ["geoalchemy2.*", "celery.*", "weasyprint.*", "uuid_utils.*", "shapely.*", "boto3.*", "botocore.*"]
 ignore_missing_imports = true
 
 # -----------------------------------------------------------------------------

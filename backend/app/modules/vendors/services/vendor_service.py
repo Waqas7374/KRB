@@ -49,6 +49,13 @@ ALLOWED_TRANSITIONS: dict[VendorStatus, frozenset[VendorStatus]] = {
 }
 
 
+async def get_creator_id(session: AsyncSession, vendor_id: UUID) -> UUID | None:
+    """Who created this vendor, for the outbox handler that notifies them of
+    a status change. A narrow lookup rather than the full repository, so a
+    background worker does not need an `AccessContext` to use it."""
+    return await session.scalar(select(Vendor.created_by_id).where(Vendor.id == vendor_id))
+
+
 def repository(session: AsyncSession) -> ScopedRepository[Vendor]:
     return ScopedRepository(
         session,

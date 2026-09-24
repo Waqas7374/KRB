@@ -142,7 +142,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: celery -A app.workers.celery_app worker --beat --loglevel=info --concurrency=2
+    # Stage 1 runs one worker process for every queue (docs/09 §2): outbox,
+    # notifications and reports are routed to separate queue names in
+    # celery_app.py so they *can* move to dedicated workers later, but until
+    # then one process must actually consume all of them, or a routed task
+    # sits in Redis forever with nothing listening.
+    command: celery -A app.workers.celery_app worker --beat --loglevel=info --concurrency=2 -Q default,outbox,notifications,reports
 
   web:
     build:
