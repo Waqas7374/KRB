@@ -85,7 +85,7 @@ async def invite_user(
     session.add(user)
     await session.flush()
 
-    token = await create_password_reset(session, user=user)
+    token = await create_password_reset(session, user=user, purpose="invite")
 
     await record_audit(
         session,
@@ -168,7 +168,7 @@ async def admin_reset_password(
     repo = user_repository(session)
     user = await repo.get(ctx, "users.view", user_id)
 
-    token = await create_password_reset(session, user=user)
+    token = await create_password_reset(session, user=user, purpose="admin_reset")
     user.must_change_password = True
     if user.status == UserStatus.ACTIVE.value:
         user.status = UserStatus.PASSWORD_RESET_REQUIRED.value

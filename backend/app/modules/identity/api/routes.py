@@ -150,13 +150,16 @@ async def me(user: CurrentUser, ctx: Access, session: SessionDep) -> MeResponse:
     summary="Change your own password",
 )
 async def change_password(
-    payload: ChangePasswordRequest, user: CurrentUser, uow: UowDep
+    payload: ChangePasswordRequest, request: Request, user: CurrentUser, uow: UowDep
 ) -> MessageResponse:
+    token = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
+    sid = decode_access_token(token).get("sid")
     await auth_service.change_password(
         uow.session,
         user=user,
         current_password=payload.current_password,
         new_password=payload.new_password,
+        current_session_id=UUID(sid) if sid else None,
     )
     return MessageResponse(
         message="Password changed",

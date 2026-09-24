@@ -224,6 +224,15 @@ class TestSessionRevocation:
         )
         assert stale.status_code == 401
 
+        # The session that made the change is the one that survives, and it
+        # can still rotate its refresh token.
+        still_here = await api.get(
+            "/auth/me", headers={"Authorization": f"Bearer {current['access_token']}"}
+        )
+        assert still_here.status_code == 200
+        rotated = await api.post("/auth/refresh", json={"refresh_token": current["refresh_token"]})
+        assert rotated.status_code == 200
+
         live = (
             (
                 await db.execute(
@@ -235,7 +244,25 @@ class TestSessionRevocation:
             .scalars()
             .all()
         )
-        assert live == []
+        assert len(live) == 1
+
+    async def test_password_change_clears_the_forced_change_flag(self, api: AsyncClient) -> None:
+        """Seeded accounts start with must_change_password; changing it clears it."""
+        email = "ceo@krb.example"
+        tokens = (
+            await api.post("/auth/login", json={"identifier": email, "password": PASSWORD})
+        ).json()
+        assert tokens["user"]["must_change_password"] is True
+        headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+        changed = await api.post(
+            "/auth/password/change",
+            headers=headers,
+            json={"current_password": PASSWORD, "new_password": "Another-Long-Passphrase-42"},
+        )
+        assert changed.status_code == 200
+        me = (await api.get("/auth/me", headers=headers)).json()
+        assert me["user"]["must_change_password"] is False
 
 
 class TestPasswordPolicy:

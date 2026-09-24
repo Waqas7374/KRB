@@ -156,6 +156,9 @@ services:
     container_name: krb-web
     environment:
       VITE_API_BASE_URL: http://localhost:8000/api/v1
+      # Bind-mounted files from a Windows/macOS host emit no change events in
+      # the container; without polling Vite serves stale code (web/vite.config.ts).
+      VITE_WATCH_POLLING: "1"
     ports:
       - "5173:5173"
     volumes:

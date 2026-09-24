@@ -6,6 +6,13 @@ export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
 }
 
+/** `PENDING_APPROVAL` -> `Pending approval`, for enum values shown to people. */
+export function humanize(value: string | null | undefined): string {
+  if (!value) return "";
+  const text = value.replace(/_/g, " ").toLowerCase();
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 const LOCALE = import.meta.env.VITE_LOCALE ?? "en-PK";
 const CURRENCY = import.meta.env.VITE_CURRENCY ?? "PKR";
 
@@ -59,6 +66,15 @@ export function formatDate(value: string | Date | null | undefined, timeZone?: s
     year: "numeric",
     timeZone,
   }).format(date);
+}
+
+/** "01-Oct-2026 – 30-Jun-2027"; one open end shows as "…"; neither set shows "—". */
+export function formatDateRange(
+  from: string | null | undefined,
+  to: string | null | undefined,
+): string {
+  if (!from && !to) return "—";
+  return `${from ? formatDate(from) : "…"} – ${to ? formatDate(to) : "…"}`;
 }
 
 export function formatDateTime(value: string | Date | null | undefined, timeZone?: string): string {

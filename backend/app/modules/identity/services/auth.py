@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from sqlalchemy import CursorResult, select, update
@@ -53,6 +53,7 @@ from app.modules.identity.domain.enums import (
     UserStatus,
 )
 from app.modules.identity.models import PasswordResetToken, User, UserDevice, UserSession
+from app.platform import outbox
 
 log = get_logger("auth")
 
@@ -391,11 +392,18 @@ async def logout(session: AsyncSession, *, session_id: UUID, user_id: UUID) -> N
 
 
 async def logout_everywhere(
-    session: AsyncSession, *, user_id: UUID, reason: SessionRevocationReason
+    session: AsyncSession,
+    *,
+    user_id: UUID,
+    reason: SessionRevocationReason,
+    except_session_id: UUID | None = None,
 ) -> int:
+    conditions = [UserSession.user_id == user_id, UserSession.revoked_at.is_(None)]
+    if except_session_id is not None:
+        conditions.append(UserSession.id != except_session_id)
     result: CursorResult[Any] = await session.execute(  # type: ignore[assignment]
         update(UserSession)
-        .where(UserSession.user_id == user_id, UserSession.revoked_at.is_(None))
+        .where(*conditions)
         .values(revoked_at=utcnow(), revoked_reason=reason.value)
     )
     return int(result.rowcount or 0)
@@ -464,7 +472,12 @@ async def _upsert_device(
 
 
 async def change_password(
-    session: AsyncSession, *, user: User, current_password: str, new_password: str
+    session: AsyncSession,
+    *,
+    user: User,
+    current_password: str,
+    new_password: str,
+    current_session_id: UUID | None = None,
 ) -> None:
     if not verify_password(current_password, user.password_hash):
         raise InvalidCredentialsError("Current password is incorrect")
@@ -478,9 +491,15 @@ async def change_password(
         user.status = UserStatus.ACTIVE.value
 
     # Every other session is invalidated: changing a password is how someone
-    # responds to a suspected compromise, and it has to mean something.
+    # responds to a suspected compromise, and it has to mean something. The
+    # session that made the change survives — it just proved knowledge of the
+    # current password, and signing it out too would bounce the user to the
+    # login screen at the end of the forced first-login password change.
     await logout_everywhere(
-        session, user_id=user.id, reason=SessionRevocationReason.PASSWORD_CHANGED
+        session,
+        user_id=user.id,
+        reason=SessionRevocationReason.PASSWORD_CHANGED,
+        except_session_id=current_session_id,
     )
     await record_audit(
         session,
@@ -506,17 +525,54 @@ def _assert_password_acceptable(password: str, user: User) -> None:
         )
 
 
-async def create_password_reset(session: AsyncSession, *, user: User) -> str:
-    """Issue a single-use reset token. Returns the clear token, stored hashed."""
+PasswordLinkPurpose = Literal["invite", "reset", "admin_reset"]
+
+
+async def create_password_reset(
+    session: AsyncSession, *, user: User, purpose: PasswordLinkPurpose = "reset"
+) -> str:
+    """Issue a single-use reset token and queue its delivery.
+
+    Returns the clear token (stored hashed). An invitation link lives longer
+    than a reset link: a reset is requested by someone waiting at a screen, an
+    invitation is read whenever the new user next opens their email.
+
+    Delivery goes through the outbox (`auth.password_link_issued`), so the
+    email is sent only if this transaction commits. The clear token has to
+    ride in the event payload to reach the email; the worker scrubs it from
+    the stored row as soon as the email is sent (see workers/tasks/outbox.py).
+    """
     token = generate_opaque_token(32)
+    ttl = (
+        timedelta(hours=settings.invite_link_ttl_hours)
+        if purpose == "invite"
+        else timedelta(minutes=settings.password_reset_ttl_minutes)
+    )
+    expires_at = utcnow() + ttl
     session.add(
         PasswordResetToken(
             id=uuid7(),
             user_id=user.id,
             token_hash=hash_token(token),
-            expires_at=utcnow() + timedelta(minutes=settings.password_reset_ttl_minutes),
+            expires_at=expires_at,
             requested_ip=current_context().ip,
         )
+    )
+    await outbox.emit(
+        session,
+        outbox.DomainEvent(
+            event_type="auth.password_link_issued",
+            aggregate_type="User",
+            aggregate_id=user.id,
+            payload={
+                "purpose": purpose,
+                "email": user.email,
+                "full_name": user.full_name,
+                "token": token,
+                "expires_at": expires_at.isoformat(),
+            },
+            company_id=user.company_id,
+        ),
     )
     return token
 

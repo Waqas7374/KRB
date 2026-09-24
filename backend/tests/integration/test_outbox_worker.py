@@ -3,7 +3,7 @@
 `app.workers.tasks.outbox` runs outside any HTTP request: `_drain_once()`
 opens its own sessions via a module-level `SessionFactory` and, in
 production, is invoked once per event loop that `asyncio.run()` spins up on
-every Celery-beat tick — the reason it also disposes the shared engine's pool
+every Celery-beat tick â€” the reason it also disposes the shared engine's pool
 on the way out (see the comment in `outbox.py`): a pooled connection must
 never survive from one tick's loop into the next tick's *different* loop.
 
@@ -48,6 +48,14 @@ def _outbox_uses_the_test_session(db: AsyncSession, monkeypatch: pytest.MonkeyPa
 
     monkeypatch.setattr(outbox, "SessionFactory", _test_factory)
     monkeypatch.setattr(outbox, "dispose_engine", _noop_dispose)
+
+
+@pytest.fixture(autouse=True)
+def sent_emails(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, str]]:
+    """Capture outgoing mail instead of talking to an SMTP server."""
+    sent: list[dict[str, str]] = []
+    monkeypatch.setattr(outbox, "send_email", lambda **kwargs: sent.append(kwargs))
+    return sent
 
 
 async def _role_id(api: AsyncClient, headers: dict[str, str], code: str) -> str:
@@ -128,12 +136,107 @@ class TestDrainProcessesRoleGrantEvents:
         assert "SITE_STAFF" in notifications[0].body
 
 
+class TestPasswordLinksAreDelivered:
+    """Invitations and resets were once only written to a debug log, which
+    meant an invited user could never sign in outside development."""
+
+    async def _link_event(self, db: AsyncSession, user_id: str) -> OutboxEvent:
+        return (
+            await db.execute(
+                select(OutboxEvent).where(
+                    OutboxEvent.event_type == "auth.password_link_issued",
+                    OutboxEvent.aggregate_id == UUID(user_id),
+                )
+            )
+        ).scalar_one()
+
+    async def test_an_invitation_is_emailed_and_the_token_scrubbed(
+        self,
+        api: AsyncClient,
+        login: Any,
+        db: AsyncSession,
+        sent_emails: list[dict[str, str]],
+    ) -> None:
+        admin_headers = await login(ADMIN)
+        invited = (
+            await api.post(
+                "/users",
+                headers=admin_headers,
+                json={"email": "new-hire@krb.example", "full_name": "New Hire"},
+            )
+        ).json()["user"]
+
+        event = await self._link_event(db, invited["id"])
+        token = event.payload["token"]
+        assert event.payload["purpose"] == "invite"
+
+        await outbox._drain_once()
+
+        mail = next(m for m in sent_emails if m["to"] == "new-hire@krb.example")
+        assert "invited" in mail["subject"].lower()
+        assert f"/reset-password?token={token}" in mail["body"]
+
+        await db.refresh(event)
+        assert event.status == OutboxStatus.PROCESSED.value
+        assert "token" not in event.payload
+        assert event.payload["delivered"] is True
+
+        # The emailed link actually works, and activates the invited account.
+        completed = await api.post(
+            "/auth/password/reset",
+            json={"token": token, "new_password": "Orchard-Lantern-Quietly-7"},
+        )
+        assert completed.status_code == 200
+        signed_in = await api.post(
+            "/auth/login",
+            json={"identifier": "new-hire@krb.example", "password": "Orchard-Lantern-Quietly-7"},
+        )
+        assert signed_in.status_code == 200
+        assert signed_in.json()["user"]["status"] == "ACTIVE"
+
+    async def test_forgot_password_emails_a_reset_link(
+        self, api: AsyncClient, db: AsyncSession, sent_emails: list[dict[str, str]]
+    ) -> None:
+        response = await api.post("/auth/password/forgot", json={"identifier": "hr@krb.example"})
+        assert response.status_code == 202
+
+        await outbox._drain_once()
+
+        mail = next(m for m in sent_emails if m["to"] == "hr@krb.example")
+        assert "reset" in mail["subject"].lower()
+        assert "/reset-password?token=" in mail["body"]
+
+    async def test_a_phone_only_user_gets_no_email_but_the_token_is_still_scrubbed(
+        self,
+        api: AsyncClient,
+        login: Any,
+        db: AsyncSession,
+        sent_emails: list[dict[str, str]],
+    ) -> None:
+        admin_headers = await login(ADMIN)
+        invited = (
+            await api.post(
+                "/users",
+                headers=admin_headers,
+                json={"phone": "0300-7654321", "full_name": "Phone Only"},
+            )
+        ).json()["user"]
+
+        await outbox._drain_once()
+
+        event = await self._link_event(db, invited["id"])
+        assert event.status == OutboxStatus.PROCESSED.value
+        assert "token" not in event.payload
+        assert event.payload["delivered"] is False
+        assert all("Phone Only" not in m["body"] for m in sent_emails)
+
+
 class TestDrainHandlesUnregisteredEventTypes:
     async def test_an_event_with_no_handler_is_processed_with_no_notification(
         self, db: AsyncSession
     ) -> None:
         """Most event types (`project.created`, `site.created`, ...) have no
-        handler today — a deliberate gap, not a bug (see the module
+        handler today â€” a deliberate gap, not a bug (see the module
         docstring), so drain must mark them PROCESSED rather than retry
         forever waiting for one to appear."""
         event = _pending_event("project.created")

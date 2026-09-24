@@ -37,7 +37,14 @@ from app.modules.identity.models import User, UserSession
 _bearer = HTTPBearer(auto_error=False, description="Access token from /auth/login")
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
-UowDep = Annotated[UnitOfWork, Depends(get_uow)]
+# scope="function": the unit of work commits when the route function returns,
+# *before* the response is sent. FastAPI's default ("request") runs a yield
+# dependency's exit code after the response has gone out, which meant a
+# client could receive 200/201 for a transaction that had not committed yet —
+# a login followed at once by /auth/me failed ~1 in 15 with "session revoked"
+# because the session row did not exist yet — or that then failed to commit
+# at all, with the client already told it succeeded.
+UowDep = Annotated[UnitOfWork, Depends(get_uow, scope="function")]
 PageDep = Annotated[PageParams, Depends(page_params)]
 
 
@@ -78,7 +85,7 @@ async def get_current_user(
             raise AuthenticationError("Session has been revoked; sign in again")
 
     # Make the actor available to the audit writer and the logger.
-    update_context(user_id=user.id, company_id=user.company_id)
+    update_context(user_id=user.id, company_id=user.company_id, actor_name=user.full_name)
     request.state.user = user
     return user
 
@@ -99,6 +106,7 @@ async def get_access_context(user: CurrentUser, session: SessionDep) -> AccessCo
         permissions_version=user.permissions_version,
         cache=get_redis(),
     )
+    update_context(actor_roles=tuple(sorted(ctx.role_codes)))
     return ctx
 
 

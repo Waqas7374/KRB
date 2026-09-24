@@ -80,6 +80,12 @@ def main() -> int:
         help="Seed only these groups (dependencies are still resolved).",
     )
     parser.add_argument("--list", action="store_true", help="List the groups and exit.")
+    parser.add_argument(
+        "--reset-dev-passwords",
+        action="store_true",
+        help="Reset seeded accounts to the dev password with no forced change "
+        "(end-to-end test setup). Refused in production.",
+    )
     args = parser.parse_args()
 
     if args.list:
@@ -90,6 +96,9 @@ def main() -> int:
     configure_logging()
     import_all_models()
     install_audit_hooks()
+
+    if args.reset_dev_passwords:
+        return _reset_dev_passwords()
 
     groups = tuple(args.only) if args.only else GROUPS
 
@@ -117,6 +126,29 @@ def main() -> int:
             "\nDemo sign-in: admin@krb.example / "
             f"{foundation.DEV_PASSWORD}  (password change required)\n"
         )
+    return 0
+
+
+def _reset_dev_passwords() -> int:
+    from app.core.config import settings
+    from app.core.context import system_context
+
+    if settings.is_production:
+        sys.stderr.write("Refusing to reset passwords in production.\n")
+        return 2
+
+    async def _main() -> SeedResult:
+        with system_context("seed"):
+            try:
+                async with SessionFactory() as session:
+                    company, _ = await foundation.seed_company(session)
+                    result = await foundation.reset_dev_passwords(session, company)
+                    await session.commit()
+                    return result
+            finally:
+                await dispose_engine()
+
+    sys.stdout.write(f"{asyncio.run(_main())}\n")
     return 0
 
 

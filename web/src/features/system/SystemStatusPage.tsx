@@ -27,7 +27,8 @@ export function SystemStatusPage() {
   });
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
+    // A div, not <main>: the page renders inside the shell's <main>.
+    <div className="mx-auto max-w-3xl px-6 py-8">
       <header className="mb-6 flex items-baseline justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">KRB ERP</h1>
@@ -129,11 +130,6 @@ export function SystemStatusPage() {
           <dd className="font-mono">{version.data?.git_sha ?? "—"}</dd>
         </dl>
       </section>
-
-      <p className="mt-10 text-xs" style={{ color: "var(--fg-subtle)" }}>
-        Phase 0 — foundation. ERP modules land from Phase 1; see{" "}
-        <code className="font-mono">docs/10-roadmap.md</code>.
-      </p>
-    </main>
+    </div>
   );
 }

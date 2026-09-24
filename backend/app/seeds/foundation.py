@@ -486,6 +486,33 @@ USERS: tuple[tuple[str, str, str, str, ScopeType, str | None], ...] = (
 )
 
 
+async def reset_dev_passwords(session: AsyncSession, company: Company) -> SeedResult:
+    """Put every seeded account back to DEV_PASSWORD, unlocked, no forced change.
+
+    Exists so browser end-to-end runs are repeatable: `seed_users` protects
+    password fields from reseeding (so an administrator's real password is
+    never clobbered), which means one E2E run's password change would break
+    the next. Refused outright in production by the caller.
+    """
+    result = SeedResult("dev password reset")
+    password_hash = hash_password(DEV_PASSWORD)
+    for email, *_ in USERS:
+        user = (
+            await session.execute(
+                select(User).where(User.company_id == company.id, User.email == email)
+            )
+        ).scalar_one_or_none()
+        if user is None:
+            continue
+        user.password_hash = password_hash
+        user.must_change_password = False
+        user.failed_login_count = 0
+        user.locked_until = None
+        user.status = UserStatus.ACTIVE.value
+        result.updated += 1
+    return result
+
+
 async def seed_users(session: AsyncSession, company: Company) -> SeedResult:
     result = SeedResult("users & grants")
     password_hash = hash_password(DEV_PASSWORD)

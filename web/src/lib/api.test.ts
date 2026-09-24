@@ -1,6 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, NetworkError, api, setAccessToken, setUnauthorizedHandler } from "./api";
+import {
+  __testing,
+  ApiError,
+  NetworkError,
+  api,
+  setAccessToken,
+  setRefreshHandler,
+  setUnauthorizedHandler,
+} from "./api";
 
 function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
@@ -121,5 +129,103 @@ describe("api client", () => {
   it("returns undefined for 204 responses", async () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
     await expect(api.delete("/notifications/1")).resolves.toBeUndefined();
+  });
+});
+
+describe("URL building", () => {
+  it("resolves a relative base URL against the page origin", async () => {
+    // The production image uses VITE_API_BASE_URL=/api/v1; `new URL` with a
+    // relative string and no base throws, so every request failed.
+    vi.stubEnv("VITE_API_BASE_URL", "/api/v1");
+    vi.resetModules();
+    try {
+      const fresh = await import("./api");
+      expect(fresh.__testing.buildUrl("/vendors", { q: "stone" })).toBe(
+        `${window.location.origin}/api/v1/vendors?q=stone`,
+      );
+      expect(fresh.__testing.rootUrl("/ready")).toBe(`${window.location.origin}/ready`);
+    } finally {
+      vi.unstubAllEnvs();
+      vi.resetModules();
+    }
+  });
+
+  it("keeps an absolute base URL as it is", () => {
+    expect(__testing.buildUrl("/vendors")).toMatch(/^https?:\/\/[^/]+\/api\/v1\/vendors$/);
+  });
+
+  it("builds root endpoints (/health, /ready) from the API origin", () => {
+    expect(__testing.rootUrl("/ready")).toMatch(/^https?:\/\/[^/]+\/ready$/);
+  });
+});
+
+describe("token refresh", () => {
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    vi.stubGlobal("fetch", fetchMock);
+    setAccessToken("expired");
+    setUnauthorizedHandler(null);
+  });
+
+  afterEach(() => {
+    fetchMock.mockReset();
+    setRefreshHandler(null);
+    vi.unstubAllGlobals();
+  });
+
+  const unauthorized = () => jsonResponse({ status: 401, title: "Unauthenticated" }, 401);
+
+  it("refreshes once on 401 and retries the original request with the new token", async () => {
+    setRefreshHandler(() => {
+      setAccessToken("fresh");
+      return Promise.resolve(true);
+    });
+    fetchMock.mockResolvedValueOnce(unauthorized()).mockResolvedValueOnce(jsonResponse({ ok: 1 }));
+
+    await expect(api.get("/vendors")).resolves.toEqual({ ok: 1 });
+    const retryHeaders = (fetchMock.mock.calls[1]![1] as RequestInit).headers as Headers;
+    expect(retryHeaders.get("Authorization")).toBe("Bearer fresh");
+  });
+
+  it("makes exactly one refresh call when several requests expire together", async () => {
+    // Refresh tokens rotate with reuse detection: a second concurrent refresh
+    // would present a spent token and revoke the whole session.
+    let refreshes = 0;
+    setRefreshHandler(async () => {
+      refreshes += 1;
+      await new Promise((r) => setTimeout(r, 10));
+      setAccessToken("fresh");
+      return true;
+    });
+    fetchMock.mockImplementation((_url: string, init: RequestInit) => {
+      const auth = (init.headers as Headers).get("Authorization");
+      return Promise.resolve(auth === "Bearer fresh" ? jsonResponse({ ok: 1 }) : unauthorized());
+    });
+
+    await Promise.all([api.get("/a"), api.get("/b"), api.get("/c")]);
+    expect(refreshes).toBe(1);
+  });
+
+  it("signs out when the refresh fails", async () => {
+    const onUnauthorized = vi.fn();
+    setUnauthorizedHandler(onUnauthorized);
+    setRefreshHandler(() => Promise.resolve(false));
+    fetchMock.mockResolvedValue(unauthorized());
+
+    await expect(api.get("/vendors")).rejects.toBeInstanceOf(ApiError);
+    expect(onUnauthorized).toHaveBeenCalledOnce();
+  });
+
+  it("treats a 401 from login as wrong credentials, not an expired session", async () => {
+    const onUnauthorized = vi.fn();
+    const refresh = vi.fn(() => Promise.resolve(true));
+    setUnauthorizedHandler(onUnauthorized);
+    setRefreshHandler(refresh);
+    fetchMock.mockResolvedValue(unauthorized());
+
+    await expect(api.post("/auth/login", {})).rejects.toBeInstanceOf(ApiError);
+    expect(refresh).not.toHaveBeenCalled();
+    expect(onUnauthorized).not.toHaveBeenCalled();
   });
 });

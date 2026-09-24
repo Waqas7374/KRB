@@ -14,6 +14,11 @@ export default defineConfig({
     host: true,
     port: 5173,
     strictPort: true,
+    // Inside Docker on a Windows/macOS host, file changes on the bind mount
+    // do not produce filesystem events in the container, so Vite silently
+    // keeps serving stale modules. docker-compose sets VITE_WATCH_POLLING=1
+    // for the web service; a native `npm run dev` keeps event-based watching.
+    watch: process.env.VITE_WATCH_POLLING === "1" ? { usePolling: true, interval: 300 } : undefined,
   },
   build: {
     sourcemap: true,

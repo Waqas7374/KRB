@@ -15,6 +15,7 @@ from uuid import UUID
 from fastapi import APIRouter, Query, status
 
 from app.api.deps import CurrentUser, SessionDep, UowDep, require
+from app.modules.notifications.domain.enums import NotificationChannel, NotificationType
 from app.modules.notifications.schemas import (
     NotificationInbox,
     NotificationRead,
@@ -68,8 +69,24 @@ async def mark_all_read(user: CurrentUser, uow: UowDep) -> None:
 
 @router.get("/preferences", response_model=list[PreferenceRead], summary="Your channel preferences")
 async def get_preferences(user: CurrentUser, session: SessionDep) -> list[PreferenceRead]:
+    """Every notification type x every implemented channel, with defaults filled in.
+
+    Only explicit choices are stored (absence means enabled — see
+    `is_channel_enabled`), so returning just the stored rows would leave a
+    client unable to render the settings screen without its own copy of the
+    type catalogue, which would drift from the enum.
+    """
     rows = await notification_service.get_preferences(session, user_id=user.id)
-    return [PreferenceRead.model_validate(r) for r in rows]
+    stored = {(r.notification_type, r.channel): r.is_enabled for r in rows}
+    return [
+        PreferenceRead(
+            notification_type=kind.value,
+            channel=channel.value,
+            is_enabled=stored.get((kind.value, channel.value), True),
+        )
+        for kind in NotificationType
+        for channel in (NotificationChannel.IN_APP, NotificationChannel.EMAIL)
+    ]
 
 
 @router.put(

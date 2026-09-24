@@ -29,6 +29,10 @@ class RequestContext:
     app_version: str | None = None
     # Set for work performed by a background worker rather than a user request.
     actor_label: str | None = None
+    # Snapshot of who the actor was at the time, copied onto every audit row
+    # so the trail still reads correctly after a rename or a role change.
+    actor_name: str | None = None
+    actor_roles: tuple[str, ...] | None = None
 
     @property
     def is_system(self) -> bool:

@@ -227,6 +227,11 @@ class TestAuditAndEvents:
         assert rows[0].entity_label == "VEN-00011"
         assert rows[0].actor_user_id is not None
         assert "legal_name" in (rows[0].changed_fields or [])
+        # A snapshot of who acted, so the trail still reads correctly after a
+        # rename or role change. These columns existed but were never filled
+        # in until the browser E2E suite looked at the audit row.
+        assert rows[0].actor_name == "Ahmed Raza"
+        assert rows[0].actor_roles == ["PROCUREMENT_MANAGER"]
 
     async def test_no_audit_row_lacks_its_entity_id(self, db: AsyncSession) -> None:
         """A regression guard over the whole seeded dataset."""
@@ -257,6 +262,9 @@ class TestAuditAndEvents:
         assert row.summary is not None
         assert "DRAFT -> ACTIVE" in row.summary
         assert "Site trial completed" in row.summary
+        # Explicit record() entries carry the same actor snapshot as diffs.
+        assert row.actor_name == "Ahmed Raza"
+        assert row.actor_roles == ["PROCUREMENT_MANAGER"]
         assert row.old_values == {"status": "DRAFT"}
 
     async def test_events_are_queued_in_the_outbox(

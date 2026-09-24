@@ -126,6 +126,8 @@ def build_rows_for_flush(session: Session) -> list[dict[str, Any]]:
             "id": uuid7(),
             "company_id": _dimension(instance, "company_id"),
             "actor_user_id": ctx.user_id,
+            "actor_name": ctx.actor_name,
+            "actor_roles": list(ctx.actor_roles) if ctx.actor_roles else None,
             "actor_label": ctx.actor_label,
             "action": action.value,
             "entity_type": type(instance).__name__,
@@ -228,10 +230,16 @@ async def record(
     as a sentence — "Crush / Shree Stone: 48.0000 -> 52.0000 effective 12 Aug".
     """
     ctx = current_context()
+    # The context's name/roles describe the request's user; they only apply
+    # when the entry is about that same actor (a login passes its own id
+    # before any request user exists).
+    same_actor = actor_user_id is None or actor_user_id == ctx.user_id
     entry = AuditLog(
         id=uuid7(),
         company_id=company_id or ctx.company_id,
         actor_user_id=actor_user_id or ctx.user_id,
+        actor_name=ctx.actor_name if same_actor else None,
+        actor_roles=list(ctx.actor_roles) if same_actor and ctx.actor_roles else None,
         actor_label=ctx.actor_label,
         action=action.value,
         entity_type=entity_type,

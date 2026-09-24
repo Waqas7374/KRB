@@ -29,6 +29,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.context import system_context
 from app.core.db import SessionFactory, dispose_engine
 from app.core.logging import get_logger
@@ -37,6 +38,7 @@ from app.modules.notifications.domain.enums import NotificationPriority, Notific
 from app.modules.notifications.services import notification_service
 from app.modules.vendors.services import vendor_service
 from app.platform.domain.enums import OutboxStatus
+from app.platform.mailer import send_email
 from app.platform.models import OutboxEvent
 from app.platform.outbox import MAX_ATTEMPTS, next_attempt_delay
 from app.workers.celery_app import celery_app
@@ -62,6 +64,58 @@ def handler(event_type: str) -> Callable[[Handler], Handler]:
 # -----------------------------------------------------------------------------
 # Handlers
 # -----------------------------------------------------------------------------
+
+
+_LINK_COPY = {
+    "invite": (
+        "You have been invited to KRB ERP",
+        "An account has been created for you. Open this link to choose your password",
+    ),
+    "reset": (
+        "Reset your KRB ERP password",
+        "Someone (hopefully you) asked to reset your password. Open this link to choose a new one",
+    ),
+    "admin_reset": (
+        "Your KRB ERP password was reset",
+        "An administrator reset your password. Open this link to choose a new one",
+    ),
+}
+
+
+@handler("auth.password_link_issued")
+async def _email_password_link(session: AsyncSession, event: OutboxEvent) -> None:
+    """Email an invitation or password-reset link, then scrub the token.
+
+    The clear token has to be in the payload to reach the email, but it must
+    not sit in the outbox table afterwards: anyone who can read that table
+    could otherwise use it. It is removed in the same transaction that marks
+    the event PROCESSED. If sending keeps failing the token stays until the
+    event is DEAD — by then the link has expired anyway (30 minutes for a
+    reset, `invite_link_ttl_hours` for an invite).
+
+    Phone-only accounts (site staff) get no email; SMS delivery is deferred
+    (docs/10 backlog), so an administrator must relay the reset for them.
+    """
+    payload = dict(event.payload)
+    token = payload.get("token")
+    email = payload.get("email")
+    if not token:
+        return  # already scrubbed: a redelivery after a successful send
+    if email:
+        subject, lead = _LINK_COPY.get(str(payload.get("purpose")), _LINK_COPY["reset"])
+        link = f"{settings.web_base_url.rstrip('/')}/reset-password?token={token}"
+        body = (
+            f"Hello {payload.get('full_name', '')},\n\n{lead}:\n\n{link}\n\n"
+            f"The link can be used once and expires at {payload.get('expires_at')} (UTC).\n"
+            "If you did not expect this email, you can ignore it.\n"
+        )
+        # smtplib is blocking; keep it off the event loop.
+        await asyncio.to_thread(send_email, to=str(email), subject=subject, body=body)
+    else:
+        log.warning("outbox.password_link_no_email", user_id=str(event.aggregate_id))
+    payload.pop("token", None)
+    payload["delivered"] = bool(email)
+    event.payload = payload
 
 
 @handler("user.role_granted")

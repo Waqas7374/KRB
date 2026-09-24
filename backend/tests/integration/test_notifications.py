@@ -186,3 +186,21 @@ class TestPreferences:
             and p["channel"] == "EMAIL"
         )
         assert match["is_enabled"] is False
+
+    async def test_preferences_list_every_type_with_defaults_filled_in(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        """Only explicit choices are stored; the settings screen still needs the
+        whole matrix, with untouched combinations shown as enabled."""
+        headers = await login(ADMIN)
+        body = (await api.get("/notifications/preferences", headers=headers)).json()
+
+        pairs = {(p["notification_type"], p["channel"]) for p in body}
+        assert pairs == {(t.value, c) for t in NotificationType for c in ("IN_APP", "EMAIL")}
+        untouched = next(
+            p
+            for p in body
+            if p["notification_type"] == NotificationType.LEAVE_APPROVED.value
+            and p["channel"] == "IN_APP"
+        )
+        assert untouched["is_enabled"] is True

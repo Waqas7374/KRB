@@ -33,9 +33,7 @@ async def _seeded_vendor_id(api: AsyncClient, headers: dict[str, str]) -> str:
 
 
 class TestPresignValidation:
-    async def test_rejects_an_unsupported_content_type(
-        self, api: AsyncClient, login: Any
-    ) -> None:
+    async def test_rejects_an_unsupported_content_type(self, api: AsyncClient, login: Any) -> None:
         headers = await login(PROCUREMENT)
         vendor_id = await _seeded_vendor_id(api, headers)
 
@@ -153,9 +151,7 @@ class TestAttachmentLifecycle:
         ).json()
         assert any(a["id"] == attachment_id for a in listing)
 
-        download = (
-            await api.get(f"/attachments/{attachment_id}/download", headers=headers)
-        ).json()
+        download = (await api.get(f"/attachments/{attachment_id}/download", headers=headers)).json()
         async with httpx.AsyncClient() as raw:
             fetched = await raw.get(download["url"])
         assert fetched.status_code == 200

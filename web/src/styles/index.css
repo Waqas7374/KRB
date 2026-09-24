@@ -24,6 +24,32 @@
   --radius-lg: 8px;
 }
 
+/* Expose the runtime tokens as Tailwind colours (bg-surface, text-fg-muted,
+   border-border ...). `inline` makes the utilities reference the variables,
+   so the dark theme switches without regenerating any CSS. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --color-primary-hover: var(--primary-hover);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-row-hover: var(--row-hover);
+}
+
 :root {
   --bg: hsl(0 0% 100%);
   --surface: hsl(210 20% 98%);
@@ -48,6 +74,8 @@
   --info-bg: hsl(205 80% 96%);
 
   --focus-ring: hsl(221 80% 52%);
+  --row-hover: hsl(214 30% 96%);
+  --shadow-float: 0 8px 24px hsl(222 30% 12% / 0.12), 0 1px 3px hsl(222 30% 12% / 0.08);
 
   color-scheme: light;
 }
@@ -77,6 +105,8 @@
     --info-bg: hsl(205 40% 17%);
 
     --focus-ring: hsl(217 90% 66%);
+    --row-hover: hsl(222 18% 16%);
+    --shadow-float: 0 8px 24px hsl(0 0% 0% / 0.45), 0 1px 3px hsl(0 0% 0% / 0.3);
 
     color-scheme: dark;
   }
@@ -103,6 +133,8 @@
   --info: hsl(205 75% 65%);
   --info-bg: hsl(205 40% 17%);
   --focus-ring: hsl(217 90% 66%);
+  --row-hover: hsl(222 18% 16%);
+  --shadow-float: 0 8px 24px hsl(0 0% 0% / 0.45), 0 1px 3px hsl(0 0% 0% / 0.3);
   color-scheme: dark;
 }
 

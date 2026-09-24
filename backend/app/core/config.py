@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     access_token_ttl_minutes: int = Field(default=15, ge=1, le=1440)
     refresh_token_ttl_days: int = Field(default=30, ge=1, le=365)
     password_reset_ttl_minutes: int = Field(default=30, ge=5, le=1440)
+    invite_link_ttl_hours: int = Field(default=72, ge=1, le=336)
     max_failed_logins: int = Field(default=5, ge=1)
     lockout_minutes: int = Field(default=15, ge=1)
     argon2_time_cost: int = Field(default=3, ge=1)
@@ -93,6 +94,9 @@ class Settings(BaseSettings):
     smtp_tls: bool = False
     mail_from: str = "no-reply@krb-erp.local"
     mail_from_name: str = "KRB ERP"
+    # Where emailed links (invitations, password resets) point. Must be the
+    # browser-facing origin of the web app, not the API.
+    web_base_url: str = "http://localhost:5173"
 
     # --- Rate limiting -------------------------------------------------------
     rate_limit_enabled: bool = True

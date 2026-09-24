@@ -104,6 +104,8 @@ export interface RequestOptions extends Omit<RequestInit, "body"> {
 
 let accessToken: string | null = null;
 let onUnauthorized: (() => void) | null = null;
+let refreshHandler: (() => Promise<boolean>) | null = null;
+let refreshInFlight: Promise<boolean> | null = null;
 
 export function setAccessToken(token: string | null): void {
   accessToken = token;
@@ -113,9 +115,48 @@ export function setUnauthorizedHandler(handler: (() => void) | null): void {
   onUnauthorized = handler;
 }
 
+/**
+ * Registers the function that obtains a new access token. It resolves `true`
+ * when a new token has been set. The client calls it on a 401 and retries the
+ * original request once.
+ */
+export function setRefreshHandler(handler: (() => Promise<boolean>) | null): void {
+  refreshHandler = handler;
+}
+
+/**
+ * Single-flight: when five queries hit an expired token at once, exactly one
+ * refresh request is made. Refresh tokens rotate with reuse detection on the
+ * server, so a second concurrent refresh would present an already-spent token
+ * and revoke the whole session chain.
+ */
+function refreshOnce(): Promise<boolean> {
+  if (!refreshHandler) return Promise.resolve(false);
+  refreshInFlight ??= refreshHandler()
+    .catch(() => false)
+    .finally(() => {
+      refreshInFlight = null;
+    });
+  return refreshInFlight;
+}
+
+/** Endpoints where a 401 means "wrong credentials", not "token expired". */
+const NO_REFRESH_PATHS = ["/auth/login", "/auth/refresh", "/auth/password/"];
+
+/**
+ * The page's origin, used to resolve a relative VITE_API_BASE_URL. The
+ * production image is built with `/api/v1` (API behind the same origin), and
+ * `new URL("/api/v1/...")` without a base throws — which once meant the
+ * production build could not make a single request.
+ */
+function pageOrigin(): string {
+  return typeof window === "undefined" ? "http://localhost" : window.location.origin;
+}
+
 function buildUrl(path: string, query?: RequestOptions["query"]): string {
   const url = new URL(
     path.startsWith("http") ? path : `${BASE_URL}${path.startsWith("/") ? path : `/${path}`}`,
+    pageOrigin(),
   );
   if (query) {
     for (const [key, value] of Object.entries(query)) {
@@ -150,6 +191,10 @@ async function parseProblem(response: Response): Promise<ProblemDocument> {
 }
 
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return send<T>(path, options, true);
+}
+
+async function send<T>(path: string, options: RequestOptions, mayRefresh: boolean): Promise<T> {
   const { query, body, idempotencyKey, ifMatch, headers, ...init } = options;
 
   const requestHeaders = new Headers(headers);
@@ -172,7 +217,13 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   }
 
   if (response.status === 401) {
-    onUnauthorized?.();
+    const refreshable = mayRefresh && !NO_REFRESH_PATHS.some((p) => path.startsWith(p));
+    // Retry once with a fresh token. The retried request reuses the same
+    // idempotency key, so a POST that did land cannot be applied twice.
+    if (refreshable && (await refreshOnce())) {
+      return send<T>(path, options, false);
+    }
+    if (refreshable || !mayRefresh) onUnauthorized?.();
   }
 
   if (!response.ok) {
@@ -241,6 +292,9 @@ export const systemApi = {
 };
 
 function rootUrl(path: string): string {
-  const base = new URL(BASE_URL);
+  const base = new URL(BASE_URL, pageOrigin());
   return `${base.origin}${path}`;
 }
+
+/** Exposed for tests only. */
+export const __testing = { buildUrl, rootUrl };

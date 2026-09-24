@@ -3,12 +3,11 @@
 Backend completed 2026-09-24. Deliverable format per §49 of the brief, mirroring
 [13-phase-0-delivery](13-phase-0-delivery.md).
 
-**Status: backend scope complete and verified live. Frontend scope not started —
-see "What is not done" below.** [10-roadmap](10-roadmap.md)'s Phase 1 "done when"
-criterion ("creating a vendor in the browser...") is therefore not yet met; the
-API-level equivalent (creating a vendor through the API, with an audit entry, an
-Auditor who can read but not write it) is met and covered by
-`tests/integration/test_vendors.py`.
+**Status: backend scope complete and verified live. The frontend was delivered
+afterwards — see [15-phase-1-frontend-delivery](15-phase-1-frontend-delivery.md),
+which also records five further backend bugs found while building it.** The
+roadmap's Phase 1 "done when" criterion is now met in the browser and covered
+by `e2e/tests/phase1-done-when.spec.ts`.
 
 ---
 
@@ -96,11 +95,7 @@ this code is untested:
 
 ## What is not done
 
-- **Frontend**: still only the Phase-0 `SystemStatusPage`. No CRUD screens exist
-  yet for projects, sites, users/roles, materials/units, or vendors, despite
-  these being in Phase 1's roadmap scope. This is the largest gap against the
-  roadmap's own Phase 1 definition and should be the next thing picked up if the
-  priority is a usable browser UI rather than continuing backend phases.
+- ~~**Frontend**~~ — done; see [15-phase-1-frontend-delivery](15-phase-1-frontend-delivery.md).
 - **CSV import for master data** — explicitly deferred by the user ("N-3:
   alright") until real master data is supplied. No action pending on this side.
 - Document numbering (`platform/numbering.py`) exists and is tested but has no
