@@ -104,6 +104,19 @@ const PurchaseRequestsListPage = page(pr, "PurchaseRequestsListPage");
 const PurchaseRequestFormPage = page(pr, "PurchaseRequestFormPage");
 const PurchaseRequestDetailPage = page(pr, "PurchaseRequestDetailPage");
 
+const rfqPages = () => import("@/features/procurement/RfqPages");
+const RfqsListPage = page(rfqPages, "RfqsListPage");
+const RfqFormPage = page(rfqPages, "RfqFormPage");
+const RfqDetailPage = page(rfqPages, "RfqDetailPage");
+const quotationPages = () => import("@/features/procurement/QuotationPages");
+const QuotationFormPage = page(quotationPages, "QuotationFormPage");
+const QuotationDetailPage = page(quotationPages, "QuotationDetailPage");
+const ComparisonPage = page(quotationPages, "ComparisonPage");
+const poPages = () => import("@/features/procurement/PurchaseOrderPages");
+const PurchaseOrdersListPage = page(poPages, "PurchaseOrdersListPage");
+const PurchaseOrderFormPage = page(poPages, "PurchaseOrderFormPage");
+const PurchaseOrderDetailPage = page(poPages, "PurchaseOrderDetailPage");
+
 const gate = (permission: string, element: ReactNode) => (
   <RequirePermission permission={permission}>{element}</RequirePermission>
 );
@@ -163,6 +176,40 @@ export const router = createBrowserRouter([
       {
         path: "purchase-requests/:requestId/edit",
         element: gate("procurement.pr.create", <PurchaseRequestFormPage />),
+      },
+
+      { path: "rfqs", element: gate("procurement.rfq.view", <RfqsListPage />) },
+      { path: "rfqs/new", element: gate("procurement.rfq.create", <RfqFormPage />) },
+      { path: "rfqs/:rfqId", element: gate("procurement.rfq.view", <RfqDetailPage />) },
+      { path: "rfqs/:rfqId/edit", element: gate("procurement.rfq.create", <RfqFormPage />) },
+      {
+        path: "rfqs/:rfqId/comparison",
+        element: gate("procurement.quotation.view", <ComparisonPage />),
+      },
+      {
+        path: "rfqs/:rfqId/quotations/new",
+        element: gate("procurement.quotation.record", <QuotationFormPage />),
+      },
+      {
+        path: "quotations/:quotationId",
+        element: gate("procurement.quotation.view", <QuotationDetailPage />),
+      },
+      {
+        path: "quotations/:quotationId/edit",
+        element: gate("procurement.quotation.record", <QuotationFormPage />),
+      },
+      { path: "purchase-orders", element: gate("procurement.po.view", <PurchaseOrdersListPage />) },
+      {
+        path: "purchase-orders/new",
+        element: gate("procurement.po.create", <PurchaseOrderFormPage />),
+      },
+      {
+        path: "purchase-orders/:poId",
+        element: gate("procurement.po.view", <PurchaseOrderDetailPage />),
+      },
+      {
+        path: "purchase-orders/:poId/edit",
+        element: gate("procurement.po.create", <PurchaseOrderFormPage />),
       },
 
       { path: "vendors", element: gate("vendors.view", <VendorsListPage />) },

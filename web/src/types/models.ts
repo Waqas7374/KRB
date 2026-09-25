@@ -96,6 +96,21 @@ export type PurchaseRequestRead = S["PurchaseRequestRead"];
 export type PurchaseRequestItemRead = S["PurchaseRequestItemRead"];
 export type PurchaseRequestCreate = S["PurchaseRequestCreate"];
 
+export type RfqListItem = S["RfqListItem"];
+export type RfqRead = S["RfqRead"];
+export type RfqItemRead = S["RfqItemRead"];
+export type RfqVendorRead = S["RfqVendorRead"];
+export type QuotationListItem = S["QuotationListItem"];
+export type QuotationRead = S["QuotationRead"];
+export type QuotationItemRead = S["QuotationItemRead"];
+export type ComparisonRead = S["ComparisonRead"];
+export type ComparisonColumnRead = S["ComparisonColumnRead"];
+export type ComparisonRowRead = S["ComparisonRowRead"];
+export type ComparisonCellRead = S["ComparisonCellRead"];
+export type PurchaseOrderListItem = S["PurchaseOrderListItem"];
+export type PurchaseOrderRead = S["PurchaseOrderRead"];
+export type PurchaseOrderItemRead = S["PurchaseOrderItemRead"];
+
 export type ApprovalRequestRead = S["RequestRead"];
 export type ApprovalStepRead = S["RequestStepRead"];
 export type ApprovalActionRead = S["ActionRead"];

@@ -2,7 +2,8 @@
 
 Delivered 2026-09-25 (backend and frontend). Phase 2 in [10-roadmap](10-roadmap.md)
 is **not finished**: this is the approval engine plus its first consumer. RFQs,
-quotations, purchase orders, and the budget commitment are still to build —
+quotations and purchase orders followed in part 2
+([17](17-phase-2-delivery-part-2.md)); the budget commitment is still to build —
 see "Still to do" below.
 
 **Done-when, as far as it goes:** the §25 three-tier purchase-request chain
@@ -72,9 +73,9 @@ describe it. Covered by `test_changes_requested_then_a_bigger_edit_is_routed_afr
 
 ## Still to do in Phase 2
 
-- RFQs and vendor invitation; quotations and the side-by-side comparison with a
-  mandatory selection reason; purchase orders, amendments, PDF; the PO → PR
-  sourcing loop (`sourced_quantity` exists and is not yet written).
+- ~~RFQs, quotations, comparison, purchase orders, amendments, the PO → PR sourcing
+  loop~~ — delivered in [17](17-phase-2-delivery-part-2.md). Purchase-order **PDF** is
+  still open.
 - Budget commitments on PO approval (the budget tables themselves are Phase 4).
 - **`approvals.remind`** (reminders at 50 % / 90 % of SLA) and
   **`approvals.reconcile`** (nightly integrity alarm). Escalation is built;

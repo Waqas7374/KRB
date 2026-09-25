@@ -1466,6 +1466,436 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/rfqs": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Rfqs */
+    get: operations["list_rfqs_api_v1_rfqs_get"];
+    put?: never;
+    /** Draft an RFQ, usually from an approved purchase request */
+    post: operations["create_rfq_api_v1_rfqs_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/rfqs/{rfq_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Rfq */
+    get: operations["get_rfq_api_v1_rfqs__rfq_id__get"];
+    /** Replace a draft RFQ's content */
+    put: operations["update_rfq_api_v1_rfqs__rfq_id__put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/rfqs/{rfq_id}/vendors": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Invite more vendors (active vendors only) */
+    post: operations["invite_vendors_api_v1_rfqs__rfq_id__vendors_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/rfqs/{rfq_id}/vendors/{rfq_vendor_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Withdraw an invitation (draft RFQs only) */
+    delete: operations["remove_vendor_api_v1_rfqs__rfq_id__vendors__rfq_vendor_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/rfqs/{rfq_id}/vendors/{rfq_vendor_id}/decline": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Record that an invited vendor declined to quote */
+    post: operations["decline_vendor_api_v1_rfqs__rfq_id__vendors__rfq_vendor_id__decline_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/rfqs/{rfq_id}/issue": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Issue the RFQ to its invited vendors */
+    post: operations["issue_rfq_api_v1_rfqs__rfq_id__issue_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/rfqs/{rfq_id}/close": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Close Rfq */
+    post: operations["close_rfq_api_v1_rfqs__rfq_id__close_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/rfqs/{rfq_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Cancel Rfq */
+    post: operations["cancel_rfq_api_v1_rfqs__rfq_id__cancel_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/rfqs/{rfq_id}/comparison": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Vendors side by side, line by line */
+    get: operations["comparison_api_v1_rfqs__rfq_id__comparison_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/rfqs/{rfq_id}/quotations": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Record a quotation received from an invited vendor */
+    post: operations["record_quotation_api_v1_rfqs__rfq_id__quotations_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/quotations": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Quotations */
+    get: operations["list_quotations_api_v1_quotations_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/quotations/{quotation_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Quotation */
+    get: operations["get_quotation_api_v1_quotations__quotation_id__get"];
+    /** Correct a received quotation (before it is selected) */
+    put: operations["update_quotation_api_v1_quotations__quotation_id__put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/quotations/{quotation_id}/shortlist": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Shortlist Quotation */
+    post: operations["shortlist_quotation_api_v1_quotations__quotation_id__shortlist_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/quotations/{quotation_id}/reject": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Reject Quotation */
+    post: operations["reject_quotation_api_v1_quotations__quotation_id__reject_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/quotations/{quotation_id}/select": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Choose the winning quotation. A reason is mandatory. */
+    post: operations["select_quotation_api_v1_quotations__quotation_id__select_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/quotations/{quotation_id}/withdraw-selection": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Withdraw Selection */
+    post: operations["withdraw_selection_api_v1_quotations__quotation_id__withdraw_selection_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/purchase-orders": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Orders */
+    get: operations["list_orders_api_v1_purchase_orders_get"];
+    put?: never;
+    /** Raise a purchase order without an RFQ (starts as a draft) */
+    post: operations["create_order_api_v1_purchase_orders_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/purchase-orders/from-quotation/{quotation_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Raise a draft order from the selected quotation */
+    post: operations["create_from_quotation_api_v1_purchase_orders_from_quotation__quotation_id__post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/purchase-orders/{po_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Order */
+    get: operations["get_order_api_v1_purchase_orders__po_id__get"];
+    /** Replace a draft, rejected or returned order's content */
+    put: operations["update_order_api_v1_purchase_orders__po_id__put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/purchase-orders/{po_id}/submit": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Submit for approval — routed by the active purchase-order workflow */
+    post: operations["submit_order_api_v1_purchase_orders__po_id__submit_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/purchase-orders/{po_id}/amend": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Reopen an approved order for change; it must be approved again */
+    post: operations["amend_order_api_v1_purchase_orders__po_id__amend_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/purchase-orders/{po_id}/send": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Send Order */
+    post: operations["send_order_api_v1_purchase_orders__po_id__send_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/purchase-orders/{po_id}/acknowledge": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Record that the vendor confirmed the order */
+    post: operations["acknowledge_order_api_v1_purchase_orders__po_id__acknowledge_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/purchase-orders/{po_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Cancel Order */
+    post: operations["cancel_order_api_v1_purchase_orders__po_id__cancel_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/purchase-orders/{po_id}/close": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** End an order that was sent; unreceived quantity returns to the request */
+    post: operations["close_order_api_v1_purchase_orders__po_id__close_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1759,6 +2189,130 @@ export interface components {
       locale: string;
       /** Fiscal Year Start Month */
       fiscal_year_start_month: number;
+    };
+    /** ComparisonCellRead */
+    ComparisonCellRead: {
+      /**
+       * Quotation Id
+       * Format: uuid
+       */
+      quotation_id: string;
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Quantity */
+      quantity: string;
+      /** Rate */
+      rate: string;
+      /** Discount Pct */
+      discount_pct: string;
+      /** Tax Pct */
+      tax_pct: string;
+      /** Net Rate */
+      net_rate: string;
+      /** Line Total */
+      line_total: string;
+      /** Delivery Days */
+      delivery_days: number | null;
+      /** Remarks */
+      remarks: string | null;
+      /** Is Lowest */
+      is_lowest: boolean;
+      /** Is Partial */
+      is_partial: boolean;
+    };
+    /** ComparisonColumnRead */
+    ComparisonColumnRead: {
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Vendor Name */
+      vendor_name?: string | null;
+      /**
+       * Rfq Vendor Id
+       * Format: uuid
+       */
+      rfq_vendor_id: string;
+      /** Invitation Status */
+      invitation_status: string;
+      /** Quotation Id */
+      quotation_id: string | null;
+      /** Quotation Number */
+      quotation_number: string | null;
+      /** Quotation Status */
+      quotation_status: string | null;
+      /** Delivery Days */
+      delivery_days: number | null;
+      /** Payment Terms */
+      payment_terms: string | null;
+      /** Valid Until */
+      valid_until: string | null;
+      /** Total Amount */
+      total_amount: string | null;
+      /** Lines Quoted */
+      lines_quoted: number;
+      /** Covers All */
+      covers_all: boolean;
+      /** Is Lowest Total */
+      is_lowest_total: boolean;
+      /** Selection Reason */
+      selection_reason?: string | null;
+    };
+    /** ComparisonRead */
+    ComparisonRead: {
+      /**
+       * Rfq Id
+       * Format: uuid
+       */
+      rfq_id: string;
+      /** Rfq Number */
+      rfq_number: string;
+      /** Rfq Status */
+      rfq_status: string;
+      /** Currency Code */
+      currency_code: string;
+      /** Columns */
+      columns: components["schemas"]["ComparisonColumnRead"][];
+      /** Rows */
+      rows: components["schemas"]["ComparisonRowRead"][];
+      /**
+       * Can Select
+       * @default false
+       */
+      can_select: boolean;
+    };
+    /** ComparisonRowRead */
+    ComparisonRowRead: {
+      /**
+       * Rfq Item Id
+       * Format: uuid
+       */
+      rfq_item_id: string;
+      /** Line No */
+      line_no: number;
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Material Sku */
+      material_sku?: string | null;
+      /** Material Name */
+      material_name?: string | null;
+      /** Quantity */
+      quantity: string;
+      /** Unit Code */
+      unit_code?: string | null;
+      /** Estimated Rate */
+      estimated_rate: string | null;
+      /** Cells */
+      cells: {
+        [key: string]: components["schemas"]["ComparisonCellRead"];
+      };
     };
     /** ConversionCreate */
     ConversionCreate: {
@@ -2669,10 +3223,40 @@ export interface components {
         [key: string]: unknown;
       };
     };
+    /** Page[PurchaseOrderListItem] */
+    Page_PurchaseOrderListItem_: {
+      /** Items */
+      items: components["schemas"]["PurchaseOrderListItem"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
     /** Page[PurchaseRequestListItem] */
     Page_PurchaseRequestListItem_: {
       /** Items */
       items: components["schemas"]["PurchaseRequestListItem"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
+    /** Page[QuotationListItem] */
+    Page_QuotationListItem_: {
+      /** Items */
+      items: components["schemas"]["QuotationListItem"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
+    /** Page[RfqListItem] */
+    Page_RfqListItem_: {
+      /** Items */
+      items: components["schemas"]["RfqListItem"][];
       page: components["schemas"]["PageMeta"];
       /** Meta */
       meta?: {
@@ -3119,6 +3703,313 @@ export interface components {
       /** Require Po For Delivery */
       require_po_for_delivery?: boolean | null;
     };
+    /** PurchaseOrderItemIn */
+    PurchaseOrderItemIn: {
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Quantity */
+      quantity: number | string;
+      /**
+       * Unit Id
+       * Format: uuid
+       */
+      unit_id: string;
+      /** Rate */
+      rate: number | string;
+      /**
+       * Discount Pct
+       * @default 0
+       */
+      discount_pct: number | string;
+      /**
+       * Tax Pct
+       * @default 0
+       */
+      tax_pct: number | string;
+      /** Description */
+      description?: string | null;
+      /** Pr Item Id */
+      pr_item_id?: string | null;
+    };
+    /** PurchaseOrderItemRead */
+    PurchaseOrderItemRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Line No */
+      line_no: number;
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Material Sku */
+      material_sku?: string | null;
+      /** Material Name */
+      material_name?: string | null;
+      /** Description */
+      description: string | null;
+      /** Quantity */
+      quantity: string;
+      /**
+       * Unit Id
+       * Format: uuid
+       */
+      unit_id: string;
+      /** Unit Code */
+      unit_code?: string | null;
+      /** Rate */
+      rate?: string | null;
+      /** Discount Pct */
+      discount_pct?: string | null;
+      /** Tax Pct */
+      tax_pct?: string | null;
+      /** Tax Amount */
+      tax_amount?: string | null;
+      /** Line Total */
+      line_total?: string | null;
+      /** Received Quantity */
+      received_quantity: string;
+      /** Accepted Quantity */
+      accepted_quantity: string;
+      /** Invoiced Quantity */
+      invoiced_quantity: string;
+      /** Pr Item Id */
+      pr_item_id: string | null;
+      /** Pr Number */
+      pr_number?: string | null;
+    };
+    /** PurchaseOrderListItem */
+    PurchaseOrderListItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Po Number */
+      po_number: string;
+      /** Revision */
+      revision: number;
+      /** Status */
+      status: string;
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Vendor Name */
+      vendor_name?: string | null;
+      /**
+       * Project Id
+       * Format: uuid
+       */
+      project_id: string;
+      /** Project Code */
+      project_code?: string | null;
+      /** Site Id */
+      site_id: string | null;
+      /** Site Code */
+      site_code?: string | null;
+      /**
+       * Po Date
+       * Format: date
+       */
+      po_date: string;
+      /** Expected Delivery Date */
+      expected_delivery_date: string | null;
+      /** Total Amount */
+      total_amount?: string | null;
+      /** Currency Code */
+      currency_code: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /** PurchaseOrderRead */
+    PurchaseOrderRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Po Number */
+      po_number: string;
+      /** Revision */
+      revision: number;
+      /** Amendment Reason */
+      amendment_reason: string | null;
+      /** Status */
+      status: string;
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Vendor Code */
+      vendor_code?: string | null;
+      /** Vendor Name */
+      vendor_name?: string | null;
+      /**
+       * Project Id
+       * Format: uuid
+       */
+      project_id: string;
+      /** Project Code */
+      project_code?: string | null;
+      /** Project Name */
+      project_name?: string | null;
+      /** Site Id */
+      site_id: string | null;
+      /** Site Code */
+      site_code?: string | null;
+      /** Site Name */
+      site_name?: string | null;
+      /** Phase Id */
+      phase_id: string | null;
+      /** Cost Center Id */
+      cost_center_id: string | null;
+      /** Quotation Id */
+      quotation_id: string | null;
+      /** Quotation Number */
+      quotation_number?: string | null;
+      /** Rfq Id */
+      rfq_id?: string | null;
+      /** Rfq Number */
+      rfq_number?: string | null;
+      /**
+       * Po Date
+       * Format: date
+       */
+      po_date: string;
+      /** Expected Delivery Date */
+      expected_delivery_date: string | null;
+      /** Delivery Address */
+      delivery_address: string | null;
+      /** Payment Terms */
+      payment_terms: string | null;
+      /** Terms And Conditions */
+      terms_and_conditions: string | null;
+      /** Currency Code */
+      currency_code: string;
+      /** Subtotal */
+      subtotal?: string | null;
+      /** Discount Amount */
+      discount_amount?: string | null;
+      /** Tax Amount */
+      tax_amount?: string | null;
+      /** Total Amount */
+      total_amount?: string | null;
+      /**
+       * Prices Hidden
+       * @default false
+       */
+      prices_hidden: boolean;
+      /** Submitted At */
+      submitted_at: string | null;
+      /** Approved At */
+      approved_at: string | null;
+      /** Decision Reason */
+      decision_reason: string | null;
+      /** Approval Request Id */
+      approval_request_id: string | null;
+      /** Sent At */
+      sent_at: string | null;
+      /** Acknowledged At */
+      acknowledged_at: string | null;
+      /** Closed At */
+      closed_at: string | null;
+      /** Close Reason */
+      close_reason: string | null;
+      /** Cancelled At */
+      cancelled_at: string | null;
+      /** Cancel Reason */
+      cancel_reason: string | null;
+      /** Version */
+      version: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Items */
+      items: components["schemas"]["PurchaseOrderItemRead"][];
+      /**
+       * Can Edit
+       * @default false
+       */
+      can_edit: boolean;
+      /**
+       * Can Submit
+       * @default false
+       */
+      can_submit: boolean;
+      /**
+       * Can Amend
+       * @default false
+       */
+      can_amend: boolean;
+      /**
+       * Can Send
+       * @default false
+       */
+      can_send: boolean;
+      /**
+       * Can Acknowledge
+       * @default false
+       */
+      can_acknowledge: boolean;
+      /**
+       * Can Cancel
+       * @default false
+       */
+      can_cancel: boolean;
+      /**
+       * Can Close
+       * @default false
+       */
+      can_close: boolean;
+    };
+    /** PurchaseOrderWrite */
+    PurchaseOrderWrite: {
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /**
+       * Project Id
+       * Format: uuid
+       */
+      project_id: string;
+      /** Site Id */
+      site_id?: string | null;
+      /** Phase Id */
+      phase_id?: string | null;
+      /** Cost Center Id */
+      cost_center_id?: string | null;
+      /** Expected Delivery Date */
+      expected_delivery_date?: string | null;
+      /** Delivery Address */
+      delivery_address?: string | null;
+      /** Payment Terms */
+      payment_terms?: string | null;
+      /** Terms And Conditions */
+      terms_and_conditions?: string | null;
+      /** Items */
+      items: components["schemas"]["PurchaseOrderItemIn"][];
+    };
     /** PurchaseRequestCancel */
     PurchaseRequestCancel: {
       /** Reason */
@@ -3378,6 +4269,256 @@ export interface components {
       /** Items */
       items: components["schemas"]["PurchaseRequestItemIn"][];
     };
+    /** QuotationItemIn */
+    QuotationItemIn: {
+      /**
+       * Rfq Item Id
+       * Format: uuid
+       */
+      rfq_item_id: string;
+      /** Rate */
+      rate: number | string;
+      /**
+       * Discount Pct
+       * @default 0
+       */
+      discount_pct: number | string;
+      /**
+       * Tax Pct
+       * @default 0
+       */
+      tax_pct: number | string;
+      /** Quantity */
+      quantity?: number | string | null;
+      /** Delivery Days */
+      delivery_days?: number | null;
+      /** Remarks */
+      remarks?: string | null;
+    };
+    /** QuotationItemRead */
+    QuotationItemRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Line No */
+      line_no: number;
+      /**
+       * Rfq Item Id
+       * Format: uuid
+       */
+      rfq_item_id: string;
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Material Sku */
+      material_sku?: string | null;
+      /** Material Name */
+      material_name?: string | null;
+      /** Quantity */
+      quantity: string;
+      /**
+       * Unit Id
+       * Format: uuid
+       */
+      unit_id: string;
+      /** Unit Code */
+      unit_code?: string | null;
+      /** Rate */
+      rate: string;
+      /** Discount Pct */
+      discount_pct: string;
+      /** Tax Pct */
+      tax_pct: string;
+      /** Net Rate */
+      net_rate?: string | null;
+      /** Line Total */
+      line_total: string;
+      /** Delivery Days */
+      delivery_days: number | null;
+      /** Remarks */
+      remarks: string | null;
+    };
+    /** QuotationListItem */
+    QuotationListItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Quotation Number */
+      quotation_number: string;
+      /**
+       * Rfq Id
+       * Format: uuid
+       */
+      rfq_id: string;
+      /** Rfq Number */
+      rfq_number?: string | null;
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Vendor Name */
+      vendor_name?: string | null;
+      /** Status */
+      status: string;
+      /**
+       * Quote Date
+       * Format: date
+       */
+      quote_date: string;
+      /** Valid Until */
+      valid_until: string | null;
+      /** Total Amount */
+      total_amount: string;
+      /** Currency Code */
+      currency_code: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /** QuotationRead */
+    QuotationRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Quotation Number */
+      quotation_number: string;
+      /**
+       * Rfq Id
+       * Format: uuid
+       */
+      rfq_id: string;
+      /** Rfq Number */
+      rfq_number?: string | null;
+      /** Rfq Status */
+      rfq_status?: string | null;
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Vendor Code */
+      vendor_code?: string | null;
+      /** Vendor Name */
+      vendor_name?: string | null;
+      /**
+       * Project Id
+       * Format: uuid
+       */
+      project_id: string;
+      /** Site Id */
+      site_id: string | null;
+      /** Vendor Reference */
+      vendor_reference: string | null;
+      /**
+       * Quote Date
+       * Format: date
+       */
+      quote_date: string;
+      /** Valid Until */
+      valid_until: string | null;
+      /** Delivery Days */
+      delivery_days: number | null;
+      /** Payment Terms */
+      payment_terms: string | null;
+      /** Notes */
+      notes: string | null;
+      /** Currency Code */
+      currency_code: string;
+      /** Subtotal */
+      subtotal: string;
+      /** Discount Amount */
+      discount_amount: string;
+      /** Tax Amount */
+      tax_amount: string;
+      /** Total Amount */
+      total_amount: string;
+      /** Status */
+      status: string;
+      /** Selection Reason */
+      selection_reason: string | null;
+      /** Selected By Id */
+      selected_by_id: string | null;
+      /** Selected By Name */
+      selected_by_name?: string | null;
+      /** Selected At */
+      selected_at: string | null;
+      /** Reject Reason */
+      reject_reason: string | null;
+      /** Purchase Order Id */
+      purchase_order_id?: string | null;
+      /** Purchase Order Number */
+      purchase_order_number?: string | null;
+      /** Version */
+      version: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Items */
+      items: components["schemas"]["QuotationItemRead"][];
+      /**
+       * Can Edit
+       * @default false
+       */
+      can_edit: boolean;
+      /**
+       * Can Select
+       * @default false
+       */
+      can_select: boolean;
+      /**
+       * Can Withdraw
+       * @default false
+       */
+      can_withdraw: boolean;
+      /**
+       * Can Create Order
+       * @default false
+       */
+      can_create_order: boolean;
+    };
+    /** QuotationWrite */
+    QuotationWrite: {
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Vendor Reference */
+      vendor_reference?: string | null;
+      /**
+       * Quote Date
+       * Format: date
+       */
+      quote_date: string;
+      /** Valid Until */
+      valid_until?: string | null;
+      /** Delivery Days */
+      delivery_days?: number | null;
+      /** Payment Terms */
+      payment_terms?: string | null;
+      /** Notes */
+      notes?: string | null;
+      /** Items */
+      items: components["schemas"]["QuotationItemIn"][];
+    };
     /** ReadyComponent */
     ReadyComponent: {
       /** Name */
@@ -3398,6 +4539,11 @@ export interface components {
       checked_at: string;
       /** Components */
       components: components["schemas"]["ReadyComponent"][];
+    };
+    /** ReasonBody */
+    ReasonBody: {
+      /** Reason */
+      reason: string;
     };
     /** RefreshRequest */
     RefreshRequest: {
@@ -3499,6 +4645,272 @@ export interface components {
       token: string;
       /** New Password */
       new_password: string;
+    };
+    /**
+     * RfqCreate
+     * @description Either raise an RFQ from an approved purchase request (its unsourced
+     *     lines are used when `items` is omitted), or state project, site and lines.
+     */
+    RfqCreate: {
+      /** Purchase Request Id */
+      purchase_request_id?: string | null;
+      /** Project Id */
+      project_id?: string | null;
+      /** Site Id */
+      site_id?: string | null;
+      /** Title */
+      title: string;
+      /** Due Date */
+      due_date?: string | null;
+      /** Terms */
+      terms?: string | null;
+      /** Items */
+      items?: components["schemas"]["RfqItemIn"][] | null;
+      /**
+       * Vendor Ids
+       * @default []
+       */
+      vendor_ids: string[];
+    };
+    /** RfqInviteVendors */
+    RfqInviteVendors: {
+      /** Vendor Ids */
+      vendor_ids: string[];
+    };
+    /** RfqItemIn */
+    RfqItemIn: {
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Quantity */
+      quantity: number | string;
+      /**
+       * Unit Id
+       * Format: uuid
+       */
+      unit_id: string;
+      /** Description */
+      description?: string | null;
+      /** Pr Item Id */
+      pr_item_id?: string | null;
+    };
+    /** RfqItemRead */
+    RfqItemRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Line No */
+      line_no: number;
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Material Sku */
+      material_sku?: string | null;
+      /** Material Name */
+      material_name?: string | null;
+      /** Description */
+      description: string | null;
+      /** Quantity */
+      quantity: string;
+      /**
+       * Unit Id
+       * Format: uuid
+       */
+      unit_id: string;
+      /** Unit Code */
+      unit_code?: string | null;
+      /** Pr Item Id */
+      pr_item_id: string | null;
+      /** Estimated Rate */
+      estimated_rate?: string | null;
+    };
+    /** RfqListItem */
+    RfqListItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Rfq Number */
+      rfq_number: string;
+      /** Title */
+      title: string;
+      /** Status */
+      status: string;
+      /**
+       * Project Id
+       * Format: uuid
+       */
+      project_id: string;
+      /** Project Code */
+      project_code?: string | null;
+      /** Site Id */
+      site_id: string | null;
+      /** Site Code */
+      site_code?: string | null;
+      /** Purchase Request Id */
+      purchase_request_id: string | null;
+      /** Pr Number */
+      pr_number?: string | null;
+      /** Issue Date */
+      issue_date: string | null;
+      /** Due Date */
+      due_date: string | null;
+      /**
+       * Item Count
+       * @default 0
+       */
+      item_count: number;
+      /**
+       * Vendor Count
+       * @default 0
+       */
+      vendor_count: number;
+      /**
+       * Quotation Count
+       * @default 0
+       */
+      quotation_count: number;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /** RfqRead */
+    RfqRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Rfq Number */
+      rfq_number: string;
+      /** Title */
+      title: string;
+      /** Status */
+      status: string;
+      /**
+       * Project Id
+       * Format: uuid
+       */
+      project_id: string;
+      /** Project Code */
+      project_code?: string | null;
+      /** Project Name */
+      project_name?: string | null;
+      /** Site Id */
+      site_id: string | null;
+      /** Site Code */
+      site_code?: string | null;
+      /** Purchase Request Id */
+      purchase_request_id: string | null;
+      /** Pr Number */
+      pr_number?: string | null;
+      /** Issue Date */
+      issue_date: string | null;
+      /** Due Date */
+      due_date: string | null;
+      /** Terms */
+      terms: string | null;
+      /** Currency Code */
+      currency_code: string;
+      /** Closed At */
+      closed_at: string | null;
+      /** Close Reason */
+      close_reason: string | null;
+      /** Version */
+      version: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Items */
+      items: components["schemas"]["RfqItemRead"][];
+      /** Vendors */
+      vendors: components["schemas"]["RfqVendorRead"][];
+      /**
+       * Can Edit
+       * @default false
+       */
+      can_edit: boolean;
+      /**
+       * Can Issue
+       * @default false
+       */
+      can_issue: boolean;
+      /**
+       * Can Close
+       * @default false
+       */
+      can_close: boolean;
+      /**
+       * Can Cancel
+       * @default false
+       */
+      can_cancel: boolean;
+      /**
+       * Can Record Quotation
+       * @default false
+       */
+      can_record_quotation: boolean;
+    };
+    /** RfqUpdate */
+    RfqUpdate: {
+      /** Title */
+      title: string;
+      /** Due Date */
+      due_date?: string | null;
+      /** Terms */
+      terms?: string | null;
+      /** Items */
+      items: components["schemas"]["RfqItemIn"][];
+    };
+    /** RfqVendorRead */
+    RfqVendorRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Vendor Code */
+      vendor_code?: string | null;
+      /** Vendor Name */
+      vendor_name?: string | null;
+      /** Status */
+      status: string;
+      /**
+       * Invited At
+       * Format: date-time
+       */
+      invited_at: string;
+      /** Responded At */
+      responded_at: string | null;
+      /** Quotation Id */
+      quotation_id?: string | null;
+      /** Quotation Number */
+      quotation_number?: string | null;
+      /** Quotation Status */
+      quotation_status?: string | null;
+      /** Quotation Total */
+      quotation_total?: string | null;
     };
     /** RoleCreate */
     RoleCreate: {
@@ -3686,6 +5098,11 @@ export interface components {
      * @enum {string}
      */
     ScopeType: "GLOBAL" | "COMPANY" | "PROJECT" | "SITE" | "DEPARTMENT";
+    /** SelectQuotation */
+    SelectQuotation: {
+      /** Reason */
+      reason: string;
+    };
     /** SessionSummary */
     SessionSummary: {
       /**
@@ -8305,6 +9722,1051 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["PurchaseRequestRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_rfqs_api_v1_rfqs_get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        status?: string[] | null;
+        project_id?: string | null;
+        purchase_request_id?: string | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_RfqListItem_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_rfq_api_v1_rfqs_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RfqCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RfqRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_rfq_api_v1_rfqs__rfq_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        rfq_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RfqRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_rfq_api_v1_rfqs__rfq_id__put: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        rfq_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RfqUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RfqRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  invite_vendors_api_v1_rfqs__rfq_id__vendors_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        rfq_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RfqInviteVendors"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RfqRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  remove_vendor_api_v1_rfqs__rfq_id__vendors__rfq_vendor_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        rfq_id: string;
+        rfq_vendor_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RfqRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  decline_vendor_api_v1_rfqs__rfq_id__vendors__rfq_vendor_id__decline_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        rfq_id: string;
+        rfq_vendor_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RfqRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  issue_rfq_api_v1_rfqs__rfq_id__issue_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        rfq_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RfqRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  close_rfq_api_v1_rfqs__rfq_id__close_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        rfq_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReasonBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RfqRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  cancel_rfq_api_v1_rfqs__rfq_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        rfq_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReasonBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RfqRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  comparison_api_v1_rfqs__rfq_id__comparison_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        rfq_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ComparisonRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  record_quotation_api_v1_rfqs__rfq_id__quotations_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        rfq_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["QuotationWrite"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["QuotationRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_quotations_api_v1_quotations_get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        status?: string[] | null;
+        rfq_id?: string | null;
+        vendor_id?: string | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_QuotationListItem_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_quotation_api_v1_quotations__quotation_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        quotation_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["QuotationRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_quotation_api_v1_quotations__quotation_id__put: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        quotation_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["QuotationWrite"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["QuotationRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  shortlist_quotation_api_v1_quotations__quotation_id__shortlist_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        quotation_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["QuotationRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  reject_quotation_api_v1_quotations__quotation_id__reject_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        quotation_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReasonBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["QuotationRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  select_quotation_api_v1_quotations__quotation_id__select_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        quotation_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SelectQuotation"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["QuotationRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  withdraw_selection_api_v1_quotations__quotation_id__withdraw_selection_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        quotation_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["QuotationRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_orders_api_v1_purchase_orders_get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        status?: string[] | null;
+        project_id?: string | null;
+        site_id?: string | null;
+        vendor_id?: string | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_PurchaseOrderListItem_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_order_api_v1_purchase_orders_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PurchaseOrderWrite"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PurchaseOrderRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_from_quotation_api_v1_purchase_orders_from_quotation__quotation_id__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        quotation_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PurchaseOrderRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_order_api_v1_purchase_orders__po_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        po_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PurchaseOrderRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_order_api_v1_purchase_orders__po_id__put: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        po_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PurchaseOrderWrite"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PurchaseOrderRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  submit_order_api_v1_purchase_orders__po_id__submit_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        po_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PurchaseOrderRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  amend_order_api_v1_purchase_orders__po_id__amend_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        po_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReasonBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PurchaseOrderRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  send_order_api_v1_purchase_orders__po_id__send_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        po_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PurchaseOrderRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  acknowledge_order_api_v1_purchase_orders__po_id__acknowledge_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        po_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PurchaseOrderRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  cancel_order_api_v1_purchase_orders__po_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        po_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReasonBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PurchaseOrderRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  close_order_api_v1_purchase_orders__po_id__close_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        po_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReasonBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PurchaseOrderRead"];
         };
       };
       /** @description Validation Error */

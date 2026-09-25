@@ -133,7 +133,7 @@ test("workflow administrators see the chain and can simulate it; others can read
   for (const step of ["Project manager", "Procurement manager", "Finance manager", "Executive"]) {
     await expect(admin.getByText(step).last()).toBeVisible();
   }
-  await expect(admin.getByRole("button", { name: /New version/ })).toBeVisible();
+  await expect(admin.getByRole("button", { name: /New version/ }).first()).toBeVisible();
 
   const buyer = await browser.newPage();
   await signIn(buyer, PROCUREMENT);

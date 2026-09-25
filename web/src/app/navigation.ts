@@ -19,6 +19,8 @@ import {
   ShoppingCart,
   Workflow,
   ArrowLeftRight,
+  FileQuestion,
+  FileText,
 } from "lucide-react";
 
 export interface NavItem {
@@ -58,6 +60,13 @@ export const NAVIGATION: NavSection[] = [
         to: "/purchase-requests",
         icon: ShoppingCart,
         permission: "procurement.pr.view",
+      },
+      { label: "RFQs", to: "/rfqs", icon: FileQuestion, permission: "procurement.rfq.view" },
+      {
+        label: "Purchase orders",
+        to: "/purchase-orders",
+        icon: FileText,
+        permission: "procurement.po.view",
       },
       { label: "Vendors", to: "/vendors", icon: Building2, permission: "vendors.view" },
     ],

@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createColumnHelper } from "@tanstack/react-table";
-import { Ban, Pencil, Plus, Send, Trash2 } from "lucide-react";
+import { Ban, FileQuestion, Pencil, Plus, Send, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -593,6 +593,15 @@ export function PurchaseRequestDetailPage() {
               <Button variant="primary" onClick={() => submit.mutate()} loading={submit.isPending}>
                 <Send /> Submit for approval
               </Button>
+            )}
+            {["APPROVED", "PARTIALLY_SOURCED"].includes(p.status) && (
+              <PermissionGate permission="procurement.rfq.create">
+                <Button variant="primary" asChild>
+                  <Link to={`/rfqs/new?pr=${p.id}`}>
+                    <FileQuestion /> Request quotations
+                  </Link>
+                </Button>
+              </PermissionGate>
             )}
             {p.can_cancel && (
               <Button variant="danger" onClick={() => setCancelling(true)}>

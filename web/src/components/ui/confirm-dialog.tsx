@@ -15,7 +15,7 @@ interface ConfirmDialogProps {
   confirmLabel: string;
   destructive?: boolean;
   /** When set, a reason textarea is shown; `required` makes it mandatory. */
-  reason?: { label: string; required?: boolean; placeholder?: string };
+  reason?: { label: string; required?: boolean; placeholder?: string; minLength?: number };
   onConfirm: (reason: string) => Promise<unknown>;
   children?: ReactNode;
 }
@@ -35,7 +35,8 @@ export function ConfirmDialog({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const reasonMissing = Boolean(reason?.required) && text.trim().length === 0;
+  const reasonMissing =
+    Boolean(reason?.required) && text.trim().length < Math.max(1, reason?.minLength ?? 1);
 
   const close = (next: boolean) => {
     if (pending) return;
@@ -85,7 +86,11 @@ export function ConfirmDialog({
       <div className="flex flex-col gap-3">
         {children}
         {reason && (
-          <FormField label={reason.label} required={reason.required}>
+          <FormField
+            label={reason.label}
+            required={reason.required}
+            hint={reason.minLength ? `At least ${reason.minLength} characters.` : undefined}
+          >
             <Textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
