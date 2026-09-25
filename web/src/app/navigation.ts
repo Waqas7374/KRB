@@ -15,6 +15,9 @@ import {
   Network,
   Wallet,
   Tags,
+  ClipboardCheck,
+  ShoppingCart,
+  Workflow,
   ArrowLeftRight,
 } from "lucide-react";
 
@@ -48,7 +51,16 @@ export const NAVIGATION: NavSection[] = [
   },
   {
     label: "Procurement",
-    items: [{ label: "Vendors", to: "/vendors", icon: Building2, permission: "vendors.view" }],
+    items: [
+      { label: "Approvals", to: "/approvals", icon: ClipboardCheck, permission: "approvals.view" },
+      {
+        label: "Purchase requests",
+        to: "/purchase-requests",
+        icon: ShoppingCart,
+        permission: "procurement.pr.view",
+      },
+      { label: "Vendors", to: "/vendors", icon: Building2, permission: "vendors.view" },
+    ],
   },
   {
     label: "Master data",
@@ -72,6 +84,12 @@ export const NAVIGATION: NavSection[] = [
     items: [
       { label: "Users", to: "/users", icon: Users, permission: "users.view" },
       { label: "Roles", to: "/roles", icon: ShieldCheck, permission: "roles.view" },
+      {
+        label: "Approval workflows",
+        to: "/approval-workflows",
+        icon: Workflow,
+        permission: "approvals.view",
+      },
       { label: "System status", to: "/status", icon: Activity },
     ],
   },

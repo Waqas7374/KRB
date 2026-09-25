@@ -118,6 +118,11 @@ Rules:
   request and re-checked at each decision). Approving a document that changed after you looked at
   it is a real-world control failure; this makes it impossible.
 
+> **Implementation note (2026-09-25).** `CHANGES_REQUESTED` is terminal, not a loop back to `PENDING`:
+> resubmission creates a new request routed afresh, because the requested edit can change which rule applies.
+> Dynamic approvers other than `project_manager` and `site_manager` are refused at save time until HR and
+> budgets exist. See [16-phase-2-delivery-part-1](16-phase-2-delivery-part-1.md).
+
 ### Eligibility
 
 `eligible_approvers(step, document)` returns users who (a) satisfy the approver_type, (b) hold a

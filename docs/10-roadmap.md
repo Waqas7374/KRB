@@ -50,6 +50,10 @@ comes in Phase 4).
 Frontend: PR/RFQ/quotation/PO screens, comparison grid, approval inbox, approval trail component,
 workflow configuration UI.
 
+**Progress (2026-09-25): part 1 done** — approval engine, purchase requests, inbox, trail, workflow
+configuration and the §25 tiers; see [16-phase-2-delivery-part-1](16-phase-2-delivery-part-1.md). RFQs,
+quotations, purchase orders and budget commitments remain.
+
 **Done when:** the §25 three-tier PR example routes correctly at 50 000 / 500 000 / 5 000 000, and
 editing a workflow does not change an in-flight request.
 

@@ -91,5 +91,19 @@ export type VendorContactIn = S["VendorContactIn"];
 export type VendorBankAccountRead = S["VendorBankAccountRead"];
 export type VendorBankAccountIn = S["VendorBankAccountIn"];
 
+export type PurchaseRequestListItem = S["PurchaseRequestListItem"];
+export type PurchaseRequestRead = S["PurchaseRequestRead"];
+export type PurchaseRequestItemRead = S["PurchaseRequestItemRead"];
+export type PurchaseRequestCreate = S["PurchaseRequestCreate"];
+
+export type ApprovalRequestRead = S["RequestRead"];
+export type ApprovalStepRead = S["RequestStepRead"];
+export type ApprovalActionRead = S["ActionRead"];
+export type ApprovalInboxItem = S["InboxItemRead"];
+export type ApprovalDecisionResponse = S["DecisionResponse"];
+export type ApprovalWorkflowRead = S["WorkflowRead"];
+export type ApprovalDocumentType = S["DocumentTypeRead"];
+export type ApprovalSimulation = S["SimulateResponse"];
+
 export type NotificationInbox = S["NotificationInbox"];
 export type NotificationRead = S["NotificationRead"];

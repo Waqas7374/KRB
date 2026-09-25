@@ -1155,7 +1155,15 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Your channel preferences */
+    /**
+     * Your channel preferences
+     * @description Every notification type x every implemented channel, with defaults filled in.
+     *
+     *     Only explicit choices are stored (absence means enabled — see
+     *     `is_channel_enabled`), so returning just the stored rows would leave a
+     *     client unable to render the settings screen without its own copy of the
+     *     type catalogue, which would drift from the enum.
+     */
     get: operations["get_preferences_api_v1_notifications_preferences_get"];
     /** Turn a notification type on or off for one channel */
     put: operations["set_preference_api_v1_notifications_preferences_put"];
@@ -1166,10 +1174,325 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/approval-workflows/document-types": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Document types that route through approvals, with their context variables */
+    get: operations["document_types_api_v1_approval_workflows_document_types_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/approval-workflows": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Approval workflows (active versions by default) */
+    get: operations["list_workflows_api_v1_approval_workflows_get"];
+    put?: never;
+    /** Publish a new workflow version (in-flight requests keep theirs) */
+    post: operations["save_workflow_api_v1_approval_workflows_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/approval-workflows/{workflow_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Workflow */
+    get: operations["get_workflow_api_v1_approval_workflows__workflow_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/approval-workflows/{workflow_id}/deactivate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Deactivate Workflow */
+    post: operations["deactivate_workflow_api_v1_approval_workflows__workflow_id__deactivate_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/approval-workflows/simulate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Which rule and step chain a document with this context would be routed through */
+    post: operations["simulate_api_v1_approval_workflows_simulate_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/approvals/inbox": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Every pending step you can decide, most urgent first */
+    get: operations["inbox_api_v1_approvals_inbox_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/approvals/requests": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The approval trail of one document: every attempt, newest first */
+    get: operations["requests_for_document_api_v1_approvals_requests_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/approvals/requests/{request_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Request */
+    get: operations["get_request_api_v1_approvals_requests__request_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/approvals/requests/{request_id}/approve": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Approve */
+    post: operations["approve_api_v1_approvals_requests__request_id__approve_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/approvals/requests/{request_id}/reject": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Reject */
+    post: operations["reject_api_v1_approvals_requests__request_id__reject_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/approvals/requests/{request_id}/request-changes": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Request Changes */
+    post: operations["request_changes_api_v1_approvals_requests__request_id__request_changes_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/approvals/requests/{request_id}/recall": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Recall */
+    post: operations["recall_api_v1_approvals_requests__request_id__recall_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/approvals/requests/{request_id}/comments": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Add Comment */
+    post: operations["add_comment_api_v1_approvals_requests__request_id__comments_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/purchase-requests": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Requests */
+    get: operations["list_requests_api_v1_purchase_requests_get"];
+    put?: never;
+    /** Raise a purchase request (starts as a draft) */
+    post: operations["create_request_api_v1_purchase_requests_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/purchase-requests/{request_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Request */
+    get: operations["get_request_api_v1_purchase_requests__request_id__get"];
+    /** Replace a draft, rejected or returned request's content */
+    put: operations["update_request_api_v1_purchase_requests__request_id__put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/purchase-requests/{request_id}/submit": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Submit for approval — routed by the active purchase-request workflow */
+    post: operations["submit_request_api_v1_purchase_requests__request_id__submit_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/purchase-requests/{request_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Cancel Request */
+    post: operations["cancel_request_api_v1_purchase_requests__request_id__cancel_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** ActionRead */
+    ActionRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Step No */
+      step_no: number | null;
+      /** Action */
+      action: string;
+      /** Actor User Id */
+      actor_user_id: string | null;
+      /** Actor Name */
+      actor_name: string | null;
+      /** Comments */
+      comments: string | null;
+      /**
+       * Acted At
+       * Format: date-time
+       */
+      acted_at: string;
+    };
     /** AddressIn */
     AddressIn: {
       /** Line1 */
@@ -1187,6 +1510,20 @@ export interface components {
        * @default PK
        */
       country: string;
+    };
+    /** ApproverRead */
+    ApproverRead: {
+      /**
+       * User Id
+       * Format: uuid
+       */
+      user_id: string;
+      /** Full Name */
+      full_name: string | null;
+      /** Source */
+      source: string;
+      /** Has Approved */
+      has_approved: boolean;
     };
     /** AttachmentRead */
     AttachmentRead: {
@@ -1398,6 +1735,11 @@ export interface components {
       /** New Password */
       new_password: string;
     };
+    /** CommentRequest */
+    CommentRequest: {
+      /** Comments */
+      comments: string;
+    };
     /** CompanySummary */
     CompanySummary: {
       /**
@@ -1595,6 +1937,19 @@ export interface components {
       /** Description */
       description?: string | null;
     };
+    /** DecisionRequest */
+    DecisionRequest: {
+      /** Comments */
+      comments?: string | null;
+    };
+    /** DecisionResponse */
+    DecisionResponse: {
+      request: components["schemas"]["RequestRead"];
+      /** Auto Recalled */
+      auto_recalled: boolean;
+      /** Message */
+      message: string | null;
+    };
     /** DepartmentCreate */
     DepartmentCreate: {
       /** Code */
@@ -1697,6 +2052,17 @@ export interface components {
       /** Revoked At */
       revoked_at: string | null;
     };
+    /** DocumentTypeRead */
+    DocumentTypeRead: {
+      /** Doc Type */
+      doc_type: string;
+      /** Label */
+      label: string;
+      /** Approve Permission */
+      approve_permission: string;
+      /** Context Variables */
+      context_variables: string[];
+    };
     /** DownloadUrlResponse */
     DownloadUrlResponse: {
       /**
@@ -1773,6 +2139,52 @@ export interface components {
       app: string;
       /** Environment */
       environment: string;
+    };
+    /** InboxItemRead */
+    InboxItemRead: {
+      /**
+       * Request Id
+       * Format: uuid
+       */
+      request_id: string;
+      /** Doc Type */
+      doc_type: string;
+      /** Doc Label */
+      doc_label: string;
+      /**
+       * Doc Id
+       * Format: uuid
+       */
+      doc_id: string;
+      /** Doc Number */
+      doc_number: string | null;
+      /** Doc Summary */
+      doc_summary: string | null;
+      /** Amount */
+      amount: string | null;
+      /** Currency Code */
+      currency_code: string | null;
+      /** Link Path */
+      link_path: string | null;
+      /** Initiated By Name */
+      initiated_by_name: string | null;
+      /**
+       * Submitted At
+       * Format: date-time
+       */
+      submitted_at: string;
+      /** Step No */
+      step_no: number;
+      /** Step Name */
+      step_name: string;
+      /** Total Steps */
+      total_steps: number;
+      /** Due At */
+      due_at: string | null;
+      /** Is Overdue */
+      is_overdue: boolean;
+      /** Escalated */
+      escalated: boolean;
     };
     /** LoginRequest */
     LoginRequest: {
@@ -2217,6 +2629,16 @@ export interface components {
         [key: string]: unknown;
       };
     };
+    /** Page[InboxItemRead] */
+    Page_InboxItemRead_: {
+      /** Items */
+      items: components["schemas"]["InboxItemRead"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
     /** Page[MaterialCategoryRead] */
     Page_MaterialCategoryRead_: {
       /** Items */
@@ -2241,6 +2663,16 @@ export interface components {
     Page_ProjectListItem_: {
       /** Items */
       items: components["schemas"]["ProjectListItem"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
+    /** Page[PurchaseRequestListItem] */
+    Page_PurchaseRequestListItem_: {
+      /** Items */
+      items: components["schemas"]["PurchaseRequestListItem"][];
       page: components["schemas"]["PageMeta"];
       /** Meta */
       meta?: {
@@ -2687,6 +3119,265 @@ export interface components {
       /** Require Po For Delivery */
       require_po_for_delivery?: boolean | null;
     };
+    /** PurchaseRequestCancel */
+    PurchaseRequestCancel: {
+      /** Reason */
+      reason: string;
+    };
+    /** PurchaseRequestCreate */
+    PurchaseRequestCreate: {
+      /**
+       * Project Id
+       * Format: uuid
+       */
+      project_id: string;
+      /** Site Id */
+      site_id?: string | null;
+      /** Department Id */
+      department_id?: string | null;
+      /** Cost Center Id */
+      cost_center_id?: string | null;
+      /** Phase Id */
+      phase_id?: string | null;
+      /** Required Date */
+      required_date?: string | null;
+      /** @default NORMAL */
+      priority: components["schemas"]["PurchaseRequestPriority"];
+      /** Justification */
+      justification: string;
+      /** Items */
+      items: components["schemas"]["PurchaseRequestItemIn"][];
+    };
+    /** PurchaseRequestItemIn */
+    PurchaseRequestItemIn: {
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Quantity */
+      quantity: number | string;
+      /**
+       * Unit Id
+       * Format: uuid
+       */
+      unit_id: string;
+      /** Estimated Rate */
+      estimated_rate?: number | string | null;
+      /** Description */
+      description?: string | null;
+      /** Required Date */
+      required_date?: string | null;
+    };
+    /** PurchaseRequestItemRead */
+    PurchaseRequestItemRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Line No */
+      line_no: number;
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Material Sku */
+      material_sku?: string | null;
+      /** Material Name */
+      material_name?: string | null;
+      /** Description */
+      description: string | null;
+      /** Quantity */
+      quantity: string;
+      /**
+       * Unit Id
+       * Format: uuid
+       */
+      unit_id: string;
+      /** Unit Code */
+      unit_code?: string | null;
+      /** Estimated Rate */
+      estimated_rate: string | null;
+      /** Estimated Amount */
+      estimated_amount: string;
+      /** Required Date */
+      required_date: string | null;
+      /** Sourced Quantity */
+      sourced_quantity: string;
+    };
+    /** PurchaseRequestListItem */
+    PurchaseRequestListItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Pr Number */
+      pr_number: string;
+      /** Status */
+      status: string;
+      /** Priority */
+      priority: string;
+      /**
+       * Project Id
+       * Format: uuid
+       */
+      project_id: string;
+      /** Project Code */
+      project_code?: string | null;
+      /** Site Id */
+      site_id: string | null;
+      /** Site Code */
+      site_code?: string | null;
+      /** Required Date */
+      required_date: string | null;
+      /** Estimated Amount */
+      estimated_amount: string;
+      /** Currency Code */
+      currency_code: string;
+      /**
+       * Item Count
+       * @default 0
+       */
+      item_count: number;
+      /** Requested By Id */
+      requested_by_id: string | null;
+      /** Requested By Name */
+      requested_by_name?: string | null;
+      /** Submitted At */
+      submitted_at: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /**
+     * PurchaseRequestPriority
+     * @enum {string}
+     */
+    PurchaseRequestPriority: "NORMAL" | "URGENT";
+    /** PurchaseRequestRead */
+    PurchaseRequestRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Pr Number */
+      pr_number: string;
+      /** Status */
+      status: string;
+      /** Priority */
+      priority: string;
+      /**
+       * Project Id
+       * Format: uuid
+       */
+      project_id: string;
+      /** Project Code */
+      project_code?: string | null;
+      /** Project Name */
+      project_name?: string | null;
+      /** Site Id */
+      site_id: string | null;
+      /** Site Code */
+      site_code?: string | null;
+      /** Site Name */
+      site_name?: string | null;
+      /** Department Id */
+      department_id: string | null;
+      /** Cost Center Id */
+      cost_center_id: string | null;
+      /** Phase Id */
+      phase_id: string | null;
+      /** Phase Code */
+      phase_code?: string | null;
+      /** Required Date */
+      required_date: string | null;
+      /** Justification */
+      justification: string;
+      /** Currency Code */
+      currency_code: string;
+      /** Estimated Amount */
+      estimated_amount: string;
+      /** Requested By Id */
+      requested_by_id: string | null;
+      /** Requested By Name */
+      requested_by_name?: string | null;
+      /** Submitted At */
+      submitted_at: string | null;
+      /** Approved At */
+      approved_at: string | null;
+      /** Decision Reason */
+      decision_reason: string | null;
+      /** Approval Request Id */
+      approval_request_id: string | null;
+      /** Cancelled At */
+      cancelled_at: string | null;
+      /** Cancel Reason */
+      cancel_reason: string | null;
+      /** Version */
+      version: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Items */
+      items: components["schemas"]["PurchaseRequestItemRead"][];
+      /**
+       * Can Edit
+       * @default false
+       */
+      can_edit: boolean;
+      /**
+       * Can Submit
+       * @default false
+       */
+      can_submit: boolean;
+      /**
+       * Can Cancel
+       * @default false
+       */
+      can_cancel: boolean;
+    };
+    /**
+     * PurchaseRequestUpdate
+     * @description Replace the request's content. Lines are replaced as a set: a request is
+     *     edited only while it is the author's (draft, rejected, changes requested),
+     *     so there is no line history worth preserving row by row.
+     */
+    PurchaseRequestUpdate: {
+      /**
+       * Project Id
+       * Format: uuid
+       */
+      project_id: string;
+      /** Site Id */
+      site_id?: string | null;
+      /** Department Id */
+      department_id?: string | null;
+      /** Cost Center Id */
+      cost_center_id?: string | null;
+      /** Phase Id */
+      phase_id?: string | null;
+      /** Required Date */
+      required_date?: string | null;
+      /** @default NORMAL */
+      priority: components["schemas"]["PurchaseRequestPriority"];
+      /** Justification */
+      justification: string;
+      /** Items */
+      items: components["schemas"]["PurchaseRequestItemIn"][];
+    };
     /** ReadyComponent */
     ReadyComponent: {
       /** Name */
@@ -2712,6 +3403,95 @@ export interface components {
     RefreshRequest: {
       /** Refresh Token */
       refresh_token: string;
+    };
+    /** RequestRead */
+    RequestRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Doc Type */
+      doc_type: string;
+      /**
+       * Doc Id
+       * Format: uuid
+       */
+      doc_id: string;
+      /** Doc Number */
+      doc_number: string | null;
+      /** Doc Summary */
+      doc_summary: string | null;
+      /** Amount */
+      amount: string | null;
+      /** Currency Code */
+      currency_code: string | null;
+      /** Link Path */
+      link_path: string | null;
+      /** Status */
+      status: string;
+      /** Current Step No */
+      current_step_no: number | null;
+      /** Workflow Name */
+      workflow_name: string;
+      /** Workflow Version */
+      workflow_version: number;
+      /** Rule Name */
+      rule_name: string;
+      /** Initiated By Id */
+      initiated_by_id: string | null;
+      /** Initiated By Name */
+      initiated_by_name: string | null;
+      /**
+       * Submitted At
+       * Format: date-time
+       */
+      submitted_at: string;
+      /** Completed At */
+      completed_at: string | null;
+      /** Outcome Reason */
+      outcome_reason: string | null;
+      /** Can Decide */
+      can_decide: boolean;
+      /** Can Recall */
+      can_recall: boolean;
+      /** Steps */
+      steps: components["schemas"]["RequestStepRead"][];
+      /** Actions */
+      actions: components["schemas"]["ActionRead"][];
+    };
+    /** RequestStepRead */
+    RequestStepRead: {
+      /** Step No */
+      step_no: number;
+      /** Name */
+      name: string;
+      /** Approver Type */
+      approver_type: string;
+      /** Approver Ref */
+      approver_ref: string | null;
+      /** Quorum Type */
+      quorum_type: string;
+      /** Quorum Required */
+      quorum_required: number;
+      /** Approvals Count */
+      approvals_count: number;
+      /** Sla Hours */
+      sla_hours: number;
+      /** Status */
+      status: string;
+      /** Activated At */
+      activated_at: string | null;
+      /** Due At */
+      due_at: string | null;
+      /** Escalated At */
+      escalated_at: string | null;
+      /** Decided At */
+      decided_at: string | null;
+      /** Is Overdue */
+      is_overdue: boolean;
+      /** Approvers */
+      approvers: components["schemas"]["ApproverRead"][];
     };
     /** ResetPasswordRequest */
     ResetPasswordRequest: {
@@ -2936,6 +3716,50 @@ export interface components {
        * @default false
        */
       is_current: boolean;
+    };
+    /** SimulateRequest */
+    SimulateRequest: {
+      /** Doc Type */
+      doc_type: string;
+      /** Context */
+      context: {
+        [key: string]: unknown;
+      };
+      /** Project Id */
+      project_id?: string | null;
+    };
+    /** SimulateResponse */
+    SimulateResponse: {
+      /**
+       * Workflow Id
+       * Format: uuid
+       */
+      workflow_id: string;
+      /** Workflow Name */
+      workflow_name: string;
+      /** Version */
+      version: number;
+      /** Rule Sequence */
+      rule_sequence: number;
+      /** Rule Name */
+      rule_name: string;
+      /** Steps */
+      steps: components["schemas"]["SimulatedStep"][];
+    };
+    /** SimulatedStep */
+    SimulatedStep: {
+      /** Step No */
+      step_no: number;
+      /** Name */
+      name: string;
+      /** Approver Type */
+      approver_type: string;
+      /** Approver Ref */
+      approver_ref: string | null;
+      /** Quorum Type */
+      quorum_type: string;
+      /** Sla Hours */
+      sla_hours: number;
     };
     /** SiteCreate */
     SiteCreate: {
@@ -3804,6 +4628,68 @@ export interface components {
      * @enum {string}
      */
     WarehouseType: "SITE_STORE" | "CENTRAL" | "TRANSIT" | "QUARANTINE";
+    /** WorkflowRead */
+    WorkflowRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Doc Type */
+      doc_type: string;
+      /** Name */
+      name: string;
+      /** Description */
+      description: string | null;
+      /** Version */
+      version: number;
+      /** Scope Type */
+      scope_type: string;
+      /** Scope Id */
+      scope_id: string | null;
+      /** Is Active */
+      is_active: boolean;
+      /** Definition */
+      definition: {
+        [key: string]: unknown;
+      };
+      /** Change Note */
+      change_note: string | null;
+      /** Created By Id */
+      created_by_id: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+    };
+    /**
+     * WorkflowSave
+     * @description Publishing a workflow always creates a new version.
+     */
+    WorkflowSave: {
+      /** Doc Type */
+      doc_type: string;
+      /** Name */
+      name: string;
+      /** Description */
+      description?: string | null;
+      /** @default COMPANY */
+      scope_type: components["schemas"]["WorkflowScope"];
+      /** Scope Id */
+      scope_id?: string | null;
+      /** Definition */
+      definition: {
+        [key: string]: unknown;
+      };
+      /** Change Note */
+      change_note?: string | null;
+    };
+    /**
+     * WorkflowScope
+     * @enum {string}
+     */
+    WorkflowScope: "COMPANY" | "PROJECT";
   };
   responses: never;
   parameters: never;
@@ -6748,6 +7634,677 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["PreferenceRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  document_types_api_v1_approval_workflows_document_types_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DocumentTypeRead"][];
+        };
+      };
+    };
+  };
+  list_workflows_api_v1_approval_workflows_get: {
+    parameters: {
+      query?: {
+        doc_type?: string | null;
+        include_inactive?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkflowRead"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  save_workflow_api_v1_approval_workflows_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["WorkflowSave"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkflowRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_workflow_api_v1_approval_workflows__workflow_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workflow_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkflowRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  deactivate_workflow_api_v1_approval_workflows__workflow_id__deactivate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workflow_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkflowRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  simulate_api_v1_approval_workflows_simulate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SimulateRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SimulateResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  inbox_api_v1_approvals_inbox_get: {
+    parameters: {
+      query?: {
+        doc_type?: string | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_InboxItemRead_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  requests_for_document_api_v1_approvals_requests_get: {
+    parameters: {
+      query: {
+        doc_type: string;
+        doc_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RequestRead"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_request_api_v1_approvals_requests__request_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RequestRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  approve_api_v1_approvals_requests__request_id__approve_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DecisionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DecisionResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  reject_api_v1_approvals_requests__request_id__reject_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DecisionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DecisionResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  request_changes_api_v1_approvals_requests__request_id__request_changes_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DecisionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DecisionResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  recall_api_v1_approvals_requests__request_id__recall_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DecisionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RequestRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  add_comment_api_v1_approvals_requests__request_id__comments_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CommentRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RequestRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_requests_api_v1_purchase_requests_get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        status?: string[] | null;
+        project_id?: string | null;
+        site_id?: string | null;
+        mine?: boolean;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_PurchaseRequestListItem_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_request_api_v1_purchase_requests_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PurchaseRequestCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PurchaseRequestRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_request_api_v1_purchase_requests__request_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PurchaseRequestRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_request_api_v1_purchase_requests__request_id__put: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PurchaseRequestUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PurchaseRequestRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  submit_request_api_v1_purchase_requests__request_id__submit_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PurchaseRequestRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  cancel_request_api_v1_purchase_requests__request_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PurchaseRequestCancel"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PurchaseRequestRead"];
         };
       };
       /** @description Validation Error */

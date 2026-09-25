@@ -94,6 +94,16 @@ const UnitsPage = page(ref, "UnitsPage");
 const TruckTypesPage = page(ref, "TruckTypesPage");
 const WarehousesPage = page(ref, "WarehousesPage");
 
+const ApprovalInboxPage = page(
+  () => import("@/features/approvals/ApprovalInboxPage"),
+  "ApprovalInboxPage",
+);
+const WorkflowsPage = page(() => import("@/features/approvals/WorkflowsPage"), "WorkflowsPage");
+const pr = () => import("@/features/procurement/PurchaseRequestPages");
+const PurchaseRequestsListPage = page(pr, "PurchaseRequestsListPage");
+const PurchaseRequestFormPage = page(pr, "PurchaseRequestFormPage");
+const PurchaseRequestDetailPage = page(pr, "PurchaseRequestDetailPage");
+
 const gate = (permission: string, element: ReactNode) => (
   <RequirePermission permission={permission}>{element}</RequirePermission>
 );
@@ -135,6 +145,25 @@ export const router = createBrowserRouter([
 
       { path: "departments", element: gate("departments.view", <DepartmentsPage />) },
       { path: "cost-centers", element: gate("departments.view", <CostCentersPage />) },
+
+      { path: "approvals", element: gate("approvals.view", <ApprovalInboxPage />) },
+      { path: "approval-workflows", element: gate("approvals.view", <WorkflowsPage />) },
+      {
+        path: "purchase-requests",
+        element: gate("procurement.pr.view", <PurchaseRequestsListPage />),
+      },
+      {
+        path: "purchase-requests/new",
+        element: gate("procurement.pr.create", <PurchaseRequestFormPage />),
+      },
+      {
+        path: "purchase-requests/:requestId",
+        element: gate("procurement.pr.view", <PurchaseRequestDetailPage />),
+      },
+      {
+        path: "purchase-requests/:requestId/edit",
+        element: gate("procurement.pr.create", <PurchaseRequestFormPage />),
+      },
 
       { path: "vendors", element: gate("vendors.view", <VendorsListPage />) },
       { path: "vendors/new", element: gate("vendors.create", <VendorFormPage />) },

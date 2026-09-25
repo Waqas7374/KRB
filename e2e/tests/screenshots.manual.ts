@@ -14,26 +14,19 @@ test("capture key screens", async ({ page }) => {
   for (const [name, path] of [
     ["home", "/"],
     ["vendors", "/vendors"],
-    ["projects", "/projects"],
-    ["units", "/units"],
-    ["roles", "/roles"],
+    ["purchase-requests", "/purchase-requests"],
+    ["approvals", "/approvals"],
+    ["workflows", "/approval-workflows"],
   ] as const) {
     await page.goto(path);
     await page.waitForLoadState("networkidle");
     await page.screenshot({ path: `${OUT}/${name}.png` });
   }
-  await page.goto("/vendors");
+  await page.goto("/purchase-requests");
   await page.locator("tbody tr a").first().click();
   await page.waitForLoadState("networkidle");
-  await page.screenshot({ path: `${OUT}/vendor-detail.png`, fullPage: true });
-  await page.goto("/projects");
-  await page.locator("tbody tr a").first().click();
+  await page.screenshot({ path: `${OUT}/pr-detail.png`, fullPage: true });
+  await page.goto("/purchase-requests/new");
   await page.waitForLoadState("networkidle");
-  await page.screenshot({ path: `${OUT}/project-detail.png`, fullPage: true });
-  await page.goto("/vendors/new");
-  await page.screenshot({ path: `${OUT}/vendor-form.png` });
-  await page.emulateMedia({ colorScheme: "dark" });
-  await page.goto("/vendors");
-  await page.waitForLoadState("networkidle");
-  await page.screenshot({ path: `${OUT}/vendors-dark.png` });
+  await page.screenshot({ path: `${OUT}/pr-form.png`, fullPage: true });
 });
