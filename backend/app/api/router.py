@@ -16,7 +16,9 @@ from app.modules.identity.api import user_routes as identity_user_routes
 from app.modules.masterdata.api import routes as masterdata_routes
 from app.modules.notifications.api import routes as notification_routes
 from app.modules.org.api import routes as org_routes
+from app.modules.procurement.api import po_routes as purchase_order_routes
 from app.modules.procurement.api import routes as procurement_routes
+from app.modules.procurement.api import sourcing_routes
 from app.modules.vendors.api import routes as vendor_routes
 
 api_router = APIRouter()
@@ -35,5 +37,8 @@ api_router.include_router(approval_routes.router, tags=["approvals"])
 # Importing the procurement routes also registers the purchase-request
 # approval handler with the engine (services/purchase_requests.py).
 api_router.include_router(procurement_routes.router)
+api_router.include_router(sourcing_routes.rfq_router)
+api_router.include_router(sourcing_routes.quotation_router)
+api_router.include_router(purchase_order_routes.router)
 
 # Registered as each module lands:

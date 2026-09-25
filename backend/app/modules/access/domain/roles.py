@@ -101,6 +101,7 @@ STANDARD_ROLES: Final[tuple[RoleDef, ...]] = (
             "vendors.manage_bank_details",
             "procurement.po.view",
             "procurement.po.view_pricing",
+            "procurement.po.approve",
             "procurement.pr.approve",
             "inventory.view",
             "inventory.view_valuation",
