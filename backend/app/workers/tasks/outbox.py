@@ -118,6 +118,116 @@ async def _email_password_link(session: AsyncSession, event: OutboxEvent) -> Non
     event.payload = payload
 
 
+def _doc_label(event: OutboxEvent) -> str:
+    kind = str(event.payload.get("doc_type", "document")).replace("_", " ")
+    number = event.payload.get("doc_number")
+    return f"{kind} {number}" if number else kind
+
+
+async def _notify_users(
+    session: AsyncSession,
+    event: OutboxEvent,
+    user_ids: list[str],
+    *,
+    kind: NotificationType,
+    title: str,
+    body: str,
+    priority: NotificationPriority = NotificationPriority.NORMAL,
+) -> None:
+    for raw in dict.fromkeys(user_ids):  # de-duplicate, keep order
+        await notification_service.send(
+            session,
+            company_id=event.company_id,  # type: ignore[arg-type]
+            user_id=UUID(raw),
+            notification_type=kind.value,
+            title=title,
+            body=body,
+            priority=priority,
+            entity_type="ApprovalRequest",
+            entity_id=event.aggregate_id,
+            link_path=event.payload.get("link_path"),
+        )
+
+
+@handler("approval.step_activated")
+async def _notify_approvers(session: AsyncSession, event: OutboxEvent) -> None:
+    label = _doc_label(event)
+    await _notify_users(
+        session,
+        event,
+        list(event.payload.get("approver_ids") or []),
+        kind=NotificationType.APPROVAL_PENDING,
+        title=f"Approval needed: {label}",
+        body=f"{event.payload.get('summary') or label} is waiting for you "
+        f"({event.payload.get('step_name')}).",
+    )
+
+
+@handler("approval.escalated")
+async def _notify_escalation(session: AsyncSession, event: OutboxEvent) -> None:
+    label = _doc_label(event)
+    await _notify_users(
+        session,
+        event,
+        list(event.payload.get("approver_ids") or []),
+        kind=NotificationType.APPROVAL_ESCALATED,
+        title=f"Overdue approval: {label}",
+        body=f"{event.payload.get('step_name')} for {label} is past its deadline.",
+        priority=NotificationPriority.HIGH,
+    )
+
+
+async def _notify_initiator(
+    session: AsyncSession, event: OutboxEvent, kind: NotificationType, verb: str
+) -> None:
+    initiator = event.payload.get("initiated_by")
+    if not initiator:
+        return
+    reason = event.payload.get("reason") or event.payload.get("message")
+    label = _doc_label(event)
+    await _notify_users(
+        session,
+        event,
+        [initiator],
+        kind=kind,
+        title=f"{label[0].upper()}{label[1:]} {verb}",
+        body=f"{label} was {verb}." + (f" {reason}" if reason else ""),
+        priority=NotificationPriority.NORMAL
+        if kind is NotificationType.APPROVAL_APPROVED
+        else NotificationPriority.HIGH,
+    )
+
+
+@handler("approval.approved")
+async def _notify_approved(session: AsyncSession, event: OutboxEvent) -> None:
+    await _notify_initiator(session, event, NotificationType.APPROVAL_APPROVED, "approved")
+
+
+@handler("approval.rejected")
+async def _notify_rejected(session: AsyncSession, event: OutboxEvent) -> None:
+    await _notify_initiator(session, event, NotificationType.APPROVAL_REJECTED, "rejected")
+
+
+@handler("approval.changes_requested")
+async def _notify_changes(session: AsyncSession, event: OutboxEvent) -> None:
+    await _notify_initiator(
+        session, event, NotificationType.APPROVAL_CHANGES_REQUESTED, "returned for changes"
+    )
+
+
+@handler("approval.recalled")
+async def _notify_recalled(session: AsyncSession, event: OutboxEvent) -> None:
+    # A recall the submitter made themselves needs no notification; an
+    # automatic one (the document changed while pending) does.
+    if event.payload.get("auto"):
+        await _notify_initiator(session, event, NotificationType.APPROVAL_RECALLED, "recalled")
+
+
+@handler("approval.stuck")
+async def _notify_stuck(session: AsyncSession, event: OutboxEvent) -> None:
+    await _notify_initiator(session, event, NotificationType.APPROVAL_STUCK, "stuck in approval")
+
+
 @handler("user.role_granted")
 async def _notify_role_granted(session: AsyncSession, event: OutboxEvent) -> None:
     role_code = event.payload.get("role_code", "a role")

@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import Any
 
 from celery import Celery
-from celery.schedules import schedule
+from celery.schedules import crontab, schedule
 
 from app.core.config import settings
 from app.core.logging import configure_logging
@@ -34,7 +34,11 @@ celery_app = Celery(
     "krb_erp",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
-    include=["app.workers.tasks.diagnostics", "app.workers.tasks.outbox"],
+    include=[
+        "app.workers.tasks.diagnostics",
+        "app.workers.tasks.outbox",
+        "app.workers.tasks.approvals",
+    ],
 )
 
 celery_app.conf.update(
@@ -74,14 +78,18 @@ celery_app.conf.beat_schedule = {
         "schedule": schedule(run_every=60.0),
         "options": {"queue": "outbox"},
     },
+    # Phase 2: overdue approval steps escalate once, at five past the hour.
+    "approvals.escalate": {
+        "task": "approvals.escalate",
+        "schedule": crontab(minute=5),
+    },
 }
 
 # Added to beat_schedule as each feature lands, in the phase noted.
 PLANNED_SCHEDULE: dict[str, dict[str, Any]] = {
     "maintenance.expire_sessions": {"cron": "30 3 * * *", "phase": 1},
-    # Phase 2
+    # Phase 2 (approvals.escalate is live above; these follow with POs)
     "approvals.remind": {"cron": "0 * * * *", "phase": 2},
-    "approvals.escalate": {"cron": "5 * * * *", "phase": 2},
     "approvals.reconcile": {"cron": "15 2 * * *", "phase": 2},
     # Phase 3 — balances are a cached projection of the append-only ledger;
     # this job proves they still agree and alarms if they do not.

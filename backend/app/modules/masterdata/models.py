@@ -52,6 +52,8 @@ class Unit(MasterDataModel):
     """
 
     __tablename__ = "units"
+    # Company-wide reference data: see core/scoping.py.
+    __scope_company_wide__ = True
 
     code: Mapped[str] = mapped_column(String(20), nullable=False)
     name: Mapped[str] = mapped_column(String(80), nullable=False)
@@ -79,6 +81,8 @@ class UnitConversion(MasterDataModel):
     """
 
     __tablename__ = "unit_conversions"
+    # Company-wide reference data: see core/scoping.py.
+    __scope_company_wide__ = True
     __audited__ = True
 
     from_unit_id: Mapped[UUID] = mapped_column(
@@ -151,6 +155,8 @@ class MaterialCategory(MasterDataModel):
     """Aggregates, Sand, Cement, Steel, Concrete, Pipes, Electrical (§9)."""
 
     __tablename__ = "material_categories"
+    # Company-wide reference data: see core/scoping.py.
+    __scope_company_wide__ = True
 
     code: Mapped[str] = mapped_column(String(30), nullable=False)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
@@ -168,6 +174,8 @@ class MaterialCategory(MasterDataModel):
 
 class Material(MasterDataModel):
     __tablename__ = "materials"
+    # Company-wide reference data: see core/scoping.py.
+    __scope_company_wide__ = True
 
     sku: Mapped[str] = mapped_column(String(40), nullable=False)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -249,6 +257,8 @@ class MaterialUnit(MasterDataModel):
     """
 
     __tablename__ = "material_units"
+    # Company-wide reference data: see core/scoping.py.
+    __scope_company_wide__ = True
 
     material_id: Mapped[UUID] = mapped_column(
         PgUUID(as_uuid=True),
@@ -294,6 +304,8 @@ class TruckType(MasterDataModel):
     """
 
     __tablename__ = "truck_types"
+    # Company-wide reference data: see core/scoping.py.
+    __scope_company_wide__ = True
 
     code: Mapped[str] = mapped_column(String(30), nullable=False)
     name: Mapped[str] = mapped_column(String(120), nullable=False)

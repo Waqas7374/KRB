@@ -55,6 +55,19 @@ os.environ["REDIS_URL"] = re.sub(
 )
 
 
+def pytest_configure(config: pytest.Config) -> None:
+    """Use the application's logging setup in tests.
+
+    Without it structlog falls back to its defaults, which render exception
+    tracebacks with every frame's local variables through rich. A single
+    unhandled error inside a request (locals: sessions, ORM objects, the app)
+    then takes many minutes to print, and the suite looks hung.
+    """
+    from app.core.logging import configure_logging
+
+    configure_logging()
+
+
 @pytest.fixture(scope="session")
 def anyio_backend() -> str:
     return "asyncio"
@@ -97,7 +110,7 @@ def seeded(migrated_database: None) -> Iterator[None]:
     from app.core.db import SessionFactory, dispose_engine
     from app.models_registry import import_all_models
     from app.modules.audit.hooks import install_audit_hooks
-    from app.seeds import foundation, masterdata
+    from app.seeds import approvals, foundation, masterdata
 
     import_all_models()
     install_audit_hooks()
@@ -114,6 +127,7 @@ def seeded(migrated_database: None) -> Iterator[None]:
                 await masterdata.seed_materials(session, company)
                 await masterdata.seed_warehouses(session, company)
                 await masterdata.seed_vendors(session, company)
+                await approvals.seed_workflows(session, company)
                 await session.commit()
         # Dispose inside this loop: asyncpg connections belong to the loop that
         # opened them, and leaving them for a later loop to close raises

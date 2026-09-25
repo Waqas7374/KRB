@@ -77,6 +77,15 @@ def scope_filter(
     if scope.is_company_wide:
         return stmt
 
+    # Company-wide reference data (the material catalogue, units, vendors)
+    # declares `__scope_company_wide__`. It belongs to no project or site, so a
+    # project- or site-scoped grant of its view permission means "may see the
+    # catalogue", not "may see none of it". Without this, a site manager held
+    # `materials.view` yet saw zero materials and could not raise a purchase
+    # request or, later, capture a delivery.
+    if getattr(model, "__scope_company_wide__", False):
+        return stmt
+
     # A narrower grant: the row must match at least one dimension the user was
     # granted. Unmatched dimensions contribute nothing rather than everything.
     clauses = []

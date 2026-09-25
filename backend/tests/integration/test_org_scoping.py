@@ -142,6 +142,31 @@ class TestSiteScoping:
         assert central["site_type"] == "CENTRAL_STORE"
 
 
+class TestCompanyWideReferenceData:
+    """The catalogue belongs to no project or site. A narrowly scoped grant of
+    its view permission must show all of it — before this, a site manager with
+    `materials.view` saw zero materials, units and vendors, and so could not
+    raise a purchase request at all."""
+
+    @pytest.mark.parametrize("email", [SITE_STAFF, "sm.gvh1@krb.example", "pm.gvh@krb.example"])
+    @pytest.mark.parametrize("path", ["/materials", "/units", "/vendors", "/material-categories"])
+    async def test_scoped_users_see_the_whole_catalogue(
+        self, api: AsyncClient, login: Any, email: str, path: str
+    ) -> None:
+        admin_total = (await api.get(path, headers=await login(ADMIN))).json()["page"]["total"]
+        scoped = (await api.get(path, headers=await login(email))).json()
+        assert admin_total > 0
+        assert scoped["page"]["total"] == admin_total, f"{email} {path}"
+
+    async def test_site_scoped_data_is_still_narrowed(self, api: AsyncClient, login: Any) -> None:
+        """Warehouses carry a site, so they stay scoped."""
+        admin = (await api.get("/warehouses", headers=await login(ADMIN))).json()["page"]["total"]
+        store = (await api.get("/warehouses", headers=await login("store.cs@krb.example"))).json()[
+            "page"
+        ]["total"]
+        assert 0 < store < admin
+
+
 class TestCreateProject:
     async def test_creates_the_eight_standard_phases(self, api: AsyncClient, login: Any) -> None:
         headers = await login(ADMIN)

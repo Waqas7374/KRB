@@ -607,5 +607,19 @@ async def seed_users(session: AsyncSession, company: Company) -> SeedResult:
             protected_fields=("valid_from", "valid_to", "grant_reason"),
         )
 
+        # The approval engine's "project manager" / "site manager" steps read
+        # these columns. Filled only when empty, so a manager an administrator
+        # assigned is never replaced by a reseed.
+        if role_code == "PROJECT_MANAGER" and scope_id is not None:
+            project = await session.get(Project, scope_id)
+            if project is not None and project.manager_user_id is None:
+                project.manager_user_id = user.id
+                result.updated += 1
+        elif role_code == "SITE_MANAGER" and scope_id is not None:
+            site = await session.get(Site, scope_id)
+            if site is not None and site.manager_user_id is None:
+                site.manager_user_id = user.id
+                result.updated += 1
+
     await session.flush()
     return result

@@ -52,7 +52,13 @@ def configure_logging() -> None:
         renderer: Processor = structlog.processors.JSONRenderer()
         shared.append(structlog.processors.format_exc_info)
     else:
-        renderer = structlog.dev.ConsoleRenderer(colors=sys.stderr.isatty())
+        # show_locals=False: the default renders every frame's locals, and a
+        # frame holding an SQLAlchemy session or a request took minutes to
+        # render — any 500 in development froze the API while it printed.
+        renderer = structlog.dev.ConsoleRenderer(
+            colors=sys.stderr.isatty(),
+            exception_formatter=structlog.dev.RichTracebackFormatter(show_locals=False),
+        )
         shared.append(structlog.processors.ExceptionPrettyPrinter())
 
     structlog.configure(

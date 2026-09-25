@@ -43,6 +43,8 @@ from app.modules.vendors.domain.enums import VendorStatus, VendorType
 
 class Vendor(MasterDataModel):
     __tablename__ = "vendors"
+    # Company-wide reference data: see core/scoping.py.
+    __scope_company_wide__ = True
 
     code: Mapped[str] = mapped_column(String(30), nullable=False)
     legal_name: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -125,6 +127,8 @@ class Vendor(MasterDataModel):
 
 class VendorContact(MasterDataModel):
     __tablename__ = "vendor_contacts"
+    # Company-wide reference data: see core/scoping.py.
+    __scope_company_wide__ = True
 
     vendor_id: Mapped[UUID] = mapped_column(
         PgUUID(as_uuid=True),
@@ -213,6 +217,8 @@ class VendorMaterial(MasterDataModel):
     """What a vendor supplies, and how they behave when supplying it."""
 
     __tablename__ = "vendor_materials"
+    # Company-wide reference data: see core/scoping.py.
+    __scope_company_wide__ = True
 
     vendor_id: Mapped[UUID] = mapped_column(
         PgUUID(as_uuid=True),

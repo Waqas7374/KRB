@@ -146,6 +146,10 @@ filterwarnings = ["error::DeprecationWarning:app.*"]
 
 [tool.coverage.run]
 source = ["app"]
+# SQLAlchemy's async layer runs our code inside greenlets. Without this,
+# coverage loses the trace after the first DB await in a request and
+# under-reports every service and route the integration tests really execute.
+concurrency = ["greenlet", "thread"]
 # Bootstrap and wiring code: exercised by starting the process, not by unit
 # tests. Covering it would mean asserting that configuration equals itself.
 omit = [

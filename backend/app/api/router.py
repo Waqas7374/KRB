@@ -9,12 +9,14 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.modules.access.api import routes as access_routes
+from app.modules.approvals.api import routes as approval_routes
 from app.modules.documents.api import routes as document_routes
 from app.modules.identity.api import routes as identity_routes
 from app.modules.identity.api import user_routes as identity_user_routes
 from app.modules.masterdata.api import routes as masterdata_routes
 from app.modules.notifications.api import routes as notification_routes
 from app.modules.org.api import routes as org_routes
+from app.modules.procurement.api import routes as procurement_routes
 from app.modules.vendors.api import routes as vendor_routes
 
 api_router = APIRouter()
@@ -29,5 +31,9 @@ api_router.include_router(document_routes.router, prefix="/attachments", tags=["
 api_router.include_router(
     notification_routes.router, prefix="/notifications", tags=["notifications"]
 )
+api_router.include_router(approval_routes.router, tags=["approvals"])
+# Importing the procurement routes also registers the purchase-request
+# approval handler with the engine (services/purchase_requests.py).
+api_router.include_router(procurement_routes.router)
 
 # Registered as each module lands:

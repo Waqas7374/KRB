@@ -18,7 +18,7 @@ from app.core.db import SessionFactory, dispose_engine
 from app.core.logging import configure_logging, get_logger
 from app.models_registry import import_all_models
 from app.modules.audit.hooks import install_audit_hooks
-from app.seeds import foundation, masterdata
+from app.seeds import approvals, foundation, masterdata
 from app.seeds.registry import SeedResult
 
 log = get_logger("seed")
@@ -33,6 +33,7 @@ GROUPS: tuple[str, ...] = (
     "materials",
     "warehouses",
     "vendors",
+    "approvals",
 )
 
 
@@ -65,6 +66,9 @@ async def run(groups: tuple[str, ...]) -> list[SeedResult]:
 
         if "vendors" in groups:
             results.append(await masterdata.seed_vendors(session, company))
+
+        if "approvals" in groups:
+            results.append(await approvals.seed_workflows(session, company))
 
         await session.commit()
 

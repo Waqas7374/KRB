@@ -37,12 +37,14 @@ name = Domain is free of infrastructure
 type = forbidden
 source_modules =
     app.modules.access.domain
+    app.modules.approvals.domain
     app.modules.audit.domain
     app.modules.documents.domain
     app.modules.identity.domain
     app.modules.masterdata.domain
     app.modules.notifications.domain
     app.modules.org.domain
+    app.modules.procurement.domain
     app.modules.vendors.domain
     app.platform.domain
 forbidden_modules =
@@ -72,12 +74,14 @@ layers =
     (domain)
 containers =
     app.modules.access
+    app.modules.approvals
     app.modules.audit
     app.modules.documents
     app.modules.identity
     app.modules.masterdata
     app.modules.notifications
     app.modules.org
+    app.modules.procurement
     app.modules.vendors
 
 # -----------------------------------------------------------------------------

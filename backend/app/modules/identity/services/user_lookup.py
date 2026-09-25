@@ -38,6 +38,42 @@ async def get_user_summary(
     )
 
 
+@dataclass(frozen=True, slots=True)
+class PersonSummary:
+    id: UUID
+    full_name: str
+    email: str | None
+    can_act: bool
+
+
+# Statuses in which a person can sign in and act. PASSWORD_RESET_REQUIRED is
+# included: the account is live, it only has to set a new password first.
+_ACTIVE_STATUSES = frozenset({"ACTIVE", "PASSWORD_RESET_REQUIRED"})
+
+
+async def people(
+    session: AsyncSession, *, company_id: UUID, user_ids: set[UUID] | list[UUID]
+) -> dict[UUID, PersonSummary]:
+    """Names and whether each can act, for a set of users (approvers, actors)."""
+    if not user_ids:
+        return {}
+    rows = (
+        (
+            await session.execute(
+                select(User).where(User.company_id == company_id, User.id.in_(list(user_ids)))
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return {
+        u.id: PersonSummary(
+            id=u.id, full_name=u.full_name, email=u.email, can_act=u.status in _ACTIVE_STATUSES
+        )
+        for u in rows
+    }
+
+
 async def bump_permissions_version(session: AsyncSession, *, user_id: UUID) -> None:
     """Invalidate the user's cached AccessContext.
 

@@ -24,6 +24,9 @@ MODEL_MODULES: Final[tuple[str, ...]] = (
     "app.modules.notifications.models",
     "app.modules.audit.models",
     "app.platform.models",
+    # Phase 2 — approvals and procurement
+    "app.modules.approvals.models",
+    "app.modules.procurement.models",
 )
 
 
