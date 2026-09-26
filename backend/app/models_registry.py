@@ -30,6 +30,7 @@ MODEL_MODULES: Final[tuple[str, ...]] = (
     # Phase 3 — business rules first, then the material-tracking tables
     "app.modules.rules.models",
     "app.modules.rates.models",
+    "app.modules.deliveries.models",
 )
 
 

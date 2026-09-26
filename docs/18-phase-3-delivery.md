@@ -12,11 +12,11 @@ what remains.
 |---|---|---|---|
 | 3a | Business-rules store and resolver; **approval limits** (closes the last Phase 2 gap) | — | done |
 | 3b | Vendor rates: effective-dated, append-only, approval-gated, resolved by scope | 3a's approval engine wiring | done |
-| 3c | Deliveries: ingest, geofence, quantity checks, rate and conversion snapshots, flags | 3a, 3b, unit conversion (Phase 1) | next |
-| 3d | Review queue and decisions | 3c | |
+| 3c | Deliveries: ingest, geofence, quantity checks, rate and conversion snapshots, flags | 3a, 3b, unit conversion (Phase 1) | done |
+| 3d | Review queue and decisions, corrections, flag waivers, attaching an order | 3c | done |
 | 3e | GRN and the inventory ledger | 3c, 3d | |
 | 3f | Mobile sync API (push / pull, idempotency, devices) | 3c | |
-| 3g | Web: delivery, review, GRN, inventory screens | 3c–3e | |
+| 3g | Web: delivery, review, GRN, inventory screens | 3c–3e | deliveries and review done; GRN and inventory with 3e |
 
 The order follows what each slice *reads*: deliveries read rules and rates, so they
 come after both; the GRN reads an approved delivery; the sync API is a thin
@@ -70,6 +70,43 @@ replaces is closed the day before, in the same transaction.
 Roles: `FINANCE_MANAGER` and `EXECUTIVE` gain `rates.approve` (the seeded workflow
 names them; the engine refuses a role that cannot approve the document).
 
+## 3c — Deliveries
+
+**One entry point** (`deliveries/services/ingest.py`) serves the web form and, later,
+the mobile sync API, so the two can never disagree about what a delivery is or how it
+is checked.
+
+| Rule (docs/05 §3, docs/06 §4) | How it is honoured |
+|---|---|
+| **A delivery is always saved.** | Only a malformed request, or one naming something that does not exist, is refused — with a field error. Everything else raises a *flag*. Even a suspended vendor, a missing rate, a truck on the wrong side of town. |
+| **The device never supplies a price, factor or rule.** | `DeliveryCreate` has no rate, amount, conversion or flag field. The rate is resolved from the vendor's approved rates *as of the capture time* (3b), the unit conversion from the conversion table, and both are **snapshotted** on the line. A later rate or factor change cannot restate a delivery already counted. |
+| **Idempotent.** | The client-generated `id` is the key. The same id again returns the stored delivery (HTTP 200, same number, nothing changed — even if the second payload differs). Someone else's id is a 409, not a read. |
+| **Missing rate / factor does not stop it.** | `RATE_MISSING` / `CONVERSION_MISSING`: captured now, priced later. |
+| **Flags carry the rule that fired.** | `rule_id` plus a snapshot of the rule's value, scope and dates; tightening a rule next month never rewrites why last month's load was flagged. |
+| **Geofence uses PostGIS.** | Distance is 0 inside a polygon boundary, else metres beyond the centre's radius. A rule scoped to the site beats the site's own radius. Within the GPS accuracy is an INFO note, not an accusation; a fix worse than 100 m can never be CRITICAL by itself; no fix at all is a WARNING. |
+| **Clock skew is not lateness.** | Skew is the device's clock against the server's (reported with the batch); how long a delivery waited offline is `LATE_SUBMISSION`. A capture time in the future is skew whatever the batch said. |
+| **Tonnage** | Compared in tonnes after conversion (skipped for loads not counted by weight). The rule store decides; with no rule the truck type's own default applies. +25 % or more over is CRITICAL. |
+| **PO balance** | Received to date (from deliveries that still stand, converted to the order line's unit) plus this load must fit the ordered quantity plus the tolerance — the *greater* of a percentage and an absolute amount. |
+| **No order (docs/12 Q3)** | `NO_PO` WARNING and into review, never refused — unless the project sets `require_po_for_delivery`, which makes it a hard 422. |
+| Also | `DUPLICATE_SUSPECT` (same truck — letters and digits only — and material at the site within the window), `DAILY_CAP_EXCEEDED`, `VENDOR_INACTIVE`, `LATE_SUBMISSION`. |
+
+Status: no flag of WARNING or worse → `SUBMITTED`; otherwise `UNDER_REVIEW`. Site staff
+see only their site (out of scope reads as "no such site", not "forbidden").
+
+## 3d — Review
+
+| Piece | Behaviour |
+|---|---|
+| Queue | `GET /deliveries/review-queue`: `UNDER_REVIEW`, most severe open flag first, oldest first within a severity. |
+| Approve | Accepts every open flag (kept on the record with the reviewer's note). **A critical flag cannot be accepted without a reason.** |
+| Reject | Needs a reason; flags become REJECTED; the delivery stays, marked rejected, and stops counting against its order. |
+| Send back | Returns to the capturer with a note. |
+| Correct | The capturer's `PUT` puts the corrected entry through the **same pipeline** as a new one — a correction cannot edit a flag away unseen: old flags are kept as `CORRECTED`, the new version raises its own. Same delivery number. |
+| Reopen / waive | Administrator-only by default (the roles do not carry `deliveries.reopen` / `waive_flag`). Reopen needs a reason and is refused once a GRN exists. Waiving the last open flag releases the delivery from review. |
+| Attach an order | For a delivery that arrived without one: checks the vendor and that the order is receivable, **re-runs the balance check** (attaching cannot hide an over-delivery), retires the `NO_PO` flag. |
+| History | `delivery_reviews` is append-only by trigger; every decision, who, when, from-status, to-status, note. |
+| Screens | Deliveries list (filters, flag column), record form (browser geolocation button; you never enter a price), detail (flags with the rule in force, load with priced quantity, review history, decision dialogs), review queue with time waiting. |
+
 ## Found by testing
 
 - **The approver of a rate change had nowhere to decide it.** The inbox row linked to
@@ -87,10 +124,10 @@ names them; the engine refuses a role that cannot approve the document).
 
 | Suite | Result |
 |---|---|
-| Backend | 518 passed, coverage 91 % (gate 80 %); ruff, mypy --strict (194 files), import contracts 4/4, `alembic check` clean; both migrations round-trip |
-| New backend | 27 unit (resolution, value validation) · 15 unit (rate resolution) · 42 integration (rules API, resolver, approval limits through the engine) · 28 integration (rate proposal, approval, supersession, history append-only, exclusion constraint, scope resolution) |
-| Web | 60 unit; typecheck, eslint, prettier, build clean |
-| Browser E2E | 17 passed (adds business-rules ×2 and vendor-rates ×1; the smoke test now opens every list and form screen) |
+| Backend | 593 passed, coverage 91 % (gate 80 %); ruff, mypy --strict (209 files), import contracts 4/4, `alembic check` clean; every migration round-trips |
+| New backend | rules (unit + integration, incl. approval limits through the engine) · rates (unit + integration: supersession, append-only history, exclusion constraint) · deliveries: 26 unit (every check and severity band) + 33 integration (capture, geofence, pricing snapshots, idempotency, scope, order balance) · review: 20 integration (queue order, decisions, correction loop, waive, attach order, capabilities) |
+| Web | 68 unit; typecheck, eslint, prettier, build clean |
+| Browser E2E | 18 passed (business rules ×2, vendor rates ×1, **deliveries ×1: record an overloaded off-site delivery with no order, send back, correct, approve with a reason**; the smoke test opens every list and form screen) |
 
 ## Decisions to confirm
 

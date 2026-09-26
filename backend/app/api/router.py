@@ -10,6 +10,8 @@ from fastapi import APIRouter
 
 from app.modules.access.api import routes as access_routes
 from app.modules.approvals.api import routes as approval_routes
+from app.modules.deliveries.api import review_routes as delivery_review_routes
+from app.modules.deliveries.api import routes as delivery_routes
 from app.modules.documents.api import routes as document_routes
 from app.modules.identity.api import routes as identity_routes
 from app.modules.identity.api import user_routes as identity_user_routes
@@ -44,5 +46,10 @@ api_router.include_router(sourcing_routes.quotation_router)
 api_router.include_router(purchase_order_routes.router)
 api_router.include_router(rules_routes.router)
 api_router.include_router(rates_routes.router)
+# The review router first: `/deliveries/review-queue` must be matched before
+# `/deliveries/{delivery_id}` reads it as an id.
+api_router.include_router(delivery_review_routes.router)
+api_router.include_router(delivery_review_routes.flag_router)
+api_router.include_router(delivery_routes.router)
 
 # Registered as each module lands:

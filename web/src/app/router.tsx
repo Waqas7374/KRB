@@ -128,6 +128,12 @@ const BusinessRulesPage = page(
 
 const VendorRatesPage = page(() => import("@/features/rates/VendorRatesPage"), "VendorRatesPage");
 
+const dl = () => import("@/features/deliveries/DeliveryPages");
+const DeliveriesListPage = page(dl, "DeliveriesListPage");
+const ReviewQueuePage = page(dl, "ReviewQueuePage");
+const DeliveryFormPage = page(dl, "DeliveryFormPage");
+const DeliveryDetailPage = page(dl, "DeliveryDetailPage");
+
 const gate = (permission: string, element: ReactNode) => (
   <RequirePermission permission={permission}>{element}</RequirePermission>
 );
@@ -194,6 +200,14 @@ export const router = createBrowserRouter([
       },
 
       { path: "vendor-rates", element: gate("rates.view", <VendorRatesPage />) },
+      { path: "deliveries", element: gate("deliveries.view", <DeliveriesListPage />) },
+      { path: "deliveries/new", element: gate("deliveries.create", <DeliveryFormPage />) },
+      { path: "deliveries/review", element: gate("deliveries.review", <ReviewQueuePage />) },
+      { path: "deliveries/:deliveryId", element: gate("deliveries.view", <DeliveryDetailPage />) },
+      {
+        path: "deliveries/:deliveryId/edit",
+        element: gate("deliveries.create", <DeliveryFormPage />),
+      },
       { path: "rfqs", element: gate("procurement.rfq.view", <RfqsListPage />) },
       { path: "rfqs/new", element: gate("procurement.rfq.create", <RfqFormPage />) },
       { path: "rfqs/:rfqId", element: gate("procurement.rfq.view", <RfqDetailPage />) },

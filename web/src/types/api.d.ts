@@ -2073,6 +2073,178 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/deliveries/review-queue": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Deliveries waiting for a decision: most severe first, oldest first within a severity */
+    get: operations["review_queue_api_v1_deliveries_review_queue_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/deliveries/{delivery_id}/reviews": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Every decision made on a delivery, newest first. Append-only. */
+    get: operations["delivery_reviews_api_v1_deliveries__delivery_id__reviews_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/deliveries/{delivery_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Delivery */
+    get: operations["get_delivery_api_v1_deliveries__delivery_id__get"];
+    /** Correct a delivery a reviewer sent back. It is checked afresh. */
+    put: operations["correct_delivery_api_v1_deliveries__delivery_id__put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/deliveries/{delivery_id}/approve": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Approve; resolves any open flags as accepted (critical ones need a reason) */
+    post: operations["approve_delivery_api_v1_deliveries__delivery_id__approve_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/deliveries/{delivery_id}/reject": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Reject Delivery */
+    post: operations["reject_delivery_api_v1_deliveries__delivery_id__reject_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/deliveries/{delivery_id}/request-correction": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Send it back to the person who captured it, with a note */
+    post: operations["request_correction_api_v1_deliveries__delivery_id__request_correction_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/deliveries/{delivery_id}/reopen": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Reopen Delivery */
+    post: operations["reopen_delivery_api_v1_deliveries__delivery_id__reopen_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/deliveries/{delivery_id}/attach-purchase-order": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Attach an order to a delivery that arrived without one (re-checks the order balance) */
+    post: operations["attach_purchase_order_api_v1_deliveries__delivery_id__attach_purchase_order_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/delivery-flags/{flag_id}/waive": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Set one flag aside, with a reason */
+    post: operations["waive_flag_api_v1_delivery_flags__flag_id__waive_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/deliveries": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Deliveries */
+    get: operations["list_deliveries_api_v1_deliveries_get"];
+    put?: never;
+    /** Record a delivery. It is always saved; anything odd becomes a flag. */
+    post: operations["create_delivery_api_v1_deliveries_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2131,6 +2303,16 @@ export interface components {
       source: string;
       /** Has Approved */
       has_approved: boolean;
+    };
+    /** AttachOrder */
+    AttachOrder: {
+      /**
+       * Purchase Order Id
+       * Format: uuid
+       */
+      purchase_order_id: string;
+      /** Comments */
+      comments?: string | null;
     };
     /** AttachmentRead */
     AttachmentRead: {
@@ -2681,6 +2863,352 @@ export interface components {
       /** Message */
       message: string | null;
     };
+    /**
+     * DeliveryCreate
+     * @description A delivery as captured. There is deliberately no rate, amount, factor or
+     *     flag here: the server resolves and computes all of them.
+     */
+    DeliveryCreate: {
+      /** Id */
+      id?: string | null;
+      /**
+       * Site Id
+       * Format: uuid
+       */
+      site_id: string;
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Purchase Order Id */
+      purchase_order_id?: string | null;
+      /** Po Item Id */
+      po_item_id?: string | null;
+      /** Truck Number */
+      truck_number?: string | null;
+      /** Truck Type Id */
+      truck_type_id?: string | null;
+      /** Driver Name */
+      driver_name?: string | null;
+      /** Driver Phone */
+      driver_phone?: string | null;
+      /** Challan Number */
+      challan_number?: string | null;
+      /** Challan Date */
+      challan_date?: string | null;
+      /** Captured At */
+      captured_at?: string | null;
+      /** Latitude */
+      latitude?: number | string | null;
+      /** Longitude */
+      longitude?: number | string | null;
+      /** Gps Accuracy M */
+      gps_accuracy_m?: number | string | null;
+      /** @default GPS */
+      location_source: components["schemas"]["LocationSource"];
+      /** Remarks */
+      remarks?: string | null;
+      /** Items */
+      items: components["schemas"]["DeliveryLineIn"][];
+      /** Device Id */
+      device_id?: string | null;
+      /** App Version */
+      app_version?: string | null;
+      /**
+       * Was Offline
+       * @default false
+       */
+      was_offline: boolean;
+      /** Device Time */
+      device_time?: string | null;
+    };
+    /** DeliveryItemRead */
+    DeliveryItemRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Line No */
+      line_no: number;
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Material Sku */
+      material_sku?: string | null;
+      /** Material Name */
+      material_name?: string | null;
+      /** Quantity */
+      quantity: string;
+      /**
+       * Unit Id
+       * Format: uuid
+       */
+      unit_id: string;
+      /** Unit Code */
+      unit_code?: string | null;
+      /** Converted Quantity */
+      converted_quantity: string | null;
+      /** Converted Unit Code */
+      converted_unit_code?: string | null;
+      /** Conversion Factor */
+      conversion_factor: string | null;
+      /** Rate */
+      rate?: string | null;
+      /** Rate Source */
+      rate_source?: string | null;
+      /** Amount */
+      amount?: string | null;
+      /** Remarks */
+      remarks: string | null;
+    };
+    /** DeliveryLineIn */
+    DeliveryLineIn: {
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Quantity */
+      quantity: number | string;
+      /**
+       * Unit Id
+       * Format: uuid
+       */
+      unit_id: string;
+      /** Remarks */
+      remarks?: string | null;
+    };
+    /** DeliveryListItem */
+    DeliveryListItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Delivery Number */
+      delivery_number: string;
+      /** Status */
+      status: string;
+      /**
+       * Site Id
+       * Format: uuid
+       */
+      site_id: string;
+      /** Site Code */
+      site_code?: string | null;
+      /** Project Code */
+      project_code?: string | null;
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Vendor Name */
+      vendor_name?: string | null;
+      /** Truck Number */
+      truck_number: string | null;
+      /** Challan Number */
+      challan_number: string | null;
+      /**
+       * Captured At
+       * Format: date-time
+       */
+      captured_at: string;
+      /** Flag Count */
+      flag_count: number;
+      /** Has Open Flags */
+      has_open_flags: boolean;
+      /** Worst Severity */
+      worst_severity?: string | null;
+      /** Material Summary */
+      material_summary?: string | null;
+      /** Amount */
+      amount?: string | null;
+      /** Purchase Order Id */
+      purchase_order_id: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /** DeliveryRead */
+    DeliveryRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Delivery Number */
+      delivery_number: string;
+      /** Status */
+      status: string;
+      /** Project Id */
+      project_id: string | null;
+      /** Project Code */
+      project_code?: string | null;
+      /**
+       * Site Id
+       * Format: uuid
+       */
+      site_id: string;
+      /** Site Code */
+      site_code?: string | null;
+      /** Site Name */
+      site_name?: string | null;
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Vendor Code */
+      vendor_code?: string | null;
+      /** Vendor Name */
+      vendor_name?: string | null;
+      /** Purchase Order Id */
+      purchase_order_id: string | null;
+      /** Purchase Order Number */
+      purchase_order_number?: string | null;
+      /** Truck Number */
+      truck_number: string | null;
+      /** Truck Type Id */
+      truck_type_id: string | null;
+      /** Truck Type Name */
+      truck_type_name?: string | null;
+      /** Driver Name */
+      driver_name: string | null;
+      /** Driver Phone */
+      driver_phone: string | null;
+      /** Challan Number */
+      challan_number: string | null;
+      /** Challan Date */
+      challan_date: string | null;
+      /** Captured Lat */
+      captured_lat: string | null;
+      /** Captured Lng */
+      captured_lng: string | null;
+      /** Gps Accuracy M */
+      gps_accuracy_m: string | null;
+      /** Location Source */
+      location_source: string;
+      /** Distance From Site M */
+      distance_from_site_m: string | null;
+      /** Is Inside Geofence */
+      is_inside_geofence: boolean | null;
+      /**
+       * Captured At
+       * Format: date-time
+       */
+      captured_at: string;
+      /**
+       * Received At
+       * Format: date-time
+       */
+      received_at: string;
+      /** Clock Skew Seconds */
+      clock_skew_seconds: number | null;
+      /** Device Id */
+      device_id: string | null;
+      /** App Version */
+      app_version: string | null;
+      /** Was Offline */
+      was_offline: boolean;
+      /** Submitted By Id */
+      submitted_by_id: string | null;
+      /** Submitted By Name */
+      submitted_by_name?: string | null;
+      /** Submitted At */
+      submitted_at: string | null;
+      /** Reviewed By Id */
+      reviewed_by_id: string | null;
+      /** Reviewed At */
+      reviewed_at: string | null;
+      /** Approved By Id */
+      approved_by_id: string | null;
+      /** Approved At */
+      approved_at: string | null;
+      /** Rejected By Id */
+      rejected_by_id: string | null;
+      /** Rejected At */
+      rejected_at: string | null;
+      /** Rejection Reason */
+      rejection_reason: string | null;
+      /** Remarks */
+      remarks: string | null;
+      /** Flag Count */
+      flag_count: number;
+      /** Has Open Flags */
+      has_open_flags: boolean;
+      /** Grn Id */
+      grn_id: string | null;
+      /**
+       * Prices Hidden
+       * @default false
+       */
+      prices_hidden: boolean;
+      /** Total Amount */
+      total_amount?: string | null;
+      /** Version */
+      version: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Items */
+      items: components["schemas"]["DeliveryItemRead"][];
+      /** Flags */
+      flags: components["schemas"]["FlagRead"][];
+      /**
+       * Reviews
+       * @default []
+       */
+      reviews: components["schemas"]["ReviewRead"][];
+      /**
+       * Can Approve
+       * @default false
+       */
+      can_approve: boolean;
+      /**
+       * Can Reject
+       * @default false
+       */
+      can_reject: boolean;
+      /**
+       * Can Request Correction
+       * @default false
+       */
+      can_request_correction: boolean;
+      /**
+       * Can Reopen
+       * @default false
+       */
+      can_reopen: boolean;
+      /**
+       * Can Attach Order
+       * @default false
+       */
+      can_attach_order: boolean;
+      /**
+       * Can Correct
+       * @default false
+       */
+      can_correct: boolean;
+      /**
+       * Can Waive
+       * @default false
+       */
+      can_waive: boolean;
+    };
     /** DepartmentCreate */
     DepartmentCreate: {
       /** Code */
@@ -2830,6 +3358,45 @@ export interface components {
       | "budget"
       | "stock_adjustment"
       | "leave_request";
+    /** FlagRead */
+    FlagRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Flag Type */
+      flag_type: string;
+      /** Severity */
+      severity: string;
+      /** Message */
+      message: string;
+      /** Expected Value */
+      expected_value: string | null;
+      /** Actual Value */
+      actual_value: string | null;
+      /** Deviation Pct */
+      deviation_pct: string | null;
+      /** Rule Id */
+      rule_id: string | null;
+      /** Rule Snapshot */
+      rule_snapshot: {
+        [key: string]: unknown;
+      };
+      /** Status */
+      status: string;
+      /** Resolved By Id */
+      resolved_by_id: string | null;
+      /** Resolved At */
+      resolved_at: string | null;
+      /** Resolution Note */
+      resolution_note: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+    };
     /** ForgotPasswordRequest */
     ForgotPasswordRequest: {
       /** Identifier */
@@ -2917,6 +3484,11 @@ export interface components {
       /** Escalated */
       escalated: boolean;
     };
+    /**
+     * LocationSource
+     * @enum {string}
+     */
+    LocationSource: "GPS" | "NETWORK" | "MANUAL";
     /** LoginRequest */
     LoginRequest: {
       /**
@@ -3344,6 +3916,16 @@ export interface components {
     Page_CostCenterRead_: {
       /** Items */
       items: components["schemas"]["CostCenterRead"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
+    /** Page[DeliveryListItem] */
+    Page_DeliveryListItem_: {
+      /** Items */
+      items: components["schemas"]["DeliveryListItem"][];
       page: components["schemas"]["PageMeta"];
       /** Meta */
       meta?: {
@@ -4947,11 +5529,6 @@ export interface components {
       /** Components */
       components: components["schemas"]["ReadyComponent"][];
     };
-    /** ReasonBody */
-    ReasonBody: {
-      /** Reason */
-      reason: string;
-    };
     /** RefreshRequest */
     RefreshRequest: {
       /** Refresh Token */
@@ -5108,6 +5685,31 @@ export interface components {
       effective_to: string | null;
       /** Source */
       source: string;
+    };
+    /** ReviewRead */
+    ReviewRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Action */
+      action: string;
+      /** Reviewer Id */
+      reviewer_id: string | null;
+      /** Reviewer Name */
+      reviewer_name: string | null;
+      /**
+       * Reviewed At
+       * Format: date-time
+       */
+      reviewed_at: string;
+      /** Comments */
+      comments: string | null;
+      /** Previous Status */
+      previous_status: string;
+      /** New Status */
+      new_status: string;
     };
     /**
      * RfqCreate
@@ -6620,6 +7222,11 @@ export interface components {
       /** Migration Head */
       migration_head?: string | null;
     };
+    /** WaiveFlag */
+    WaiveFlag: {
+      /** Note */
+      note: string;
+    };
     /** WarehouseCreate */
     WarehouseCreate: {
       /** Code */
@@ -6742,6 +7349,16 @@ export interface components {
      * @enum {string}
      */
     WorkflowScope: "COMPANY" | "PROJECT";
+    /** ReasonBody */
+    app__modules__deliveries__schemas__ReasonBody: {
+      /** Comments */
+      comments?: string | null;
+    };
+    /** ReasonBody */
+    app__modules__procurement__sourcing_schemas__ReasonBody: {
+      /** Reason */
+      reason: string;
+    };
   };
   responses: never;
   parameters: never;
@@ -10658,7 +11275,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["ReasonBody"];
+        "application/json": components["schemas"]["app__modules__procurement__sourcing_schemas__ReasonBody"];
       };
     };
     responses: {
@@ -10693,7 +11310,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["ReasonBody"];
+        "application/json": components["schemas"]["app__modules__procurement__sourcing_schemas__ReasonBody"];
       };
     };
     responses: {
@@ -10936,7 +11553,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["ReasonBody"];
+        "application/json": components["schemas"]["app__modules__procurement__sourcing_schemas__ReasonBody"];
       };
     };
     responses: {
@@ -11253,7 +11870,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["ReasonBody"];
+        "application/json": components["schemas"]["app__modules__procurement__sourcing_schemas__ReasonBody"];
       };
     };
     responses: {
@@ -11356,7 +11973,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["ReasonBody"];
+        "application/json": components["schemas"]["app__modules__procurement__sourcing_schemas__ReasonBody"];
       };
     };
     responses: {
@@ -11391,7 +12008,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["ReasonBody"];
+        "application/json": components["schemas"]["app__modules__procurement__sourcing_schemas__ReasonBody"];
       };
     };
     responses: {
@@ -11882,6 +12499,438 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["RateRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  review_queue_api_v1_deliveries_review_queue_get: {
+    parameters: {
+      query?: {
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_DeliveryListItem_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delivery_reviews_api_v1_deliveries__delivery_id__reviews_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        delivery_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReviewRead"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_delivery_api_v1_deliveries__delivery_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        delivery_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DeliveryRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  correct_delivery_api_v1_deliveries__delivery_id__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        delivery_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DeliveryCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DeliveryRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  approve_delivery_api_v1_deliveries__delivery_id__approve_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        delivery_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["app__modules__deliveries__schemas__ReasonBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DeliveryRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  reject_delivery_api_v1_deliveries__delivery_id__reject_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        delivery_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["app__modules__deliveries__schemas__ReasonBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DeliveryRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  request_correction_api_v1_deliveries__delivery_id__request_correction_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        delivery_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["app__modules__deliveries__schemas__ReasonBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DeliveryRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  reopen_delivery_api_v1_deliveries__delivery_id__reopen_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        delivery_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["app__modules__deliveries__schemas__ReasonBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DeliveryRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  attach_purchase_order_api_v1_deliveries__delivery_id__attach_purchase_order_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        delivery_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AttachOrder"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DeliveryRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  waive_flag_api_v1_delivery_flags__flag_id__waive_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        flag_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["WaiveFlag"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DeliveryRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_deliveries_api_v1_deliveries_get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        status?: string[] | null;
+        site_id?: string | null;
+        project_id?: string | null;
+        vendor_id?: string | null;
+        purchase_order_id?: string | null;
+        has_open_flags?: boolean | null;
+        from_date?: string | null;
+        to_date?: string | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_DeliveryListItem_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_delivery_api_v1_deliveries_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DeliveryCreate"];
+      };
+    };
+    responses: {
+      /** @description This id was already recorded; the stored delivery is returned */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DeliveryRead"];
         };
       };
       /** @description Validation Error */

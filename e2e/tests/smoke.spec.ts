@@ -32,6 +32,10 @@ const SCREENS: [path: string, heading: string | RegExp][] = [
   ["/purchase-orders", "Purchase orders"],
   ["/purchase-orders/new", "New purchase order"],
   ["/business-rules", "Business rules"],
+  ["/vendor-rates", "Vendor rates"],
+  ["/deliveries", "Deliveries"],
+  ["/deliveries/new", "Record a delivery"],
+  ["/deliveries/review", "Delivery review"],
   ["/account", "My account"],
   ["/status", "KRB ERP"],
 ];

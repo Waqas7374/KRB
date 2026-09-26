@@ -124,6 +124,13 @@ export type VendorRateRead = S["RateRead"];
 export type VendorRateHistory = S["RateHistoryRead"];
 export type ResolvedRate = S["ResolvedRateRead"];
 
+export type DeliveryListItem = S["DeliveryListItem"];
+export type DeliveryRead = S["DeliveryRead"];
+export type DeliveryItemRead = S["DeliveryItemRead"];
+export type DeliveryFlagRead = S["FlagRead"];
+export type DeliveryReviewRead = S["ReviewRead"];
+export type DeliveryCreate = S["DeliveryCreate"];
+
 export type BusinessRuleRead = S["RuleRead"];
 export type BusinessRuleCreate = S["RuleCreate"];
 export type BusinessRuleUpdate = S["RuleUpdate"];

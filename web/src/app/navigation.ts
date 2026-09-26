@@ -23,6 +23,8 @@ import {
   FileText,
   SlidersHorizontal,
   BadgeDollarSign,
+  PackageCheck,
+  ClipboardList,
 } from "lucide-react";
 
 export interface NavItem {
@@ -76,6 +78,23 @@ export const NAVIGATION: NavSection[] = [
         to: "/vendor-rates",
         icon: BadgeDollarSign,
         permission: "rates.view",
+      },
+    ],
+  },
+  {
+    label: "Material tracking",
+    items: [
+      {
+        label: "Deliveries",
+        to: "/deliveries",
+        icon: PackageCheck,
+        permission: "deliveries.view",
+      },
+      {
+        label: "Delivery review",
+        to: "/deliveries/review",
+        icon: ClipboardList,
+        permission: "deliveries.review",
       },
     ],
   },

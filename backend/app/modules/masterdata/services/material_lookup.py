@@ -4,12 +4,13 @@ without the ORM models (module boundary: tests/unit/test_architecture.py)."""
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.masterdata.models import Material, MaterialUnit, Unit
+from app.modules.masterdata.models import Material, MaterialUnit, TruckType, Unit
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,6 +19,7 @@ class MaterialInfo:
     sku: str
     name: str
     base_unit_id: UUID
+    category_id: UUID | None
     # The base unit plus every alternate unit configured for the material.
     unit_ids: frozenset[UUID]
     is_purchasable: bool
@@ -58,6 +60,7 @@ async def materials(
             sku=m.sku,
             name=m.name,
             base_unit_id=m.base_unit_id,
+            category_id=m.category_id,
             unit_ids=frozenset({m.base_unit_id} | by_material.get(m.id, set())),
             is_purchasable=m.is_purchasable,
             is_active=m.deleted_at is None,
@@ -79,3 +82,51 @@ async def unit_codes(
         )
     ).tuples()
     return dict(rows.all())
+
+
+@dataclass(frozen=True, slots=True)
+class TruckTypeInfo:
+    id: UUID
+    code: str
+    name: str
+    # The standing tonnage limit when no business rule says otherwise.
+    default_max_tonnage: Decimal
+
+
+async def truck_type(
+    session: AsyncSession, *, company_id: UUID, truck_type_id: UUID
+) -> TruckTypeInfo | None:
+    row = (
+        await session.execute(
+            select(TruckType).where(
+                TruckType.company_id == company_id,
+                TruckType.id == truck_type_id,
+                TruckType.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        return None
+    return TruckTypeInfo(
+        id=row.id, code=row.code, name=row.name, default_max_tonnage=row.default_max_tonnage
+    )
+
+
+async def truck_type_names(
+    session: AsyncSession, *, company_id: UUID, truck_type_ids: set[UUID]
+) -> dict[UUID, str]:
+    if not truck_type_ids:
+        return {}
+    rows = await session.execute(
+        select(TruckType.id, TruckType.name).where(
+            TruckType.company_id == company_id, TruckType.id.in_(list(truck_type_ids))
+        )
+    )
+    return dict(rows.tuples().all())
+
+
+async def unit_by_code(session: AsyncSession, *, company_id: UUID, code: str) -> UUID | None:
+    found: UUID | None = await session.scalar(
+        select(Unit.id).where(Unit.company_id == company_id, Unit.code == code)
+    )
+    return found
