@@ -224,6 +224,35 @@ async def _notify_integrity_alarm(session: AsyncSession, event: OutboxEvent) -> 
         )
 
 
+@handler("inventory.integrity_alarm")
+async def _notify_inventory_alarm(session: AsyncSession, event: OutboxEvent) -> None:
+    """Stock balances disagree with the ledger: tell the super administrators,
+    who can act on it (it is a data fix, not a business decision)."""
+    admins = await approver_lookup.users_holding_role(
+        session,
+        company_id=event.company_id,  # type: ignore[arg-type]
+        role_code="SUPER_ADMIN",
+        project_id=None,
+        site_id=None,
+        department_id=None,
+        on=utcnow().date(),
+    )
+    findings = event.payload.get("findings") or []
+    for user_id in sorted(admins, key=str):
+        await notification_service.send(
+            session,
+            company_id=event.company_id,  # type: ignore[arg-type]
+            user_id=user_id,
+            notification_type=NotificationType.INVENTORY_INTEGRITY_ALARM.value,
+            title=f"Stock check found {event.payload.get('count')} balance(s) that do not add up",
+            body=findings[0]["detail"] if findings else "",
+            priority=NotificationPriority.URGENT,
+            entity_type="Inventory",
+            entity_id=event.aggregate_id,
+            link_path="/inventory",
+        )
+
+
 async def _notify_initiator(
     session: AsyncSession, event: OutboxEvent, kind: NotificationType, verb: str
 ) -> None:

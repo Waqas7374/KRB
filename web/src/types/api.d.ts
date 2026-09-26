@@ -2245,6 +2245,180 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/deliveries/{delivery_id}/convert-to-grn": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Raise a draft GRN from an approved delivery */
+    post: operations["convert_to_grn_api_v1_deliveries__delivery_id__convert_to_grn_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/grns": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Grns */
+    get: operations["list_grns_api_v1_grns_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/grns/{grn_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Grn */
+    get: operations["get_grn_api_v1_grns__grn_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/grns/{grn_id}/inspection": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Record what inspection found: how much of each line is taken, and why the rest is not */
+    patch: operations["inspect_grn_api_v1_grns__grn_id__inspection_patch"];
+    trace?: never;
+  };
+  "/api/v1/grns/{grn_id}/reprice": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Price lines that arrived unpriced, now a rate exists */
+    post: operations["reprice_grn_api_v1_grns__grn_id__reprice_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/grns/{grn_id}/approve": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Post the GRN: accepted quantities go into stock at their priced cost */
+    post: operations["approve_grn_api_v1_grns__grn_id__approve_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/grns/{grn_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Cancel a GRN. If it was posted, the stock is reversed by contra entries. */
+    post: operations["cancel_grn_api_v1_grns__grn_id__cancel_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/inventory/balances": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Balances */
+    get: operations["balances_api_v1_inventory_balances_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/inventory/low-stock": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Low Stock
+     * @description Stock at or below its reorder level (a business rule scoped by material
+     *     and site, else the material's own level).
+     */
+    get: operations["low_stock_api_v1_inventory_low_stock_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/inventory/ledger": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Ledger */
+    get: operations["ledger_api_v1_inventory_ledger_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2354,6 +2528,57 @@ export interface components {
     AttachmentRemove: {
       /** Reason */
       reason: string;
+    };
+    /** BalanceRead */
+    BalanceRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Warehouse Id
+       * Format: uuid
+       */
+      warehouse_id: string;
+      /** Warehouse Code */
+      warehouse_code?: string | null;
+      /** Warehouse Name */
+      warehouse_name?: string | null;
+      /** Site Id */
+      site_id: string | null;
+      /** Site Code */
+      site_code?: string | null;
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Material Sku */
+      material_sku?: string | null;
+      /** Material Name */
+      material_name?: string | null;
+      /** Unit Code */
+      unit_code?: string | null;
+      /** Quantity On Hand */
+      quantity_on_hand: string;
+      /** Quantity Reserved */
+      quantity_reserved: string;
+      /** Quantity In Transit */
+      quantity_in_transit: string;
+      /** Average Cost */
+      average_cost?: string | null;
+      /** Total Value */
+      total_value?: string | null;
+      /** Last Movement At */
+      last_movement_at?: string | null;
+      /** Reorder Level */
+      reorder_level?: string | null;
+      /**
+       * Is Low
+       * @default false
+       */
+      is_low: boolean;
     };
     /**
      * CalibrationConfirm
@@ -2517,6 +2742,11 @@ export interface components {
      * @enum {string}
      */
     CalibrationStatus: "PENDING" | "APPLIED" | "DISCARDED";
+    /** CancelBody */
+    CancelBody: {
+      /** Reason */
+      reason: string;
+    };
     /** ChangePasswordRequest */
     ChangePasswordRequest: {
       /** Current Password */
@@ -3421,6 +3651,228 @@ export interface components {
        */
       clear_boundary: boolean;
     };
+    /** GrnFromDelivery */
+    GrnFromDelivery: {
+      /** Warehouse Id */
+      warehouse_id?: string | null;
+    };
+    /** GrnItemRead */
+    GrnItemRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Line No */
+      line_no: number;
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Material Sku */
+      material_sku?: string | null;
+      /** Material Name */
+      material_name?: string | null;
+      /**
+       * Unit Id
+       * Format: uuid
+       */
+      unit_id: string;
+      /** Unit Code */
+      unit_code?: string | null;
+      /** Ordered Quantity */
+      ordered_quantity: string | null;
+      /** Delivered Quantity */
+      delivered_quantity: string;
+      /** Accepted Quantity */
+      accepted_quantity: string;
+      /** Rejected Quantity */
+      rejected_quantity: string;
+      /** Rejection Reason */
+      rejection_reason: string | null;
+      /** Rate */
+      rate: string | null;
+      /** Amount */
+      amount: string | null;
+      /** Base Quantity */
+      base_quantity: string | null;
+      /** Base Unit Code */
+      base_unit_code?: string | null;
+      /** Unit Cost */
+      unit_cost: string | null;
+      /** Batch No */
+      batch_no: string | null;
+      /** Expiry Date */
+      expiry_date: string | null;
+      /** Inventory Txn Id */
+      inventory_txn_id: string | null;
+    };
+    /** GrnListItem */
+    GrnListItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Grn Number */
+      grn_number: string;
+      /** Status */
+      status: string;
+      /** Inspection Result */
+      inspection_result: string;
+      /**
+       * Site Id
+       * Format: uuid
+       */
+      site_id: string;
+      /** Site Code */
+      site_code?: string | null;
+      /**
+       * Warehouse Id
+       * Format: uuid
+       */
+      warehouse_id: string;
+      /** Warehouse Code */
+      warehouse_code?: string | null;
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Vendor Name */
+      vendor_name?: string | null;
+      /** Delivery Id */
+      delivery_id: string | null;
+      /** Delivery Number */
+      delivery_number?: string | null;
+      /** Purchase Order Id */
+      purchase_order_id: string | null;
+      /**
+       * Received Date
+       * Format: date
+       */
+      received_date: string;
+      /** Net Amount */
+      net_amount?: string | null;
+      /** Posted At */
+      posted_at: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /** GrnRead */
+    GrnRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Grn Number */
+      grn_number: string;
+      /** Status */
+      status: string;
+      /** Inspection Result */
+      inspection_result: string;
+      /** Delivery Id */
+      delivery_id: string | null;
+      /** Delivery Number */
+      delivery_number?: string | null;
+      /** Purchase Order Id */
+      purchase_order_id: string | null;
+      /** Purchase Order Number */
+      purchase_order_number?: string | null;
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Vendor Name */
+      vendor_name?: string | null;
+      /** Project Id */
+      project_id: string | null;
+      /**
+       * Site Id
+       * Format: uuid
+       */
+      site_id: string;
+      /** Site Code */
+      site_code?: string | null;
+      /**
+       * Warehouse Id
+       * Format: uuid
+       */
+      warehouse_id: string;
+      /** Warehouse Code */
+      warehouse_code?: string | null;
+      /** Warehouse Name */
+      warehouse_name?: string | null;
+      /**
+       * Received Date
+       * Format: date
+       */
+      received_date: string;
+      /** Gross Amount */
+      gross_amount?: string | null;
+      /** Net Amount */
+      net_amount?: string | null;
+      /**
+       * Prices Hidden
+       * @default false
+       */
+      prices_hidden: boolean;
+      /** Posted At */
+      posted_at: string | null;
+      /** Posted By Id */
+      posted_by_id: string | null;
+      /** Cancelled At */
+      cancelled_at: string | null;
+      /** Cancel Reason */
+      cancel_reason: string | null;
+      /** Remarks */
+      remarks: string | null;
+      /** Version */
+      version: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Items */
+      items: components["schemas"]["GrnItemRead"][];
+      /**
+       * Can Inspect
+       * @default false
+       */
+      can_inspect: boolean;
+      /**
+       * Can Reprice
+       * @default false
+       */
+      can_reprice: boolean;
+      /**
+       * Can Post
+       * @default false
+       */
+      can_post: boolean;
+      /**
+       * Can Cancel
+       * @default false
+       */
+      can_cancel: boolean;
+      /**
+       * Has Unpriced Lines
+       * @default false
+       */
+      has_unpriced_lines: boolean;
+    };
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -3483,6 +3935,94 @@ export interface components {
       is_overdue: boolean;
       /** Escalated */
       escalated: boolean;
+    };
+    /** InspectionIn */
+    InspectionIn: {
+      /** Lines */
+      lines: components["schemas"]["LineInspectionIn"][];
+      /** Warehouse Id */
+      warehouse_id?: string | null;
+      /** Remarks */
+      remarks?: string | null;
+    };
+    /** LedgerRead */
+    LedgerRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Posted At
+       * Format: date-time
+       */
+      posted_at: string;
+      /**
+       * Transaction Date
+       * Format: date
+       */
+      transaction_date: string;
+      /**
+       * Warehouse Id
+       * Format: uuid
+       */
+      warehouse_id: string;
+      /** Warehouse Code */
+      warehouse_code?: string | null;
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Material Sku */
+      material_sku?: string | null;
+      /** Material Name */
+      material_name?: string | null;
+      /** Unit Code */
+      unit_code?: string | null;
+      /** Txn Type */
+      txn_type: string;
+      /** Quantity In */
+      quantity_in: string;
+      /** Quantity Out */
+      quantity_out: string;
+      /** Unit Cost */
+      unit_cost?: string | null;
+      /** Value In */
+      value_in?: string | null;
+      /** Value Out */
+      value_out?: string | null;
+      /** Balance Quantity After */
+      balance_quantity_after: string;
+      /** Balance Value After */
+      balance_value_after?: string | null;
+      /** Source Type */
+      source_type: string;
+      /**
+       * Source Id
+       * Format: uuid
+       */
+      source_id: string;
+      /** Reversal Of Id */
+      reversal_of_id: string | null;
+      /** Remarks */
+      remarks: string | null;
+    };
+    /** LineInspectionIn */
+    LineInspectionIn: {
+      /**
+       * Grn Item Id
+       * Format: uuid
+       */
+      grn_item_id: string;
+      /** Accepted Quantity */
+      accepted_quantity: number | string;
+      /** Rejection Reason */
+      rejection_reason?: string | null;
+      /** Batch No */
+      batch_no?: string | null;
+      /** Expiry Date */
+      expiry_date?: string | null;
     };
     /**
      * LocationSource
@@ -3912,6 +4452,16 @@ export interface components {
       /** Next Cursor */
       next_cursor?: string | null;
     };
+    /** Page[BalanceRead] */
+    Page_BalanceRead_: {
+      /** Items */
+      items: components["schemas"]["BalanceRead"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
     /** Page[CostCenterRead] */
     Page_CostCenterRead_: {
       /** Items */
@@ -3942,10 +4492,30 @@ export interface components {
         [key: string]: unknown;
       };
     };
+    /** Page[GrnListItem] */
+    Page_GrnListItem_: {
+      /** Items */
+      items: components["schemas"]["GrnListItem"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
     /** Page[InboxItemRead] */
     Page_InboxItemRead_: {
       /** Items */
       items: components["schemas"]["InboxItemRead"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
+    /** Page[LedgerRead] */
+    Page_LedgerRead_: {
+      /** Items */
+      items: components["schemas"]["LedgerRead"][];
       page: components["schemas"]["PageMeta"];
       /** Meta */
       meta?: {
@@ -12931,6 +13501,358 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["DeliveryRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  convert_to_grn_api_v1_deliveries__delivery_id__convert_to_grn_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        delivery_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["GrnFromDelivery"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GrnRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_grns_api_v1_grns_get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        status?: string[] | null;
+        site_id?: string | null;
+        vendor_id?: string | null;
+        delivery_id?: string | null;
+        purchase_order_id?: string | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_GrnListItem_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_grn_api_v1_grns__grn_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        grn_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GrnRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  inspect_grn_api_v1_grns__grn_id__inspection_patch: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        grn_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["InspectionIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GrnRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  reprice_grn_api_v1_grns__grn_id__reprice_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        grn_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GrnRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  approve_grn_api_v1_grns__grn_id__approve_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        grn_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GrnRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  cancel_grn_api_v1_grns__grn_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        grn_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CancelBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GrnRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  balances_api_v1_inventory_balances_get: {
+    parameters: {
+      query?: {
+        warehouse_id?: string | null;
+        material_id?: string | null;
+        site_id?: string | null;
+        in_stock?: boolean;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_BalanceRead_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  low_stock_api_v1_inventory_low_stock_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BalanceRead"][];
+        };
+      };
+    };
+  };
+  ledger_api_v1_inventory_ledger_get: {
+    parameters: {
+      query?: {
+        warehouse_id?: string | null;
+        material_id?: string | null;
+        source_id?: string | null;
+        txn_type?: string[] | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_LedgerRead_"];
         };
       };
       /** @description Validation Error */

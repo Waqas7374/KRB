@@ -23,6 +23,8 @@ class MaterialInfo:
     # The base unit plus every alternate unit configured for the material.
     unit_ids: frozenset[UUID]
     is_purchasable: bool
+    is_stockable: bool
+    reorder_level: Decimal | None
     is_active: bool
 
 
@@ -63,6 +65,8 @@ async def materials(
             category_id=m.category_id,
             unit_ids=frozenset({m.base_unit_id} | by_material.get(m.id, set())),
             is_purchasable=m.is_purchasable,
+            is_stockable=m.is_stockable,
+            reorder_level=m.reorder_level,
             is_active=m.deleted_at is None,
         )
         for m in rows

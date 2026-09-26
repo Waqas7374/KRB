@@ -86,9 +86,8 @@ deprecation notice.
 - **Budget commitments** on PO approval. They need the budget tables, which arrive
   with finance (Phase 4); the hook is `PurchaseOrderApprovals.on_approved`. Doing them
   earlier would mean inventing tables Phase 4 must then reshape.
-- **Approval limits** (`APPROVAL_LIMIT`: who may authorise *how much*). They need the
-  business-rules store, which is the first piece of Phase 3 — see
-  [18-phase-3-delivery](18-phase-3-delivery.md).
+- ~~**Approval limits**~~ — delivered in slice 3a of Phase 3, on the business-rules store
+  it needed: [18-phase-3-delivery](18-phase-3-delivery.md).
 - **Nothing is emailed to vendors.** "Issued" and "Sent" are states a buyer records;
   the document is shared out of band until the vendor portal (the `access_token_hash`
   column is already there) or an email template exists.

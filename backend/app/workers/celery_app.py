@@ -38,6 +38,7 @@ celery_app = Celery(
         "app.workers.tasks.diagnostics",
         "app.workers.tasks.outbox",
         "app.workers.tasks.approvals",
+        "app.workers.tasks.inventory",
     ],
 )
 
@@ -87,6 +88,11 @@ celery_app.conf.beat_schedule = {
         "task": "approvals.reconcile",
         "schedule": crontab(hour=2, minute=15),
     },
+    # Phase 3: the cached stock balances are proved against the ledger nightly.
+    "inventory.reconcile_balances": {
+        "task": "inventory.reconcile_balances",
+        "schedule": crontab(hour=2, minute=0),
+    },
 }
 
 # Added to beat_schedule as each feature lands, in the phase noted.
@@ -94,7 +100,6 @@ PLANNED_SCHEDULE: dict[str, dict[str, Any]] = {
     "maintenance.expire_sessions": {"cron": "30 3 * * *", "phase": 1},
     # Phase 3 — balances are a cached projection of the append-only ledger;
     # this job proves they still agree and alarms if they do not.
-    "inventory.reconcile_balances": {"cron": "0 2 * * *", "phase": 3},
     "inventory.low_stock_alerts": {"cron": "0 6 * * *", "phase": 3},
     "vendors.rebuild_performance_facts": {"cron": "0 3 * * *", "phase": 3},
     # Phase 6

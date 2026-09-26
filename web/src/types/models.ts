@@ -131,6 +131,12 @@ export type DeliveryFlagRead = S["FlagRead"];
 export type DeliveryReviewRead = S["ReviewRead"];
 export type DeliveryCreate = S["DeliveryCreate"];
 
+export type GrnListItem = S["GrnListItem"];
+export type GrnRead = S["GrnRead"];
+export type GrnItemRead = S["GrnItemRead"];
+export type StockBalance = S["BalanceRead"];
+export type StockMovement = S["LedgerRead"];
+
 export type BusinessRuleRead = S["RuleRead"];
 export type BusinessRuleCreate = S["RuleCreate"];
 export type BusinessRuleUpdate = S["RuleUpdate"];

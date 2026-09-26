@@ -6,6 +6,7 @@ import {
   Check,
   CornerUpLeft,
   FilePlus2,
+  PackageCheck,
   LocateFixed,
   Pencil,
   Plus,
@@ -697,6 +698,7 @@ type Dialogs = null | "approve" | "reject" | "correction" | "reopen" | "order";
 export function DeliveryDetailPage() {
   const { deliveryId = "" } = useParams();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [dialog, setDialog] = useState<Dialogs>(null);
   const [waiving, setWaiving] = useState<DeliveryFlagRead | null>(null);
 
@@ -705,6 +707,16 @@ export function DeliveryDetailPage() {
     queryFn: () => api.get<DeliveryRead>(`/deliveries/${deliveryId}`),
   });
   const refresh = () => queryClient.invalidateQueries();
+  const receive = useMutation({
+    mutationFn: () =>
+      api.post<{ id: string; grn_number: string }>(`/deliveries/${deliveryId}/convert-to-grn`, {}),
+    onSuccess: async (grn) => {
+      await refresh();
+      toast.success(`Drafted ${grn.grn_number}. Inspect it, then post it to stock.`);
+      navigate(`/grns/${grn.id}`);
+    },
+    onError: (err) => toast.error(describeError(err)),
+  });
 
   if (query.isLoading) return <PageSkeleton />;
   if (query.error || !query.data)
@@ -732,6 +744,17 @@ export function DeliveryDetailPage() {
         }
         actions={
           <>
+            {d.status === "APPROVED" && !d.grn_id && (
+              <PermissionGate permission="grn.create">
+                <Button
+                  variant="primary"
+                  onClick={() => receive.mutate()}
+                  loading={receive.isPending}
+                >
+                  <PackageCheck /> Receive into stock
+                </Button>
+              </PermissionGate>
+            )}
             {d.can_correct && (
               <Button variant="primary" asChild>
                 <Link to={`/deliveries/${d.id}/edit`}>
@@ -927,6 +950,16 @@ export function DeliveryDetailPage() {
                   [d.challan_number, d.challan_date ? formatDate(d.challan_date) : null]
                     .filter(Boolean)
                     .join(" · ") || null,
+              },
+              {
+                label: "Goods received note",
+                value: d.grn_id ? (
+                  <Link to={`/grns/${d.grn_id}`} className="text-primary hover:underline">
+                    Open the GRN
+                  </Link>
+                ) : (
+                  "None yet"
+                ),
               },
               { label: "Location", value: geofenceSummary(d) },
               { label: "Reached the server", value: formatDateTime(d.received_at) },

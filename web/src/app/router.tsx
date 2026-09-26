@@ -134,6 +134,13 @@ const ReviewQueuePage = page(dl, "ReviewQueuePage");
 const DeliveryFormPage = page(dl, "DeliveryFormPage");
 const DeliveryDetailPage = page(dl, "DeliveryDetailPage");
 
+const grnPages = () => import("@/features/grn/GrnPages");
+const GrnListPage = page(grnPages, "GrnListPage");
+const GrnDetailPage = page(grnPages, "GrnDetailPage");
+const invPages = () => import("@/features/inventory/InventoryPages");
+const StockBalancesPage = page(invPages, "StockBalancesPage");
+const StockLedgerPage = page(invPages, "StockLedgerPage");
+
 const gate = (permission: string, element: ReactNode) => (
   <RequirePermission permission={permission}>{element}</RequirePermission>
 );
@@ -208,6 +215,10 @@ export const router = createBrowserRouter([
         path: "deliveries/:deliveryId/edit",
         element: gate("deliveries.create", <DeliveryFormPage />),
       },
+      { path: "grns", element: gate("grn.view", <GrnListPage />) },
+      { path: "grns/:grnId", element: gate("grn.view", <GrnDetailPage />) },
+      { path: "inventory", element: gate("inventory.view", <StockBalancesPage />) },
+      { path: "inventory/ledger", element: gate("inventory.view", <StockLedgerPage />) },
       { path: "rfqs", element: gate("procurement.rfq.view", <RfqsListPage />) },
       { path: "rfqs/new", element: gate("procurement.rfq.create", <RfqFormPage />) },
       { path: "rfqs/:rfqId", element: gate("procurement.rfq.view", <RfqDetailPage />) },

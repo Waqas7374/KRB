@@ -25,6 +25,9 @@ import {
   BadgeDollarSign,
   PackageCheck,
   ClipboardList,
+  Boxes as StockIcon,
+  ReceiptText,
+  History,
 } from "lucide-react";
 
 export interface NavItem {
@@ -95,6 +98,14 @@ export const NAVIGATION: NavSection[] = [
         to: "/deliveries/review",
         icon: ClipboardList,
         permission: "deliveries.review",
+      },
+      { label: "Goods received", to: "/grns", icon: ReceiptText, permission: "grn.view" },
+      { label: "Stock", to: "/inventory", icon: StockIcon, permission: "inventory.view" },
+      {
+        label: "Stock ledger",
+        to: "/inventory/ledger",
+        icon: History,
+        permission: "inventory.view",
       },
     ],
   },

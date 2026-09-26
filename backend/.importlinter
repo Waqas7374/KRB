@@ -41,7 +41,9 @@ source_modules =
     app.modules.audit.domain
     app.modules.deliveries.domain
     app.modules.documents.domain
+    app.modules.grn.domain
     app.modules.identity.domain
+    app.modules.inventory.domain
     app.modules.masterdata.domain
     app.modules.notifications.domain
     app.modules.org.domain
@@ -81,7 +83,9 @@ containers =
     app.modules.audit
     app.modules.deliveries
     app.modules.documents
+    app.modules.grn
     app.modules.identity
+    app.modules.inventory
     app.modules.masterdata
     app.modules.notifications
     app.modules.org

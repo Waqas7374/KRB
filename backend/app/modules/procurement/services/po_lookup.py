@@ -79,3 +79,23 @@ async def order(
             for i in row.items
         ),
     )
+
+
+async def item_quantities(session: AsyncSession, po_item_ids: list[UUID]) -> dict[UUID, Decimal]:
+    from app.modules.procurement.models import PurchaseOrderItem
+
+    rows = await session.execute(
+        select(PurchaseOrderItem.id, PurchaseOrderItem.quantity).where(
+            PurchaseOrderItem.id.in_(po_item_ids)
+        )
+    )
+    return dict(rows.tuples().all())
+
+
+async def item_unit(session: AsyncSession, po_item_id: UUID) -> UUID | None:
+    from app.modules.procurement.models import PurchaseOrderItem
+
+    found: UUID | None = await session.scalar(
+        select(PurchaseOrderItem.unit_id).where(PurchaseOrderItem.id == po_item_id)
+    )
+    return found
