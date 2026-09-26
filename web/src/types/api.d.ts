@@ -2419,6 +2419,268 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/inventory/warehouse-options": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * The stores a person may act on, for the pickers on stock forms
+     * @description `issue`, `adjust` and `transfer_from` return only stores at sites the caller may act on. `transfer_to` returns every store: sending stock to another site is the point of a transfer. Needs no warehouse-management permission.
+     */
+    get: operations["warehouse_options_api_v1_inventory_warehouse_options_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/inventory/issues": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Issues */
+    get: operations["list_issues_api_v1_inventory_issues_get"];
+    put?: never;
+    /** Raise an issue as a draft; nothing leaves the store until it is posted */
+    post: operations["create_issue_api_v1_inventory_issues_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/inventory/issues/{issue_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Issue */
+    get: operations["get_issue_api_v1_inventory_issues__issue_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/inventory/issues/{issue_id}/post": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Post the issue: stock leaves the store at its current average cost */
+    post: operations["post_issue_api_v1_inventory_issues__issue_id__post_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/inventory/issues/{issue_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Cancel an issue. If it was posted, the stock goes back by contra entries. */
+    post: operations["cancel_issue_api_v1_inventory_issues__issue_id__cancel_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/inventory/transfers": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Transfers */
+    get: operations["list_transfers_api_v1_inventory_transfers_get"];
+    put?: never;
+    /** Raise a transfer as a draft; nothing moves until it is dispatched */
+    post: operations["create_transfer_api_v1_inventory_transfers_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/inventory/transfers/{transfer_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Transfer */
+    get: operations["get_transfer_api_v1_inventory_transfers__transfer_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/inventory/transfers/{transfer_id}/dispatch": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Dispatch: stock leaves the source store and shows as in transit at the destination */
+    post: operations["dispatch_transfer_api_v1_inventory_transfers__transfer_id__dispatch_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/inventory/transfers/{transfer_id}/receive": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Receive: the stock is counted into the destination at the cost it left at */
+    post: operations["receive_transfer_api_v1_inventory_transfers__transfer_id__receive_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/inventory/transfers/{transfer_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Cancel a draft, or bring back a transfer still in transit */
+    post: operations["cancel_transfer_api_v1_inventory_transfers__transfer_id__cancel_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/inventory/adjustments": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Adjustments */
+    get: operations["list_adjustments_api_v1_inventory_adjustments_get"];
+    put?: never;
+    /** Raise an adjustment as a draft; it moves nothing until it is approved */
+    post: operations["create_adjustment_api_v1_inventory_adjustments_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/inventory/adjustments/{adjustment_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Adjustment */
+    get: operations["get_adjustment_api_v1_inventory_adjustments__adjustment_id__get"];
+    /** Edit a draft or rejected adjustment */
+    put: operations["update_adjustment_api_v1_inventory_adjustments__adjustment_id__put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/inventory/adjustments/{adjustment_id}/submit": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Send for approval. A rule may approve a small one at once, which posts it. */
+    post: operations["submit_adjustment_api_v1_inventory_adjustments__adjustment_id__submit_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/inventory/adjustments/{adjustment_id}/withdraw": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Take a pending adjustment back to a draft (before any step is approved) */
+    post: operations["withdraw_adjustment_api_v1_inventory_adjustments__adjustment_id__withdraw_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/inventory/adjustments/{adjustment_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Cancel a draft or rejected adjustment */
+    post: operations["cancel_adjustment_api_v1_inventory_adjustments__adjustment_id__cancel_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/sync/push": {
     parameters: {
       query?: never;
@@ -2501,6 +2763,213 @@ export interface components {
        */
       country: string;
     };
+    /** AdjustmentCreate */
+    AdjustmentCreate: {
+      /**
+       * Warehouse Id
+       * Format: uuid
+       */
+      warehouse_id: string;
+      reason_code: components["schemas"]["AdjustmentReason"];
+      /** Reason Note */
+      reason_note: string;
+      /** Adjustment Date */
+      adjustment_date?: string | null;
+      /** Lines */
+      lines: components["schemas"]["AdjustmentLineIn"][];
+    };
+    /** AdjustmentLineIn */
+    AdjustmentLineIn: {
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Quantity Delta */
+      quantity_delta: number | string;
+      /** Unit Cost */
+      unit_cost?: number | string | null;
+      /** Remarks */
+      remarks?: string | null;
+    };
+    /** AdjustmentLineRead */
+    AdjustmentLineRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Line No */
+      line_no: number;
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Material Sku */
+      material_sku?: string | null;
+      /** Material Name */
+      material_name?: string | null;
+      /** Unit Code */
+      unit_code?: string | null;
+      /** Quantity Delta */
+      quantity_delta: string;
+      /** System Quantity */
+      system_quantity: string | null;
+      /** Unit Cost */
+      unit_cost?: string | null;
+      /** Value Delta */
+      value_delta?: string | null;
+      /** Remarks */
+      remarks: string | null;
+    };
+    /** AdjustmentListItem */
+    AdjustmentListItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Adjustment Number */
+      adjustment_number: string;
+      /** Status */
+      status: string;
+      /**
+       * Warehouse Id
+       * Format: uuid
+       */
+      warehouse_id: string;
+      /** Warehouse Code */
+      warehouse_code?: string | null;
+      /**
+       * Site Id
+       * Format: uuid
+       */
+      site_id: string;
+      /** Site Code */
+      site_code?: string | null;
+      /** Reason Code */
+      reason_code: string;
+      /**
+       * Adjustment Date
+       * Format: date
+       */
+      adjustment_date: string;
+      /** Posted At */
+      posted_at: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /** AdjustmentRead */
+    AdjustmentRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Adjustment Number */
+      adjustment_number: string;
+      /** Status */
+      status: string;
+      /**
+       * Warehouse Id
+       * Format: uuid
+       */
+      warehouse_id: string;
+      /** Warehouse Code */
+      warehouse_code?: string | null;
+      /**
+       * Site Id
+       * Format: uuid
+       */
+      site_id: string;
+      /** Site Code */
+      site_code?: string | null;
+      /** Reason Code */
+      reason_code: string;
+      /**
+       * Adjustment Date
+       * Format: date
+       */
+      adjustment_date: string;
+      /** Posted At */
+      posted_at: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Project Id */
+      project_id: string | null;
+      /** Warehouse Name */
+      warehouse_name?: string | null;
+      /** Reason Note */
+      reason_note: string;
+      /** Approval Request Id */
+      approval_request_id: string | null;
+      /** Submitted At */
+      submitted_at: string | null;
+      /** Decision Reason */
+      decision_reason: string | null;
+      /** Cancelled At */
+      cancelled_at: string | null;
+      /** Cancel Reason */
+      cancel_reason: string | null;
+      /** Version */
+      version: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Prices Hidden
+       * @default false
+       */
+      prices_hidden: boolean;
+      /** Net Value */
+      net_value?: string | null;
+      /** Items */
+      items: components["schemas"]["AdjustmentLineRead"][];
+      /**
+       * Can Edit
+       * @default false
+       */
+      can_edit: boolean;
+      /**
+       * Can Submit
+       * @default false
+       */
+      can_submit: boolean;
+      /**
+       * Can Withdraw
+       * @default false
+       */
+      can_withdraw: boolean;
+      /**
+       * Can Cancel
+       * @default false
+       */
+      can_cancel: boolean;
+    };
+    /**
+     * AdjustmentReason
+     * @description Why stock is being corrected. Required: an adjustment without a reason
+     *     is exactly how stock quietly disappears (docs/02 §22).
+     * @enum {string}
+     */
+    AdjustmentReason:
+      | "COUNT_CORRECTION"
+      | "DAMAGE"
+      | "WASTAGE"
+      | "LOSS"
+      | "THEFT"
+      | "EXPIRED"
+      | "OPENING_BALANCE"
+      | "OTHER";
     /** ApproverRead */
     ApproverRead: {
       /**
@@ -3982,6 +4451,194 @@ export interface components {
       /** Remarks */
       remarks?: string | null;
     };
+    /** IssueCreate */
+    IssueCreate: {
+      /**
+       * Warehouse Id
+       * Format: uuid
+       */
+      warehouse_id: string;
+      issued_to_type: components["schemas"]["IssuedToType"];
+      /** Issued To Name */
+      issued_to_name: string;
+      /** Purpose */
+      purpose: string;
+      /** Issue Date */
+      issue_date?: string | null;
+      /** Remarks */
+      remarks?: string | null;
+      /** Lines */
+      lines: components["schemas"]["LineIn"][];
+    };
+    /** IssueLineRead */
+    IssueLineRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Line No */
+      line_no: number;
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Material Sku */
+      material_sku?: string | null;
+      /** Material Name */
+      material_name?: string | null;
+      /**
+       * Unit Id
+       * Format: uuid
+       */
+      unit_id: string;
+      /** Unit Code */
+      unit_code?: string | null;
+      /** Quantity */
+      quantity: string;
+      /** Base Quantity */
+      base_quantity: string | null;
+      /** Base Unit Code */
+      base_unit_code?: string | null;
+      /** Unit Cost */
+      unit_cost?: string | null;
+      /** Remarks */
+      remarks: string | null;
+      /** Value */
+      value?: string | null;
+    };
+    /** IssueListItem */
+    IssueListItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Issue Number */
+      issue_number: string;
+      /** Status */
+      status: string;
+      /**
+       * Warehouse Id
+       * Format: uuid
+       */
+      warehouse_id: string;
+      /** Warehouse Code */
+      warehouse_code?: string | null;
+      /**
+       * Site Id
+       * Format: uuid
+       */
+      site_id: string;
+      /** Site Code */
+      site_code?: string | null;
+      /** Issued To Type */
+      issued_to_type: string;
+      /** Issued To Name */
+      issued_to_name: string;
+      /** Purpose */
+      purpose: string;
+      /**
+       * Issue Date
+       * Format: date
+       */
+      issue_date: string;
+      /** Issued At */
+      issued_at: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /** IssueRead */
+    IssueRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Issue Number */
+      issue_number: string;
+      /** Status */
+      status: string;
+      /**
+       * Warehouse Id
+       * Format: uuid
+       */
+      warehouse_id: string;
+      /** Warehouse Code */
+      warehouse_code?: string | null;
+      /**
+       * Site Id
+       * Format: uuid
+       */
+      site_id: string;
+      /** Site Code */
+      site_code?: string | null;
+      /** Issued To Type */
+      issued_to_type: string;
+      /** Issued To Name */
+      issued_to_name: string;
+      /** Purpose */
+      purpose: string;
+      /**
+       * Issue Date
+       * Format: date
+       */
+      issue_date: string;
+      /** Issued At */
+      issued_at: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Project Id */
+      project_id: string | null;
+      /** Warehouse Name */
+      warehouse_name?: string | null;
+      /** Issued By Id */
+      issued_by_id: string | null;
+      /** Cancelled At */
+      cancelled_at: string | null;
+      /** Cancel Reason */
+      cancel_reason: string | null;
+      /** Remarks */
+      remarks: string | null;
+      /** Version */
+      version: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Prices Hidden
+       * @default false
+       */
+      prices_hidden: boolean;
+      /** Total Value */
+      total_value?: string | null;
+      /** Items */
+      items: components["schemas"]["IssueLineRead"][];
+      /**
+       * Can Post
+       * @default false
+       */
+      can_post: boolean;
+      /**
+       * Can Cancel
+       * @default false
+       */
+      can_cancel: boolean;
+    };
+    /**
+     * IssuedToType
+     * @enum {string}
+     */
+    IssuedToType: "EMPLOYEE" | "CONTRACTOR" | "WORK_ORDER";
     /** LedgerRead */
     LedgerRead: {
       /**
@@ -4045,6 +4702,23 @@ export interface components {
       /** Remarks */
       remarks: string | null;
     };
+    /** LineIn */
+    LineIn: {
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Quantity */
+      quantity: number | string;
+      /**
+       * Unit Id
+       * Format: uuid
+       */
+      unit_id: string;
+      /** Remarks */
+      remarks?: string | null;
+    };
     /** LineInspectionIn */
     LineInspectionIn: {
       /**
@@ -4060,6 +4734,42 @@ export interface components {
       batch_no?: string | null;
       /** Expiry Date */
       expiry_date?: string | null;
+    };
+    /** LineRead */
+    LineRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Line No */
+      line_no: number;
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Material Sku */
+      material_sku?: string | null;
+      /** Material Name */
+      material_name?: string | null;
+      /**
+       * Unit Id
+       * Format: uuid
+       */
+      unit_id: string;
+      /** Unit Code */
+      unit_code?: string | null;
+      /** Quantity */
+      quantity: string;
+      /** Base Quantity */
+      base_quantity: string | null;
+      /** Base Unit Code */
+      base_unit_code?: string | null;
+      /** Unit Cost */
+      unit_cost?: string | null;
+      /** Remarks */
+      remarks: string | null;
     };
     /**
      * LocationSource
@@ -4517,6 +5227,16 @@ export interface components {
       /** Next Cursor */
       next_cursor?: string | null;
     };
+    /** Page[AdjustmentListItem] */
+    Page_AdjustmentListItem_: {
+      /** Items */
+      items: components["schemas"]["AdjustmentListItem"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
     /** Page[BalanceRead] */
     Page_BalanceRead_: {
       /** Items */
@@ -4571,6 +5291,16 @@ export interface components {
     Page_InboxItemRead_: {
       /** Items */
       items: components["schemas"]["InboxItemRead"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
+    /** Page[IssueListItem] */
+    Page_IssueListItem_: {
+      /** Items */
+      items: components["schemas"]["IssueListItem"][];
       page: components["schemas"]["PageMeta"];
       /** Meta */
       meta?: {
@@ -4701,6 +5431,16 @@ export interface components {
     Page_SiteListItem_: {
       /** Items */
       items: components["schemas"]["SiteListItem"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
+    /** Page[TransferListItem] */
+    Page_TransferListItem_: {
+      /** Items */
+      items: components["schemas"]["TransferListItem"][];
       page: components["schemas"]["PageMeta"];
       /** Meta */
       meta?: {
@@ -7295,6 +8035,176 @@ export interface components {
       refresh_expires_at: string;
       user: components["schemas"]["UserProfile"];
     };
+    /** TransferCreate */
+    TransferCreate: {
+      /**
+       * From Warehouse Id
+       * Format: uuid
+       */
+      from_warehouse_id: string;
+      /**
+       * To Warehouse Id
+       * Format: uuid
+       */
+      to_warehouse_id: string;
+      /** Transfer Date */
+      transfer_date?: string | null;
+      /** Vehicle Number */
+      vehicle_number?: string | null;
+      /** Remarks */
+      remarks?: string | null;
+      /** Lines */
+      lines: components["schemas"]["LineIn"][];
+    };
+    /** TransferListItem */
+    TransferListItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Transfer Number */
+      transfer_number: string;
+      /** Status */
+      status: string;
+      /**
+       * From Warehouse Id
+       * Format: uuid
+       */
+      from_warehouse_id: string;
+      /** From Warehouse Code */
+      from_warehouse_code?: string | null;
+      /**
+       * To Warehouse Id
+       * Format: uuid
+       */
+      to_warehouse_id: string;
+      /** To Warehouse Code */
+      to_warehouse_code?: string | null;
+      /**
+       * Site Id
+       * Format: uuid
+       */
+      site_id: string;
+      /** Site Code */
+      site_code?: string | null;
+      /**
+       * To Site Id
+       * Format: uuid
+       */
+      to_site_id: string;
+      /** To Site Code */
+      to_site_code?: string | null;
+      /**
+       * Transfer Date
+       * Format: date
+       */
+      transfer_date: string;
+      /** Vehicle Number */
+      vehicle_number: string | null;
+      /** Dispatched At */
+      dispatched_at: string | null;
+      /** Received At */
+      received_at: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /** TransferRead */
+    TransferRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Transfer Number */
+      transfer_number: string;
+      /** Status */
+      status: string;
+      /**
+       * From Warehouse Id
+       * Format: uuid
+       */
+      from_warehouse_id: string;
+      /** From Warehouse Code */
+      from_warehouse_code?: string | null;
+      /**
+       * To Warehouse Id
+       * Format: uuid
+       */
+      to_warehouse_id: string;
+      /** To Warehouse Code */
+      to_warehouse_code?: string | null;
+      /**
+       * Site Id
+       * Format: uuid
+       */
+      site_id: string;
+      /** Site Code */
+      site_code?: string | null;
+      /**
+       * To Site Id
+       * Format: uuid
+       */
+      to_site_id: string;
+      /** To Site Code */
+      to_site_code?: string | null;
+      /**
+       * Transfer Date
+       * Format: date
+       */
+      transfer_date: string;
+      /** Vehicle Number */
+      vehicle_number: string | null;
+      /** Dispatched At */
+      dispatched_at: string | null;
+      /** Received At */
+      received_at: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Project Id */
+      project_id: string | null;
+      /** Remarks */
+      remarks: string | null;
+      /** Cancelled At */
+      cancelled_at: string | null;
+      /** Cancel Reason */
+      cancel_reason: string | null;
+      /** Version */
+      version: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Prices Hidden
+       * @default false
+       */
+      prices_hidden: boolean;
+      /** Items */
+      items: components["schemas"]["LineRead"][];
+      /**
+       * Can Dispatch
+       * @default false
+       */
+      can_dispatch: boolean;
+      /**
+       * Can Receive
+       * @default false
+       */
+      can_receive: boolean;
+      /**
+       * Can Cancel
+       * @default false
+       */
+      can_cancel: boolean;
+    };
     /** TruckTypeCreate */
     TruckTypeCreate: {
       /** Code */
@@ -8005,6 +8915,27 @@ export interface components {
       is_default_receiving: boolean;
       /** Capacity Note */
       capacity_note?: string | null;
+    };
+    /** WarehouseOptionRead */
+    WarehouseOptionRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Code */
+      code: string;
+      /** Name */
+      name: string;
+      /**
+       * Site Id
+       * Format: uuid
+       */
+      site_id: string;
+      /** Site Code */
+      site_code?: string | null;
+      /** Is Default Receiving */
+      is_default_receiving: boolean;
     };
     /** WarehouseRead */
     WarehouseRead: {
@@ -14039,6 +14970,664 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Page_LedgerRead_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  warehouse_options_api_v1_inventory_warehouse_options_get: {
+    parameters: {
+      query: {
+        action: "issue" | "adjust" | "transfer_from" | "transfer_to";
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WarehouseOptionRead"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_issues_api_v1_inventory_issues_get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        status?: string[] | null;
+        site_id?: string | null;
+        warehouse_id?: string | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_IssueListItem_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_issue_api_v1_inventory_issues_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["IssueCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["IssueRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_issue_api_v1_inventory_issues__issue_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        issue_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["IssueRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  post_issue_api_v1_inventory_issues__issue_id__post_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        issue_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["IssueRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  cancel_issue_api_v1_inventory_issues__issue_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        issue_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CancelBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["IssueRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_transfers_api_v1_inventory_transfers_get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        status?: string[] | null;
+        site_id?: string | null;
+        to_site_id?: string | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_TransferListItem_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_transfer_api_v1_inventory_transfers_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TransferCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TransferRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_transfer_api_v1_inventory_transfers__transfer_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        transfer_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TransferRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  dispatch_transfer_api_v1_inventory_transfers__transfer_id__dispatch_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        transfer_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TransferRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  receive_transfer_api_v1_inventory_transfers__transfer_id__receive_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        transfer_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TransferRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  cancel_transfer_api_v1_inventory_transfers__transfer_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        transfer_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CancelBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TransferRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_adjustments_api_v1_inventory_adjustments_get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        status?: string[] | null;
+        site_id?: string | null;
+        warehouse_id?: string | null;
+        reason_code?: string | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_AdjustmentListItem_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_adjustment_api_v1_inventory_adjustments_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AdjustmentCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AdjustmentRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_adjustment_api_v1_inventory_adjustments__adjustment_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        adjustment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AdjustmentRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_adjustment_api_v1_inventory_adjustments__adjustment_id__put: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        adjustment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AdjustmentCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AdjustmentRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  submit_adjustment_api_v1_inventory_adjustments__adjustment_id__submit_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        adjustment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AdjustmentRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  withdraw_adjustment_api_v1_inventory_adjustments__adjustment_id__withdraw_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        adjustment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": components["schemas"]["CancelBody"] | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AdjustmentRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  cancel_adjustment_api_v1_inventory_adjustments__adjustment_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        adjustment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CancelBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AdjustmentRead"];
         };
       };
       /** @description Validation Error */

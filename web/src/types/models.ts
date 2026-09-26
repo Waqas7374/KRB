@@ -135,6 +135,17 @@ export type GrnListItem = S["GrnListItem"];
 export type GrnRead = S["GrnRead"];
 export type GrnItemRead = S["GrnItemRead"];
 export type StockBalance = S["BalanceRead"];
+export type StockLineRead = S["LineRead"];
+export type StockIssueListItem = S["IssueListItem"];
+export type StockIssueRead = S["IssueRead"];
+export type StockIssueCreate = S["IssueCreate"];
+export type StockTransferListItem = S["TransferListItem"];
+export type StockTransferRead = S["TransferRead"];
+export type StockTransferCreate = S["TransferCreate"];
+export type StockAdjustmentListItem = S["AdjustmentListItem"];
+export type StockAdjustmentRead = S["AdjustmentRead"];
+export type StockAdjustmentCreate = S["AdjustmentCreate"];
+export type WarehouseOption = S["WarehouseOptionRead"];
 export type StockMovement = S["LedgerRead"];
 
 export type BusinessRuleRead = S["RuleRead"];

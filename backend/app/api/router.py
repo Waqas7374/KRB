@@ -25,6 +25,7 @@ from app.modules.procurement.api import routes as procurement_routes
 from app.modules.procurement.api import sourcing_routes
 from app.modules.rates.api import routes as rates_routes
 from app.modules.rules.api import routes as rules_routes
+from app.modules.stock.api import routes as stock_routes
 from app.modules.sync.api import routes as sync_routes
 from app.modules.vendors.api import routes as vendor_routes
 
@@ -57,6 +58,10 @@ api_router.include_router(delivery_routes.router)
 api_router.include_router(grn_routes.delivery_router)
 api_router.include_router(grn_routes.router)
 api_router.include_router(inventory_routes.router)
+api_router.include_router(stock_routes.option_router)
+api_router.include_router(stock_routes.issue_router)
+api_router.include_router(stock_routes.transfer_router)
+api_router.include_router(stock_routes.adjustment_router)
 api_router.include_router(sync_routes.router)
 
 # Registered as each module lands:

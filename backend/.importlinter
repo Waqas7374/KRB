@@ -50,6 +50,7 @@ source_modules =
     app.modules.procurement.domain
     app.modules.rates.domain
     app.modules.rules.domain
+    app.modules.stock.domain
     app.modules.sync.domain
     app.modules.vendors.domain
     app.platform.domain
@@ -93,6 +94,7 @@ containers =
     app.modules.procurement
     app.modules.rates
     app.modules.rules
+    app.modules.stock
     app.modules.sync
     app.modules.vendors
 

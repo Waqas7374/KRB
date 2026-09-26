@@ -79,8 +79,8 @@ Web: delivery list and detail, flagged-review screen (§18), vendor-rate managem
 
 **Progress (2026-09-26): backend and web done, mobile not started** — business-rules store and approval
 limits, vendor rates, deliveries with every check, the review queue, GRN, the append-only stock ledger with
-weighted-average costing, and the mobile sync API (push / pull, idempotent, per-operation outcomes); see
-[18-phase-3-delivery](18-phase-3-delivery.md). Open: stock issues / transfers / adjustments, and the Expo
+weighted-average costing, stock issues / transfers / adjustments, and the mobile sync API (push / pull,
+idempotent, per-operation outcomes); see [18-phase-3-delivery](18-phase-3-delivery.md). Open: the Expo
 app with its Detox test.
 
 **Done when:** 20 deliveries captured in airplane mode land exactly once on the server after

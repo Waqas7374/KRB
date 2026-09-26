@@ -16,6 +16,7 @@ what remains.
 | 3d | Review queue and decisions, corrections, flag waivers, attaching an order | 3c | done |
 | 3e | GRN and the inventory ledger (balances, weighted-average cost, reversal, nightly reconcile) | 3c, 3d | done |
 | 3f | Mobile sync API (push / pull, idempotency, devices) — the **server** side | 3c | done (the Expo app that calls it is not built) |
+| 3h | Stock issues, transfers and adjustments (more writers to the same ledger) | 3e | done |
 | 3g | Web: delivery, review, GRN, inventory screens | 3c–3e | done (the delivery dashboard tiles, §23, and the vendor-rate history grid remain) |
 
 The order follows what each slice *reads*: deliveries read rules and rates, so they
@@ -126,7 +127,7 @@ see only their site (out of scope reads as "no such site", not "forbidden").
 | Screens | GRN list and detail (inspection drawer, price-now, post, cancel), *Receive into stock* on an approved delivery, stock balances (low-stock marker), the ledger. |
 
 **Deliberately not in this slice** (and why):
-- **Stock issues, transfers and adjustments** (docs/07 `/inventory/issues|transfers|adjustments`). They are further writers to the *same* ledger through the *same* `ledger.post`, so adding them changes nothing above; adjustments also need an approval workflow (`stock_adjustment`) and reason codes. They are the first item of the next slice.
+- **Stock issues, transfers and adjustments** — built in slice 3h below, as further writers to the *same* ledger through the *same* `ledger.post`, so they changed nothing above.
 - **GRN PDF.** `platform/pdf.py` is ready; the template is not written.
 - **Counter purchases** (a GRN with no delivery). The columns are nullable and ready.
 - **General-ledger posting** on GRN approval and the `PENDING_APPROVAL` / `APPROVED` GRN states — Phase 4, with finance.
@@ -212,11 +213,52 @@ revoking *someone else's* device from head office is not built yet.
 delivery screen does not link them yet), and push notifications (the token is
 captured; no channel adapter yet).
 
+## 3h — Stock issues, transfers and adjustments
+
+Three more ways stock moves, all through the **same `ledger.post`** as a receipt, so
+nothing about the ledger's rules (lock, never below zero, weighted-average cost,
+append-only) is repeated or bypassed. A new module, `stock`, owns the documents; the
+`inventory` module still owns the ledger.
+
+| Document | Behaviour |
+|---|---|
+| **Issue** | Raised as a draft, **posted** when the goods leave. Posting writes `ISSUE_OUT` at the store's **current average cost** (an issue never changes the average), recorded on the line — that is what the person or job is charged. Counted in any unit with a conversion; the ledger holds the base unit. Insufficient stock refuses the post and changes nothing. Cancelling a posted issue returns the stock with contra rows at the cost it left at. Issued to: employee / contractor / work order, as a name (those tables do not exist yet). |
+| **Transfer** | Two ledger rows per line at two moments. **Dispatch** takes the stock out of the source at its average cost, records that cost on the line, and marks the quantity **in transit** at the destination (a marker on the balance: not on hand, not lost, never valued twice). **Receive**, by someone with transfer rights at the *destination*, counts it in **at the cost it left at**, so a transfer moves value and never changes it. A transfer in transit can be cancelled and goes back to the source at its original cost; a received one cannot (the stock may already be in use) — send it back with a new transfer. Visible at both ends. |
+| **Adjustment** | Creates or destroys stock without a receipt or an issue behind it, so: a **reason code and note are required**; it **always goes through the approval engine**; and it reaches the ledger **only through its approval** — the handler posts the lines in the same transaction that records the decision, so there is no state in which an approved adjustment has not moved stock or a moved one was never approved (a database check: a `POSTED` adjustment names its approval request). Quantities are signed, in the material's base unit. An increase is valued at the current average unless a cost is given (required when nothing is in stock to average); a decrease leaves at the average of the day it is posted. The form shows what the books say is on hand. Stock is re-checked at submission (a draft may be days old) and again at posting. A rejected adjustment can be edited and resubmitted; a pending one can be withdrawn back to a draft before anyone has approved a step. |
+
+**Approval routing (seeded, editable at `/approval-workflows`).** Nothing about an
+adjustment approves itself: under 25,000 (value moved, either direction) the **project
+manager** signs; from 25,000 up, **finance** signs as well. When the project manager
+raised it, it goes up to finance rather than to themselves. The context available to
+conditions: `value_abs`, `value_net`, `quantity_abs`, `reason_code`, `is_write_off`,
+`line_count`, `warehouse.*`, `project.*`, `site.*`, `requester.*`. Project and finance
+managers gained `inventory.approve_adjustment`; site managers can raise but not sign.
+
+**Also added.**
+- `GET /inventory/warehouse-options?action=issue|adjust|transfer_from|transfer_to`: the stores a
+  person may act on, for the pickers. A site manager holds no warehouse-management right, so
+  the existing `/warehouses` list was no use to them. Transfer destinations are every store.
+- Screens: issues, transfers, adjustments (list, form, detail); the adjustment page hosts the
+  approval chain and decision buttons (`ApprovalSection`, reusable).
+- Forms offer *Post now* / *Dispatch now* (on by default). If the draft is saved but the post is
+  refused (not enough stock), the person is told the draft exists and why it was not posted.
+
+**Deviations from docs/07, on purpose.** Issues and transfers use `/post` and `/dispatch` +
+`/receive` rather than `/approve` (an issue has one permission and no second signer; calling it
+"approve" would suggest one). Adjustments are approved through the engine's own endpoints, as
+every other approved document is.
+
+**Deliberately not in this slice.** Part-receipt of a transfer (a short delivery between stores
+is recorded by receiving and then adjusting, with a reason); issues to a phase or cost centre
+(the free-text target is what is on the slip today; cost centres arrive with finance); returns
+to stock (`RETURN_IN` / `RETURN_OUT` exist as ledger types with no document); attaching files to
+an adjustment (the attachment entity type exists, the screen does not link it).
+
 ## What is not built in Phase 3 yet
 
 | Item | State |
 |---|---|
-| Stock issues, transfers, adjustments | next slice (see above) |
+| Returns to stock; part-receipt of a transfer; issues to a phase / cost centre | not built (see 3h) |
 | **Mobile sync API** | **built** (3f). What is not: the app that calls it. |
 | **The Expo mobile app** | not started. The contract it needs now exists and is tested end to end (`docs/06 §4`). Rebuilding the app (login by phone, site home, new-delivery screen, SQLite + outbox, sync engine, queue, photos) is a separate body of work that cannot be verified from this environment: the done-when for Phase 3 names Detox and airplane-mode capture. |
 | Delivery dashboard tiles (§23) and the vendor-rate grid with sparklines (§19) | not built; the data for both exists. |
@@ -235,15 +277,25 @@ captured; no channel adapter yet).
   lookups. It now reports the site's project.
 - A withdraw returned the pre-withdrawal status because the response was read before
   the change was flushed. Routes now flush before re-reading.
+- **The worker knew no approval handlers.** The API registers each document type's approval
+  handler as a side effect of importing its routers; the Celery worker imports none, so the
+  nightly integrity check (`approvals.reconcile`) iterated an empty registry and checked nothing.
+  The worker task module now imports the handler-bearing services. (Found while adding the
+  adjustment handler; the gap predates it.)
+- **A rule that approves by itself would have posted before the approval was recorded** (caught
+  while writing the handler, then pinned by a test). A zero-step rule
+  calls the handler from inside `approvals.submit`, before the caller has stored the request id,
+  which the "posted needs an approval" check would refuse. The handler now records its own request
+  id. A test publishes an always-approve workflow and submits an adjustment through it.
 
-## Testing (slices 3a–3b)
+## Testing (state after slice 3h)
 
 | Suite | Result |
 |---|---|
-| Backend | 593 passed, coverage 91 % (gate 80 %); ruff, mypy --strict (209 files), import contracts 4/4, `alembic check` clean; every migration round-trips |
-| New backend | rules (unit + integration, incl. approval limits through the engine) · rates (unit + integration: supersession, append-only history, exclusion constraint) · deliveries: 26 unit (every check and severity band) + 33 integration (capture, geofence, pricing snapshots, idempotency, scope, order balance) · review: 20 integration (queue order, decisions, correction loop, waive, attach order, capabilities) |
-| Web | 68 unit; typecheck, eslint, prettier, build clean |
-| Browser E2E | 18 passed (business rules ×2, vendor rates ×1, **deliveries ×1: record an overloaded off-site delivery with no order, send back, correct, approve with a reason**; the smoke test opens every list and form screen) |
+| Backend | 681 passed, 0 failed, coverage 92 % (gate 80 %); ruff, mypy --strict (260 files), import contracts 4/4, `alembic check` clean; every migration round-trips |
+| New in 3e–3h | GRN and ledger (22 + costing unit tests) · mobile sync (23: idempotency, per-operation outcomes, conflicts, revoked devices, cursor paging, tombstones, no prices) · stock movements (34: issues, transfers, adjustments through approval, pickers, and that every balance still matches its ledger afterwards) |
+| Web | 68 unit; typecheck, eslint (no warnings), prettier, build clean |
+| Browser E2E | 19 passed, including **stock movements**: an adjustment signed by the project manager puts stock on the shelf, an issue takes some out, a transfer crosses sites and is counted in by the other store, with PostgreSQL asserted at each step |
 
 ## Decisions to confirm
 

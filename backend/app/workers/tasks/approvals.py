@@ -17,6 +17,16 @@ from app.core.context import system_context
 from app.core.db import SessionFactory, dispose_engine
 from app.core.logging import get_logger
 from app.modules.approvals.services import engine, integrity
+
+# Importing a service registers its document type's approval handler. The API
+# does this through its routers; the worker has none, so without these the
+# nightly integrity check would find no document types to check.
+from app.modules.procurement.services import (  # noqa: F401
+    purchase_orders,
+    purchase_requests,
+)
+from app.modules.rates.services import rate_service  # noqa: F401
+from app.modules.stock.services import adjustments  # noqa: F401
 from app.platform import outbox
 from app.workers.celery_app import celery_app
 

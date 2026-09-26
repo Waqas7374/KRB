@@ -103,3 +103,28 @@ async def distance_outside_m(
     if distance is None:
         return None
     return Decimal(str(distance)).quantize(Decimal("0.01"))
+
+
+async def site_codes_in_scope(
+    session: AsyncSession,
+    *,
+    company_id: UUID,
+    site_ids: frozenset[UUID] | None,
+    project_ids: frozenset[UUID] | None,
+    everything: bool,
+) -> dict[UUID, str]:
+    """id -> code of the live sites a scope reaches: all of them when the scope is
+    company-wide, otherwise the named sites plus every site of the named projects."""
+    stmt = select(Site.id, Site.code).where(
+        Site.company_id == company_id, Site.deleted_at.is_(None)
+    )
+    if not everything:
+        clauses = []
+        if site_ids:
+            clauses.append(Site.id.in_(site_ids))
+        if project_ids:
+            clauses.append(Site.project_id.in_(project_ids))
+        if not clauses:
+            return {}
+        stmt = stmt.where(clauses[0] if len(clauses) == 1 else clauses[0] | clauses[1])
+    return dict((await session.execute(stmt)).tuples().all())

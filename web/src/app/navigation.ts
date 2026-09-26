@@ -28,6 +28,8 @@ import {
   Boxes as StockIcon,
   ReceiptText,
   History,
+  PackageMinus,
+  ArrowRightLeft,
 } from "lucide-react";
 
 export interface NavItem {
@@ -105,6 +107,24 @@ export const NAVIGATION: NavSection[] = [
         label: "Stock ledger",
         to: "/inventory/ledger",
         icon: History,
+        permission: "inventory.view",
+      },
+      {
+        label: "Stock issues",
+        to: "/inventory/issues",
+        icon: PackageMinus,
+        permission: "inventory.view",
+      },
+      {
+        label: "Stock transfers",
+        to: "/inventory/transfers",
+        icon: ArrowRightLeft,
+        permission: "inventory.view",
+      },
+      {
+        label: "Stock adjustments",
+        to: "/inventory/adjustments",
+        icon: SlidersHorizontal,
         permission: "inventory.view",
       },
     ],

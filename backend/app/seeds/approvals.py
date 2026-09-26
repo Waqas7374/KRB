@@ -24,6 +24,9 @@ from app.modules.procurement.services import purchase_orders, purchase_requests
 
 # Importing the service registers the vendor-rate approval handler.
 from app.modules.rates.services import rate_service
+
+# Importing the service registers the stock-adjustment approval handler.
+from app.modules.stock.services import adjustments
 from app.seeds.registry import SeedResult
 
 _PM = {
@@ -148,6 +151,29 @@ VENDOR_RATE_WORKFLOW: dict[str, Any] = {
     ]
 }
 
+# A stock adjustment creates or destroys stock without a receipt or an issue behind
+# it, so nothing about it approves itself: the project manager signs a small one,
+# and anything from 25,000 up is signed by finance as well. When the project
+# manager raised it, it goes up to finance rather than to themselves.
+_ADJUSTMENT_PM = {**_PM, "escalate_to_ref": "FINANCE_MANAGER"}
+
+STOCK_ADJUSTMENT_WORKFLOW: dict[str, Any] = {
+    "rules": [
+        {
+            "sequence": 10,
+            "name": "Under 25,000",
+            "condition": {"<": [{"var": "value_abs"}, 25000]},
+            "steps": _steps(_ADJUSTMENT_PM),
+        },
+        {
+            "sequence": 99,
+            "name": "25,000 and above",
+            "condition": True,
+            "steps": _steps(_ADJUSTMENT_PM, _FINANCE),
+        },
+    ]
+}
+
 _DEFAULTS = (
     (
         purchase_requests.DOC_TYPE,
@@ -166,6 +192,12 @@ _DEFAULTS = (
         "Vendor rate approval",
         "Small changes and first rates approve themselves; larger ones go to finance.",
         VENDOR_RATE_WORKFLOW,
+    ),
+    (
+        adjustments.DOC_TYPE,
+        "Stock adjustment approval",
+        "Every adjustment is signed: the project manager, plus finance from 25,000 up.",
+        STOCK_ADJUSTMENT_WORKFLOW,
     ),
 )
 

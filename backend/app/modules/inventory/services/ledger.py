@@ -220,3 +220,46 @@ async def reverse_by_id(
     return await reverse(
         session, ctx, original, source_type=source_type, source_id=source_id, remarks=remarks
     )
+
+
+async def position(
+    session: AsyncSession, *, warehouse_id: UUID, material_id: UUID
+) -> tuple[Decimal, Decimal]:
+    """(quantity on hand, average cost) right now, without locking.
+
+    For showing and validating what a person is about to do. Never for deciding
+    what a movement is worth: `post` re-reads the balance under its lock.
+    """
+    row = (
+        await session.execute(
+            select(InventoryBalance.quantity_on_hand, InventoryBalance.average_cost).where(
+                InventoryBalance.warehouse_id == warehouse_id,
+                InventoryBalance.material_id == material_id,
+            )
+        )
+    ).first()
+    return (row[0], row[1]) if row is not None else (Decimal(0), Decimal(0))
+
+
+async def add_in_transit(
+    session: AsyncSession,
+    ctx: AccessContext,
+    *,
+    warehouse_id: UUID,
+    material_id: UUID,
+    quantity: Decimal,
+) -> None:
+    """Move `quantity` (positive or negative) in or out of a balance's in-transit
+    figure: stock dispatched to this warehouse and not yet counted in.
+
+    It is a marker on the balance, not a ledger movement — the goods are on a
+    truck, in neither store — so it never changes what is on hand or its value.
+    """
+    warehouse = await warehouse_lookup.get(
+        session, company_id=ctx.company_id, warehouse_id=warehouse_id
+    )
+    if warehouse is None:
+        raise _fail("warehouse_id", "Unknown warehouse")
+    balance = await _locked_balance(session, ctx, warehouse, material_id)
+    balance.quantity_in_transit = max(balance.quantity_in_transit + quantity, Decimal(0))
+    await session.flush()

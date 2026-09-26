@@ -86,3 +86,36 @@ async def names(
         )
     )
     return {i: (c, n) for i, c, n in rows.tuples().all()}
+
+
+@dataclass(frozen=True, slots=True)
+class WarehouseOption:
+    id: UUID
+    code: str
+    name: str
+    site_id: UUID
+    is_default_receiving: bool
+
+
+async def options(
+    session: AsyncSession, *, company_id: UUID, site_ids: set[UUID] | None
+) -> list[WarehouseOption]:
+    """Live warehouses, all of them or only those at `site_ids`, for a picker."""
+    stmt = select(Warehouse).where(
+        Warehouse.company_id == company_id, Warehouse.deleted_at.is_(None)
+    )
+    if site_ids is not None:
+        if not site_ids:
+            return []
+        stmt = stmt.where(Warehouse.site_id.in_(site_ids))
+    rows = (await session.execute(stmt.order_by(Warehouse.code))).scalars().all()
+    return [
+        WarehouseOption(
+            id=w.id,
+            code=w.code,
+            name=w.name,
+            site_id=w.site_id,
+            is_default_receiving=w.is_default_receiving,
+        )
+        for w in rows
+    ]

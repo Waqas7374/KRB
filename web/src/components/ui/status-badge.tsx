@@ -28,6 +28,8 @@ const TONES: Record<string, Tone> = {
   CANCELLED: "danger",
   DISCARDED: "neutral",
   ISSUED: "info",
+  POSTED: "success",
+  IN_TRANSIT: "warning",
   SUBMITTED: "info",
   UNDER_REVIEW: "warning",
   CRITICAL: "danger",

@@ -33,6 +33,7 @@ MODEL_MODULES: Final[tuple[str, ...]] = (
     "app.modules.deliveries.models",
     "app.modules.inventory.models",
     "app.modules.grn.models",
+    "app.modules.stock.models",
 )
 
 

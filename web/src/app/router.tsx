@@ -140,6 +140,18 @@ const GrnDetailPage = page(grnPages, "GrnDetailPage");
 const invPages = () => import("@/features/inventory/InventoryPages");
 const StockBalancesPage = page(invPages, "StockBalancesPage");
 const StockLedgerPage = page(invPages, "StockLedgerPage");
+const issuePages = () => import("@/features/stock/IssuePages");
+const IssueListPage = page(issuePages, "IssueListPage");
+const IssueFormPage = page(issuePages, "IssueFormPage");
+const IssueDetailPage = page(issuePages, "IssueDetailPage");
+const transferPages = () => import("@/features/stock/TransferPages");
+const TransferListPage = page(transferPages, "TransferListPage");
+const TransferFormPage = page(transferPages, "TransferFormPage");
+const TransferDetailPage = page(transferPages, "TransferDetailPage");
+const adjustmentPages = () => import("@/features/stock/AdjustmentPages");
+const AdjustmentListPage = page(adjustmentPages, "AdjustmentListPage");
+const AdjustmentFormPage = page(adjustmentPages, "AdjustmentFormPage");
+const AdjustmentDetailPage = page(adjustmentPages, "AdjustmentDetailPage");
 
 const gate = (permission: string, element: ReactNode) => (
   <RequirePermission permission={permission}>{element}</RequirePermission>
@@ -219,6 +231,31 @@ export const router = createBrowserRouter([
       { path: "grns/:grnId", element: gate("grn.view", <GrnDetailPage />) },
       { path: "inventory", element: gate("inventory.view", <StockBalancesPage />) },
       { path: "inventory/ledger", element: gate("inventory.view", <StockLedgerPage />) },
+      { path: "inventory/issues", element: gate("inventory.view", <IssueListPage />) },
+      { path: "inventory/issues/new", element: gate("inventory.issue", <IssueFormPage />) },
+      { path: "inventory/issues/:issueId", element: gate("inventory.view", <IssueDetailPage />) },
+      { path: "inventory/transfers", element: gate("inventory.view", <TransferListPage />) },
+      {
+        path: "inventory/transfers/new",
+        element: gate("inventory.transfer", <TransferFormPage />),
+      },
+      {
+        path: "inventory/transfers/:transferId",
+        element: gate("inventory.view", <TransferDetailPage />),
+      },
+      { path: "inventory/adjustments", element: gate("inventory.view", <AdjustmentListPage />) },
+      {
+        path: "inventory/adjustments/new",
+        element: gate("inventory.adjust", <AdjustmentFormPage />),
+      },
+      {
+        path: "inventory/adjustments/:adjustmentId",
+        element: gate("inventory.view", <AdjustmentDetailPage />),
+      },
+      {
+        path: "inventory/adjustments/:adjustmentId/edit",
+        element: gate("inventory.adjust", <AdjustmentFormPage />),
+      },
       { path: "rfqs", element: gate("procurement.rfq.view", <RfqsListPage />) },
       { path: "rfqs/new", element: gate("procurement.rfq.create", <RfqFormPage />) },
       { path: "rfqs/:rfqId", element: gate("procurement.rfq.view", <RfqDetailPage />) },
