@@ -39,6 +39,7 @@ source_modules =
     app.modules.access.domain
     app.modules.approvals.domain
     app.modules.audit.domain
+    app.modules.deliveries.domain
     app.modules.documents.domain
     app.modules.identity.domain
     app.modules.masterdata.domain
@@ -78,6 +79,7 @@ containers =
     app.modules.access
     app.modules.approvals
     app.modules.audit
+    app.modules.deliveries
     app.modules.documents
     app.modules.identity
     app.modules.masterdata
