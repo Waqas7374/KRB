@@ -48,9 +48,15 @@ export function DecisionActions({
       <div className="flex flex-wrap items-center gap-2 border-t border-border bg-surface px-4 py-2.5">
         {request.can_decide && (
           <>
-            <Button variant="primary" onClick={() => setDialog("approve")}>
-              <Check /> Approve
-            </Button>
+            {request.decision_blocked_reason ? (
+              <p role="note" className="basis-full text-sm text-warning">
+                {request.decision_blocked_reason}
+              </p>
+            ) : (
+              <Button variant="primary" onClick={() => setDialog("approve")}>
+                <Check /> Approve
+              </Button>
+            )}
             <Button onClick={() => setDialog("changes")}>
               <CornerUpLeft /> Request changes
             </Button>

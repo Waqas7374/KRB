@@ -144,6 +144,9 @@ class RequestRead(ApiModel):
     outcome_reason: str | None
     # What the caller may do right now, so the UI does not re-derive rules.
     can_decide: bool
+    # Set when the caller is an approver but the amount is above their approval
+    # limit: they may still reject or return it, just not approve it.
+    decision_blocked_reason: str | None = None
     can_recall: bool
     steps: list[RequestStepRead]
     actions: list[ActionRead]

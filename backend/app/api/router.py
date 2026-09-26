@@ -19,6 +19,8 @@ from app.modules.org.api import routes as org_routes
 from app.modules.procurement.api import po_routes as purchase_order_routes
 from app.modules.procurement.api import routes as procurement_routes
 from app.modules.procurement.api import sourcing_routes
+from app.modules.rates.api import routes as rates_routes
+from app.modules.rules.api import routes as rules_routes
 from app.modules.vendors.api import routes as vendor_routes
 
 api_router = APIRouter()
@@ -40,5 +42,7 @@ api_router.include_router(procurement_routes.router)
 api_router.include_router(sourcing_routes.rfq_router)
 api_router.include_router(sourcing_routes.quotation_router)
 api_router.include_router(purchase_order_routes.router)
+api_router.include_router(rules_routes.router)
+api_router.include_router(rates_routes.router)
 
 # Registered as each module lands:

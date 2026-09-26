@@ -9,6 +9,7 @@ import type {
   ProjectListItem,
   RoleRead,
   SiteListItem,
+  TruckTypeRead,
   UnitRead,
   UserAdminRead,
   VendorListItem,
@@ -144,6 +145,12 @@ export const useVendorOptions = () =>
   useLookup<VendorListItem>("vendors", "/vendors", "vendors.view", (v) => ({
     value: v.id,
     label: `${v.code} — ${v.display_name}`,
+  }));
+
+export const useTruckTypeOptions = () =>
+  useLookup<TruckTypeRead>("truck-types", "/truck-types", "materials.view", (t) => ({
+    value: t.id,
+    label: `${t.code} — ${t.name}`,
   }));
 
 /** Resolve an id to its option label, falling back to a short id. */

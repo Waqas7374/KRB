@@ -8,6 +8,7 @@ know how roles and grants are stored.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date
 from uuid import UUID
 
@@ -20,22 +21,10 @@ from app.modules.access.services.resolver import resolve
 from app.modules.identity.services import user_lookup
 
 
-async def users_holding_role(
-    session: AsyncSession,
-    *,
-    company_id: UUID,
-    role_code: str,
-    project_id: UUID | None,
-    site_id: UUID | None,
-    department_id: UUID | None,
-    on: date,
-) -> set[UUID]:
-    """Users whose grant *of this role* covers the document's dimensions.
-
-    Coverage is per grant, deliberately: someone who is Procurement Manager
-    for one site and Project Manager for another project must not satisfy a
-    "Procurement Manager" step for that other project.
-    """
+def _coverage(
+    *, project_id: UUID | None, site_id: UUID | None, department_id: UUID | None
+) -> list[ColumnElement[bool]]:
+    """Grants whose scope covers a document at these dimensions."""
     coverage: list[ColumnElement[bool]] = [
         UserRoleGrant.scope_type.in_([ScopeType.GLOBAL.value, ScopeType.COMPANY.value])
     ]
@@ -59,6 +48,27 @@ async def users_holding_role(
                 UserRoleGrant.scope_id == department_id,
             )
         )
+
+    return coverage
+
+
+async def users_holding_role(
+    session: AsyncSession,
+    *,
+    company_id: UUID,
+    role_code: str,
+    project_id: UUID | None,
+    site_id: UUID | None,
+    department_id: UUID | None,
+    on: date,
+) -> set[UUID]:
+    """Users whose grant *of this role* covers the document's dimensions.
+
+    Coverage is per grant, deliberately: someone who is Procurement Manager
+    for one site and Project Manager for another project must not satisfy a
+    "Procurement Manager" step for that other project.
+    """
+    coverage = _coverage(project_id=project_id, site_id=site_id, department_id=department_id)
 
     rows = await session.execute(
         select(UserRoleGrant.user_id)
@@ -123,3 +133,51 @@ async def can_act(
         site_id=site_id,
         department_id=department_id,
     )
+
+
+@dataclass(frozen=True, slots=True)
+class HeldRole:
+    id: UUID
+    code: str
+    permissions: frozenset[str]
+
+
+async def roles_held(
+    session: AsyncSession,
+    *,
+    company_id: UUID,
+    user_id: UUID,
+    project_id: UUID | None,
+    site_id: UUID | None,
+    department_id: UUID | None,
+    on: date,
+) -> list[HeldRole]:
+    """The roles a user holds through grants that cover a document today, with
+    the permissions each carries. Per grant, as in `users_holding_role`."""
+    coverage = _coverage(project_id=project_id, site_id=site_id, department_id=department_id)
+    role_rows = (
+        await session.execute(
+            select(Role.id, Role.code)
+            .join(UserRoleGrant, UserRoleGrant.role_id == Role.id)
+            .where(
+                Role.company_id == company_id,
+                UserRoleGrant.user_id == user_id,
+                UserRoleGrant.revoked_at.is_(None),
+                or_(UserRoleGrant.valid_from.is_(None), UserRoleGrant.valid_from <= on),
+                or_(UserRoleGrant.valid_to.is_(None), UserRoleGrant.valid_to >= on),
+                or_(*coverage),
+            )
+            .distinct()
+        )
+    ).all()
+    held: list[HeldRole] = []
+    for role_id, code in role_rows:
+        codes = (
+            await session.execute(
+                select(Permission.code)
+                .join(RolePermission, RolePermission.permission_id == Permission.id)
+                .where(RolePermission.role_id == role_id)
+            )
+        ).scalars()
+        held.append(HeldRole(id=role_id, code=code, permissions=frozenset(codes)))
+    return held

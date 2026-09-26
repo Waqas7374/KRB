@@ -21,6 +21,9 @@ from app.modules.org.models import Company
 
 # Importing the service registers the purchase-request approval handler.
 from app.modules.procurement.services import purchase_orders, purchase_requests
+
+# Importing the service registers the vendor-rate approval handler.
+from app.modules.rates.services import rate_service
 from app.seeds.registry import SeedResult
 
 _PM = {
@@ -116,6 +119,35 @@ PURCHASE_ORDER_WORKFLOW: dict[str, Any] = {
     ]
 }
 
+# A vendor's price is money the company will pay for a long time, so a
+# meaningful change is signed by finance. A first rate (nothing to compare
+# with) and a change within +/-10 % approve themselves, recorded as such; the
+# thresholds are the administrator's to change.
+# When finance itself proposes the change it cannot sign its own, so it goes up.
+_RATE_FINANCE = {**_FINANCE, "escalate_to_type": "ROLE", "escalate_to_ref": "EXECUTIVE"}
+
+VENDOR_RATE_WORKFLOW: dict[str, Any] = {
+    "rules": [
+        {
+            "sequence": 10,
+            "name": "First rate, or within 10 %",
+            "condition": {
+                "or": [
+                    {"==": [{"var": "is_first_rate"}, True]},
+                    {"between": [{"var": "change_pct"}, -10, 10]},
+                ]
+            },
+            "steps": [],
+        },
+        {
+            "sequence": 99,
+            "name": "More than 10 % either way",
+            "condition": True,
+            "steps": _steps(_RATE_FINANCE),
+        },
+    ]
+}
+
 _DEFAULTS = (
     (
         purchase_requests.DOC_TYPE,
@@ -128,6 +160,12 @@ _DEFAULTS = (
         "Purchase order approval",
         "Default three-tier chain by order value. Edit it to match how KRB signs.",
         PURCHASE_ORDER_WORKFLOW,
+    ),
+    (
+        rate_service.DOC_TYPE,
+        "Vendor rate approval",
+        "Small changes and first rates approve themselves; larger ones go to finance.",
+        VENDOR_RATE_WORKFLOW,
     ),
 )
 

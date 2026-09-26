@@ -120,5 +120,16 @@ export type ApprovalWorkflowRead = S["WorkflowRead"];
 export type ApprovalDocumentType = S["DocumentTypeRead"];
 export type ApprovalSimulation = S["SimulateResponse"];
 
+export type VendorRateRead = S["RateRead"];
+export type VendorRateHistory = S["RateHistoryRead"];
+export type ResolvedRate = S["ResolvedRateRead"];
+
+export type BusinessRuleRead = S["RuleRead"];
+export type BusinessRuleCreate = S["RuleCreate"];
+export type BusinessRuleUpdate = S["RuleUpdate"];
+export type BusinessRuleType = S["RuleTypeRead"];
+export type RuleResolution = S["ResolveResponse"];
+export type RuleVerdict = S["VerdictRead"];
+
 export type NotificationInbox = S["NotificationInbox"];
 export type NotificationRead = S["NotificationRead"];

@@ -11,6 +11,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
  * a production configuration.
  */
 export default function globalSetup(): void {
+  // Bring the seed data up to date first: a phase that added seeded defaults
+  // (workflows, business rules) must not depend on someone having re-seeded.
+  // The seeder is idempotent and never overwrites an administrator's edits.
+  execSync("docker compose exec -T api python -m app.seeds", { cwd: root, stdio: "ignore" });
   execSync("docker compose exec -T api python -m app.seeds --reset-dev-passwords", {
     cwd: root,
     stdio: "inherit",

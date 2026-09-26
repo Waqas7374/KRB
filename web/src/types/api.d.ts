@@ -1896,6 +1896,183 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/purchase-orders/{po_id}/pdf": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The printable order. Needs permission to see prices. */
+    get: operations["order_pdf_api_v1_purchase_orders__po_id__pdf_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/business-rules/types": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Rule Types
+     * @description What each rule type means, where it may be scoped, and the shape of its value.
+     */
+    get: operations["rule_types_api_v1_business_rules_types_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/business-rules": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Rules */
+    get: operations["list_rules_api_v1_business_rules_get"];
+    put?: never;
+    /** Create a rule. Type, scope and start date are fixed once created. */
+    post: operations["create_rule_api_v1_business_rules_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/business-rules/resolve": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Which rule applies to this context, and why each other rule does not */
+    post: operations["resolve_rule_api_v1_business_rules_resolve_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/business-rules/{rule_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Rule */
+    get: operations["get_rule_api_v1_business_rules__rule_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Change a rule's value, condition, priority, end date or active flag */
+    patch: operations["update_rule_api_v1_business_rules__rule_id__patch"];
+    trace?: never;
+  };
+  "/api/v1/vendor-rates": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Rates */
+    get: operations["list_rates_api_v1_vendor_rates_get"];
+    put?: never;
+    /** Propose a new rate period. It comes into force when approved. */
+    post: operations["propose_rate_api_v1_vendor_rates_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/vendor-rates/history": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Every rate change: old value, new value, who and why. Append-only. */
+    get: operations["rate_history_api_v1_vendor_rates_history_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/vendor-rates/resolve": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The rate that applies to a vendor, material, place and date — or null */
+    get: operations["resolve_rate_api_v1_vendor_rates_resolve_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/vendor-rates/{rate_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Rate */
+    get: operations["get_rate_api_v1_vendor_rates__rate_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Correct a rate's notes. The value is never editable. */
+    patch: operations["update_notes_api_v1_vendor_rates__rate_id__patch"];
+    trace?: never;
+  };
+  "/api/v1/vendor-rates/{rate_id}/withdraw": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Withdraw a proposal that has not been approved yet */
+    post: operations["withdraw_rate_api_v1_vendor_rates__rate_id__withdraw_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3253,6 +3430,26 @@ export interface components {
         [key: string]: unknown;
       };
     };
+    /** Page[RateHistoryRead] */
+    Page_RateHistoryRead_: {
+      /** Items */
+      items: components["schemas"]["RateHistoryRead"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
+    /** Page[RateRead] */
+    Page_RateRead_: {
+      /** Items */
+      items: components["schemas"]["RateRead"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
     /** Page[RfqListItem] */
     Page_RfqListItem_: {
       /** Items */
@@ -3267,6 +3464,16 @@ export interface components {
     Page_RoleRead_: {
       /** Items */
       items: components["schemas"]["RoleRead"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
+    /** Page[RuleRead] */
+    Page_RuleRead_: {
+      /** Items */
+      items: components["schemas"]["RuleRead"][];
       page: components["schemas"]["PageMeta"];
       /** Meta */
       meta?: {
@@ -4519,6 +4726,206 @@ export interface components {
       /** Items */
       items: components["schemas"]["QuotationItemIn"][];
     };
+    /** RateCreate */
+    RateCreate: {
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /**
+       * Unit Id
+       * Format: uuid
+       */
+      unit_id: string;
+      /** Rate */
+      rate: number | string;
+      /**
+       * Currency Code
+       * @default PKR
+       */
+      currency_code: string;
+      /** Project Id */
+      project_id?: string | null;
+      /** Site Id */
+      site_id?: string | null;
+      /**
+       * Effective From
+       * Format: date
+       */
+      effective_from: string;
+      /** Reason */
+      reason?: string | null;
+      /** @default MANUAL */
+      source: components["schemas"]["RateSource"];
+    };
+    /** RateHistoryRead */
+    RateHistoryRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Vendor Rate Id
+       * Format: uuid
+       */
+      vendor_rate_id: string;
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Vendor Name */
+      vendor_name?: string | null;
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Material Name */
+      material_name?: string | null;
+      /** Old Rate */
+      old_rate: string | null;
+      /** New Rate */
+      new_rate: string;
+      /** Change Pct */
+      change_pct: string | null;
+      /**
+       * Effective From
+       * Format: date
+       */
+      effective_from: string;
+      /** Reason */
+      reason: string | null;
+      /** Changed By Id */
+      changed_by_id: string | null;
+      /** Changed By Name */
+      changed_by_name?: string | null;
+      /**
+       * Changed At
+       * Format: date-time
+       */
+      changed_at: string;
+    };
+    /** RateNotes */
+    RateNotes: {
+      /** Notes */
+      notes?: string | null;
+    };
+    /** RateRead */
+    RateRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Vendor Code */
+      vendor_code?: string | null;
+      /** Vendor Name */
+      vendor_name?: string | null;
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Material Sku */
+      material_sku?: string | null;
+      /** Material Name */
+      material_name?: string | null;
+      /**
+       * Unit Id
+       * Format: uuid
+       */
+      unit_id: string;
+      /** Unit Code */
+      unit_code?: string | null;
+      /** Rate */
+      rate: string;
+      /** Currency Code */
+      currency_code: string;
+      /** Project Id */
+      project_id: string | null;
+      /** Project Code */
+      project_code?: string | null;
+      /** Site Id */
+      site_id: string | null;
+      /** Site Code */
+      site_code?: string | null;
+      /**
+       * Scope
+       * @default Company-wide
+       */
+      scope: string;
+      /**
+       * Effective From
+       * Format: date
+       */
+      effective_from: string;
+      /** Effective To */
+      effective_to: string | null;
+      /**
+       * Is Current
+       * @default false
+       */
+      is_current: boolean;
+      /** Status */
+      status: string;
+      /** Source */
+      source: string;
+      /** Reason */
+      reason: string | null;
+      /** Notes */
+      notes: string | null;
+      /** Previous Rate */
+      previous_rate: string | null;
+      /** Change Pct */
+      change_pct: string | null;
+      /** Requested By Id */
+      requested_by_id: string | null;
+      /** Requested By Name */
+      requested_by_name?: string | null;
+      /** Submitted At */
+      submitted_at: string | null;
+      /** Approved At */
+      approved_at: string | null;
+      /** Decision Reason */
+      decision_reason: string | null;
+      /** Approval Request Id */
+      approval_request_id: string | null;
+      /** Version */
+      version: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /**
+       * Can Withdraw
+       * @default false
+       */
+      can_withdraw: boolean;
+    };
+    /**
+     * RateSource
+     * @enum {string}
+     */
+    RateSource: "MANUAL" | "PO" | "QUOTATION";
     /** ReadyComponent */
     ReadyComponent: {
       /** Name */
@@ -4599,6 +5006,8 @@ export interface components {
       outcome_reason: string | null;
       /** Can Decide */
       can_decide: boolean;
+      /** Decision Blocked Reason */
+      decision_blocked_reason?: string | null;
       /** Can Recall */
       can_recall: boolean;
       /** Steps */
@@ -4645,6 +5054,60 @@ export interface components {
       token: string;
       /** New Password */
       new_password: string;
+    };
+    /** ResolveRequest */
+    ResolveRequest: {
+      rule_type: components["schemas"]["RuleType"];
+      /**
+       * Context
+       * @default {}
+       */
+      context: {
+        [key: string]: unknown;
+      };
+      /** At */
+      at?: string | null;
+    };
+    /** ResolveResponse */
+    ResolveResponse: {
+      /**
+       * At
+       * Format: date
+       */
+      at: string;
+      winner: components["schemas"]["RuleRead"] | null;
+      /** Considered */
+      considered: components["schemas"]["VerdictRead"][];
+    };
+    /** ResolvedRateRead */
+    ResolvedRateRead: {
+      /**
+       * Rate Id
+       * Format: uuid
+       */
+      rate_id: string;
+      /** Rate */
+      rate: string;
+      /**
+       * Unit Id
+       * Format: uuid
+       */
+      unit_id: string;
+      /** Unit Code */
+      unit_code?: string | null;
+      /** Currency Code */
+      currency_code: string;
+      /** Scope */
+      scope: string;
+      /**
+       * Effective From
+       * Format: date
+       */
+      effective_from: string;
+      /** Effective To */
+      effective_to: string | null;
+      /** Source */
+      source: string;
     };
     /**
      * RfqCreate
@@ -5069,6 +5532,151 @@ export interface components {
        * Format: date-time
        */
       created_at: string;
+    };
+    /** RuleCreate */
+    RuleCreate: {
+      rule_type: components["schemas"]["RuleType"];
+      /** Name */
+      name?: string | null;
+      /** Description */
+      description?: string | null;
+      /**
+       * Scope
+       * @default {}
+       */
+      scope: {
+        [key: string]: string;
+      };
+      /** Condition */
+      condition?: unknown;
+      /** Value */
+      value: {
+        [key: string]: unknown;
+      };
+      /**
+       * Priority
+       * @default 0
+       */
+      priority: number;
+      /**
+       * Effective From
+       * Format: date
+       */
+      effective_from: string;
+      /** Effective To */
+      effective_to?: string | null;
+      /**
+       * Is Active
+       * @default true
+       */
+      is_active: boolean;
+    };
+    /** RuleRead */
+    RuleRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Rule Type */
+      rule_type: string;
+      /** Rule Type Label */
+      rule_type_label?: string | null;
+      /** Name */
+      name: string | null;
+      /** Description */
+      description: string | null;
+      /** Scope */
+      scope: {
+        [key: string]: unknown;
+      };
+      /** Condition */
+      condition: unknown;
+      /** Value */
+      value: {
+        [key: string]: unknown;
+      };
+      /** Priority */
+      priority: number;
+      /**
+       * Effective From
+       * Format: date
+       */
+      effective_from: string;
+      /** Effective To */
+      effective_to: string | null;
+      /** Is Active */
+      is_active: boolean;
+      /** Version */
+      version: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /**
+     * RuleType
+     * @enum {string}
+     */
+    RuleType:
+      | "TONNAGE_MAX"
+      | "GEOFENCE_RADIUS"
+      | "QTY_TOLERANCE"
+      | "PRICE_TOLERANCE"
+      | "APPROVAL_LIMIT"
+      | "REORDER_LEVEL"
+      | "LATE_SUBMISSION"
+      | "DUPLICATE_WINDOW"
+      | "DAILY_DELIVERY_CAP"
+      | "CLOCK_SKEW_MAX"
+      | "PURCHASE_LIMIT";
+    /** RuleTypeRead */
+    RuleTypeRead: {
+      /** Rule Type */
+      rule_type: string;
+      /** Label */
+      label: string;
+      /** Description */
+      description: string;
+      /** Scope Keys */
+      scope_keys: string[];
+      /** Example */
+      example: {
+        [key: string]: unknown;
+      };
+      /** Value Schema */
+      value_schema: {
+        [key: string]: unknown;
+      };
+    };
+    /**
+     * RuleUpdate
+     * @description Only what may change. Type, scope and start date are fixed: end this rule
+     *     and create another to change what it applies to.
+     */
+    RuleUpdate: {
+      /** Name */
+      name?: string | null;
+      /** Description */
+      description?: string | null;
+      /** Value */
+      value?: {
+        [key: string]: unknown;
+      } | null;
+      /** Condition */
+      condition?: unknown;
+      /** Priority */
+      priority?: number | null;
+      /** Effective To */
+      effective_to?: string | null;
+      /** Is Active */
+      is_active?: boolean | null;
     };
     /** ScopeSummary */
     ScopeSummary: {
@@ -5971,6 +6579,33 @@ export interface components {
       address?: components["schemas"]["AddressIn"] | null;
       /** Notes */
       notes?: string | null;
+    };
+    /** VerdictRead */
+    VerdictRead: {
+      /**
+       * Rule Id
+       * Format: uuid
+       */
+      rule_id: string;
+      /** Name */
+      name: string | null;
+      /** Scope */
+      scope: {
+        [key: string]: unknown;
+      };
+      /** Priority */
+      priority: number;
+      /** Specificity */
+      specificity: number;
+      /** Applies */
+      applies: boolean;
+      /** Reason */
+      reason: string;
+      /**
+       * Winner
+       * @default false
+       */
+      winner: boolean;
     };
     /** VersionResponse */
     VersionResponse: {
@@ -10767,6 +11402,486 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["PurchaseOrderRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  order_pdf_api_v1_purchase_orders__po_id__pdf_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        po_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/pdf": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  rule_types_api_v1_business_rules_types_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RuleTypeRead"][];
+        };
+      };
+    };
+  };
+  list_rules_api_v1_business_rules_get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        rule_type?: string[] | null;
+        is_active?: boolean | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_RuleRead_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_rule_api_v1_business_rules_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RuleCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RuleRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  resolve_rule_api_v1_business_rules_resolve_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ResolveRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ResolveResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_rule_api_v1_business_rules__rule_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        rule_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RuleRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_rule_api_v1_business_rules__rule_id__patch: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        rule_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RuleUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RuleRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_rates_api_v1_vendor_rates_get: {
+    parameters: {
+      query?: {
+        vendor_id?: string | null;
+        material_id?: string | null;
+        status?: string[] | null;
+        site_id?: string | null;
+        project_id?: string | null;
+        current?: boolean;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_RateRead_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  propose_rate_api_v1_vendor_rates_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RateCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RateRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  rate_history_api_v1_vendor_rates_history_get: {
+    parameters: {
+      query?: {
+        vendor_id?: string | null;
+        material_id?: string | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_RateHistoryRead_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  resolve_rate_api_v1_vendor_rates_resolve_get: {
+    parameters: {
+      query: {
+        vendor_id: string;
+        material_id: string;
+        at?: string | null;
+        project_id?: string | null;
+        site_id?: string | null;
+        unit_id?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ResolvedRateRead"] | null;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_rate_api_v1_vendor_rates__rate_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        rate_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RateRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_notes_api_v1_vendor_rates__rate_id__patch: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        rate_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RateNotes"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RateRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  withdraw_rate_api_v1_vendor_rates__rate_id__withdraw_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        rate_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RateRead"];
         };
       };
       /** @description Validation Error */

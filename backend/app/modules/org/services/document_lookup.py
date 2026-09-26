@@ -29,6 +29,8 @@ class DocumentPlace:
     site_code: str | None
     site_name: str | None
     site_manager_id: UUID | None
+    # The project a site belongs to, for documents that name only a site.
+    site_project_id: UUID | None
     department_id: UUID | None
     department_code: str | None
     phase_id: UUID | None
@@ -143,6 +145,7 @@ async def resolve_place(
         site_code=site.code if site else None,
         site_name=site.name if site else None,
         site_manager_id=site.manager_user_id if site else None,
+        site_project_id=site.project_id if site else None,
         department_id=department.id if department else None,
         department_code=department.code if department else None,
         phase_id=phase.id if phase else None,

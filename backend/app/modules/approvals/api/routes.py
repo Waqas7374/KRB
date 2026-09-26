@@ -107,6 +107,7 @@ async def _request_views(
                 )
             )
         initiator = people.get(r.initiated_by_id) if r.initiated_by_id else None
+        blocked = await engine.limit_block_reason(session, r, ctx.user_id) if can_decide else None
         views.append(
             RequestRead(
                 id=r.id,
@@ -128,6 +129,7 @@ async def _request_views(
                 completed_at=r.completed_at,
                 outcome_reason=r.outcome_reason,
                 can_decide=can_decide,
+                decision_blocked_reason=blocked,
                 can_recall=(
                     r.status == RequestStatus.PENDING.value
                     and r.initiated_by_id == ctx.user_id

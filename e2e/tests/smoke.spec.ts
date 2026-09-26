@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { signIn, USERS } from "./helpers";
 
-/** Every Phase 1 screen, opened as the super-admin against the seeded data. */
+/** Every list and form screen, opened as the super-admin against the seeded data. */
 const SCREENS: [path: string, heading: string | RegExp][] = [
   ["/", /^Welcome,/],
   ["/projects", "Projects"],
@@ -23,6 +23,15 @@ const SCREENS: [path: string, heading: string | RegExp][] = [
   ["/warehouses", "Warehouses"],
   ["/users", "Users"],
   ["/roles", "Roles"],
+  ["/approvals", "Approvals"],
+  ["/approval-workflows", "Approval workflows"],
+  ["/purchase-requests", "Purchase requests"],
+  ["/purchase-requests/new", "New purchase request"],
+  ["/rfqs", "RFQs"],
+  ["/rfqs/new", "New RFQ"],
+  ["/purchase-orders", "Purchase orders"],
+  ["/purchase-orders/new", "New purchase order"],
+  ["/business-rules", "Business rules"],
   ["/account", "My account"],
   ["/status", "KRB ERP"],
 ];

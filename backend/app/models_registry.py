@@ -27,6 +27,9 @@ MODEL_MODULES: Final[tuple[str, ...]] = (
     # Phase 2 — approvals and procurement
     "app.modules.approvals.models",
     "app.modules.procurement.models",
+    # Phase 3 — business rules first, then the material-tracking tables
+    "app.modules.rules.models",
+    "app.modules.rates.models",
 )
 
 

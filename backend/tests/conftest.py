@@ -110,7 +110,7 @@ def seeded(migrated_database: None) -> Iterator[None]:
     from app.core.db import SessionFactory, dispose_engine
     from app.models_registry import import_all_models
     from app.modules.audit.hooks import install_audit_hooks
-    from app.seeds import approvals, foundation, masterdata
+    from app.seeds import approvals, foundation, masterdata, rules
 
     import_all_models()
     install_audit_hooks()
@@ -128,6 +128,7 @@ def seeded(migrated_database: None) -> Iterator[None]:
                 await masterdata.seed_warehouses(session, company)
                 await masterdata.seed_vendors(session, company)
                 await approvals.seed_workflows(session, company)
+                await rules.seed_rules(session, company)
                 await session.commit()
         # Dispose inside this loop: asyncpg connections belong to the loop that
         # opened them, and leaving them for a later loop to close raises

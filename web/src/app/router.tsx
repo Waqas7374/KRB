@@ -98,6 +98,10 @@ const ApprovalInboxPage = page(
   () => import("@/features/approvals/ApprovalInboxPage"),
   "ApprovalInboxPage",
 );
+const ApprovalDocumentPage = page(
+  () => import("@/features/approvals/ApprovalDocumentPage"),
+  "ApprovalDocumentPage",
+);
 const WorkflowsPage = page(() => import("@/features/approvals/WorkflowsPage"), "WorkflowsPage");
 const pr = () => import("@/features/procurement/PurchaseRequestPages");
 const PurchaseRequestsListPage = page(pr, "PurchaseRequestsListPage");
@@ -116,6 +120,13 @@ const poPages = () => import("@/features/procurement/PurchaseOrderPages");
 const PurchaseOrdersListPage = page(poPages, "PurchaseOrdersListPage");
 const PurchaseOrderFormPage = page(poPages, "PurchaseOrderFormPage");
 const PurchaseOrderDetailPage = page(poPages, "PurchaseOrderDetailPage");
+
+const BusinessRulesPage = page(
+  () => import("@/features/rules/BusinessRulesPage"),
+  "BusinessRulesPage",
+);
+
+const VendorRatesPage = page(() => import("@/features/rates/VendorRatesPage"), "VendorRatesPage");
 
 const gate = (permission: string, element: ReactNode) => (
   <RequirePermission permission={permission}>{element}</RequirePermission>
@@ -160,6 +171,10 @@ export const router = createBrowserRouter([
       { path: "cost-centers", element: gate("departments.view", <CostCentersPage />) },
 
       { path: "approvals", element: gate("approvals.view", <ApprovalInboxPage />) },
+      {
+        path: "approvals/document/:docType/:docId",
+        element: gate("approvals.view", <ApprovalDocumentPage />),
+      },
       { path: "approval-workflows", element: gate("approvals.view", <WorkflowsPage />) },
       {
         path: "purchase-requests",
@@ -178,6 +193,7 @@ export const router = createBrowserRouter([
         element: gate("procurement.pr.create", <PurchaseRequestFormPage />),
       },
 
+      { path: "vendor-rates", element: gate("rates.view", <VendorRatesPage />) },
       { path: "rfqs", element: gate("procurement.rfq.view", <RfqsListPage />) },
       { path: "rfqs/new", element: gate("procurement.rfq.create", <RfqFormPage />) },
       { path: "rfqs/:rfqId", element: gate("procurement.rfq.view", <RfqDetailPage />) },
@@ -230,6 +246,8 @@ export const router = createBrowserRouter([
       { path: "calibration", element: gate("units.view", <CalibrationPage />) },
       { path: "truck-types", element: gate("materials.view", <TruckTypesPage />) },
       { path: "warehouses", element: gate("warehouses.view", <WarehousesPage />) },
+
+      { path: "business-rules", element: gate("settings.view", <BusinessRulesPage />) },
 
       { path: "users", element: gate("users.view", <UsersListPage />) },
       { path: "users/:userId", element: gate("users.view", <UserDetailPage />) },

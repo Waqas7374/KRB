@@ -77,6 +77,7 @@ from app.modules.audit.domain.enums import AuditAction
 from app.modules.audit.services.writer import record as record_audit
 from app.modules.identity.services import user_lookup
 from app.modules.org.services import document_lookup
+from app.modules.rules.services import approval_limit
 from app.platform import outbox
 
 MIN_REASON_LENGTH = 5
@@ -552,6 +553,33 @@ async def _finish(
             step.decided_at = step.decided_at or now
 
 
+async def limit_block_reason(
+    session: AsyncSession, request: ApprovalRequest, user_id: UUID
+) -> str | None:
+    """Why `user_id` may not approve this request for its amount, or None.
+
+    Limits (docs/04 §4) answer a different question from the workflow: the
+    workflow says who must sign, the limit says how much a signer may sign.
+    """
+    if request.amount is None:
+        return None
+    handler = registry.get(request.doc_type)
+    result = await approval_limit.check(
+        session,
+        company_id=request.company_id,
+        user_id=user_id,
+        doc_type=request.doc_type,
+        approve_permission=handler.spec.approve_permission,
+        amount=request.amount,
+        project_id=request.project_id,
+        site_id=request.site_id,
+        department_id=request.department_id,
+    )
+    if result.allowed:
+        return None
+    return result.message(handler.spec.label.lower(), request.amount)
+
+
 async def decide(
     session: AsyncSession,
     ctx: AccessContext,
@@ -614,6 +642,11 @@ async def decide(
                 "You can no longer approve this request: your access changed after it reached you."
             )
         )
+
+    if action is ActionType.APPROVE:
+        blocked = await limit_block_reason(session, request, ctx.user_id)
+        if blocked:
+            raise BusinessRuleError("approval_limit_exceeded", blocked)
 
     already = await session.scalar(
         select(

@@ -45,6 +45,8 @@ source_modules =
     app.modules.notifications.domain
     app.modules.org.domain
     app.modules.procurement.domain
+    app.modules.rates.domain
+    app.modules.rules.domain
     app.modules.vendors.domain
     app.platform.domain
 forbidden_modules =
@@ -82,6 +84,8 @@ containers =
     app.modules.notifications
     app.modules.org
     app.modules.procurement
+    app.modules.rates
+    app.modules.rules
     app.modules.vendors
 
 # -----------------------------------------------------------------------------

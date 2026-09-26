@@ -21,6 +21,8 @@ import {
   ArrowLeftRight,
   FileQuestion,
   FileText,
+  SlidersHorizontal,
+  BadgeDollarSign,
 } from "lucide-react";
 
 export interface NavItem {
@@ -69,6 +71,12 @@ export const NAVIGATION: NavSection[] = [
         permission: "procurement.po.view",
       },
       { label: "Vendors", to: "/vendors", icon: Building2, permission: "vendors.view" },
+      {
+        label: "Vendor rates",
+        to: "/vendor-rates",
+        icon: BadgeDollarSign,
+        permission: "rates.view",
+      },
     ],
   },
   {
@@ -98,6 +106,12 @@ export const NAVIGATION: NavSection[] = [
         to: "/approval-workflows",
         icon: Workflow,
         permission: "approvals.view",
+      },
+      {
+        label: "Business rules",
+        to: "/business-rules",
+        icon: SlidersHorizontal,
+        permission: "settings.view",
       },
       { label: "System status", to: "/status", icon: Activity },
     ],
