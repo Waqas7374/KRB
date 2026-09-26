@@ -9,7 +9,6 @@ from fastapi import APIRouter
 from app.api.deps import Access, PageDep, SessionDep, UowDep, require
 from app.core.pagination import Page
 from app.modules.deliveries.api import views
-from app.modules.deliveries.api.routes import _input
 from app.modules.deliveries.schemas import (
     AttachOrder,
     DeliveryCreate,
@@ -58,7 +57,7 @@ async def delivery_reviews(delivery_id: UUID, ctx: Access, session: SessionDep) 
 async def correct_delivery(
     delivery_id: UUID, payload: DeliveryCreate, ctx: Access, uow: UowDep
 ) -> DeliveryRead:
-    result = await ingest.correct(uow.session, ctx, delivery_id, _input(payload))
+    result = await ingest.correct(uow.session, ctx, delivery_id, ingest.input_from(payload))
     await review.record_correction(uow.session, ctx, result)
     return await views.detail_view(uow.session, ctx, result.delivery)
 

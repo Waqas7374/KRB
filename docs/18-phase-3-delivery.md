@@ -15,7 +15,7 @@ what remains.
 | 3c | Deliveries: ingest, geofence, quantity checks, rate and conversion snapshots, flags | 3a, 3b, unit conversion (Phase 1) | done |
 | 3d | Review queue and decisions, corrections, flag waivers, attaching an order | 3c | done |
 | 3e | GRN and the inventory ledger (balances, weighted-average cost, reversal, nightly reconcile) | 3c, 3d | done |
-| 3f | Mobile sync API (push / pull, idempotency, devices) | 3c | |
+| 3f | Mobile sync API (push / pull, idempotency, devices) — the **server** side | 3c | done (the Expo app that calls it is not built) |
 | 3g | Web: delivery, review, GRN, inventory screens | 3c–3e | done (the delivery dashboard tiles, §23, and the vendor-rate history grid remain) |
 
 The order follows what each slice *reads*: deliveries read rules and rates, so they
@@ -131,13 +131,94 @@ see only their site (out of scope reads as "no such site", not "forbidden").
 - **Counter purchases** (a GRN with no delivery). The columns are nullable and ready.
 - **General-ledger posting** on GRN approval and the `PENDING_APPROVAL` / `APPROVED` GRN states — Phase 4, with finance.
 
+## 3f — Mobile sync API
+
+The phone is offline most of the day; this is how what it captured reaches the
+server and how it learns what changed. It is a **thin wrapper over the same
+`deliveries.ingest` the web form uses** (`ingest.input_from` was moved out of the
+web route so both build the identical input), so a delivery is checked and priced
+the same way whichever door it came through.
+
+### `POST /sync/push`
+
+Up to 50 operations per call, each answered on its own — **never all-or-nothing**:
+one bad entry must not hold forty good ones behind it on a 2G connection.
+
+| Outcome | Meaning | The app should |
+|---|---|---|
+| `applied` | Recorded now; the result carries the server's view (number, status, flags, and — only for people who may see prices — rate and amount) | mark it synced |
+| `duplicate` | This entry's id was already recorded; the stored record is replayed | treat as success |
+| `conflict` | A correction arrived for an entry head office already decided; **the server's version stands** | show the server's record, drop the edit |
+| `rejected` | Permanent: invalid payload (with the fields), unknown vendor, a site the person is not assigned to, a rule (`purchase_order_required`, `site_inactive`) | fix or drop; do not retry |
+| `deferred` | A transient server problem inside that entry | retry later |
+
+- **Idempotent** on the delivery's client-generated id, so a dropped connection or
+  a killed app can push the same batch again safely.
+- **Each operation runs in its own savepoint**; the request as a whole succeeds
+  whenever the batch was understood. A whole-request error is reserved for things
+  that apply to every entry: not signed in, no `deliveries.create`, batch too large,
+  **device revoked**.
+- **The phone cannot supply what it cannot know.** The payload has no field for a
+  rate, a conversion factor, a flag or a rule (unknown fields are rejected), and the
+  device id, app version and "waited offline" come from the batch envelope, so an
+  entry cannot claim a different device than the one that sent it.
+- `client_created_at` becomes the capture time when the payload has none, so an
+  entry keeps the moment it was recorded, not the moment it reached the server.
+
+### `GET /sync/pull`
+
+`?since=<server_seq>&entities=…&limit=…&site_id=…&device_id=…`. Returns what
+changed after the cursor as one stream ordered by a **single global sequence**, with
+a `has_more` flag and a cursor that is a true high-water mark across every entity.
+
+| Entity | Contents | Who gets it |
+|---|---|---|
+| `materials` | sku, name, base unit, category, **all units usable for it** (base + alternates), purchasable / stockable | anyone who may view materials **or** record deliveries |
+| `units`, `truck_types` | codes, names, precision / default max tonnage | same |
+| `vendors` | code, name, status, phone | vendors view **or** record deliveries |
+| `sites` | code, name, project, **centre and radius** for the on-device geofence pre-check, timezone | only sites the person may record deliveries at |
+| `rules` | the rules a phone can pre-check with (tonnage, geofence, clock skew, duplicate window, late submission) — **not** tolerances, price rules or approval limits | those who record deliveries |
+| `open_pos` | receivable orders with their lines (material, unit, quantity, received so far) | orders at sites the person may record at |
+
+- **Deletes are tombstones** (`deleted: true`): a soft-deleted row, an inactive
+  rule, or an order that stopped being receivable (cancelled, closed, fully
+  received) arrives as a tombstone so the phone drops it and never offers what the
+  server would refuse.
+- **Nothing priced is ever sent** (a test scans the whole payload).
+- Entities the person may not sync are named in `not_permitted`, so the app can say
+  so instead of showing an empty list.
+- **The cursor is `server_seq`**, assigned by a trigger (`krb_bump_server_seq`) on
+  insert *and* update of the seven tables above, from one sequence
+  (`global_change_seq`). The application never writes it, so a new code path cannot
+  forget to. Two child tables bump their parent: a change to a material's alternate
+  units re-sends the material; a change to a purchase-order line (including what was
+  received against it) re-sends the order.
+- **Known limit.** A sequence value is taken when a row is written, not when its
+  transaction commits, so a slow transaction can commit a row *behind* a cursor
+  another phone already passed. Reference data changes rarely and in short
+  transactions; the app closes the gap with a full pull (`since=0`) on first launch
+  and once a day.
+
+### Devices
+
+The registry already existed (identity, Phase 1: `user_devices`, with revocation).
+Sync reports into it: a push registers a phone it has not seen, and every push and
+pull records the version, push token and `last_sync_at`. **A revoked device is
+refused on both endpoints** before it can read or write anything. A person can
+revoke their own phone (`POST /auth/devices/{id}/revoke`, e.g. when it is lost);
+revoking *someone else's* device from head office is not built yet.
+
+**Deliberately not in this slice.** Photos (attachments upload separately; the
+delivery screen does not link them yet), and push notifications (the token is
+captured; no channel adapter yet).
+
 ## What is not built in Phase 3 yet
 
 | Item | State |
 |---|---|
 | Stock issues, transfers, adjustments | next slice (see above) |
-| **Mobile sync API** (`POST /sync/push`, `GET /sync/pull`, device registry) | not started. It is a thin per-operation wrapper over `deliveries.ingest` (which already returns the per-operation outcome the protocol needs) plus a `server_seq` change cursor on the syncable tables. |
-| **The Expo mobile app** | not started. Rebuilding it (login by phone, site home, new-delivery screen, SQLite + outbox, sync engine, queue, photos) is a separate body of work that cannot be verified from this environment: the done-when for Phase 3 names Detox and airplane-mode capture. |
+| **Mobile sync API** | **built** (3f). What is not: the app that calls it. |
+| **The Expo mobile app** | not started. The contract it needs now exists and is tested end to end (`docs/06 §4`). Rebuilding the app (login by phone, site home, new-delivery screen, SQLite + outbox, sync engine, queue, photos) is a separate body of work that cannot be verified from this environment: the done-when for Phase 3 names Detox and airplane-mode capture. |
 | Delivery dashboard tiles (§23) and the vendor-rate grid with sparklines (§19) | not built; the data for both exists. |
 | Notifications to reviewers when a delivery is flagged | the `delivery.received` event is emitted; no handler yet. |
 | Photos on deliveries | attachments exist (Phase 1); not wired to the delivery screen. |

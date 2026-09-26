@@ -25,6 +25,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.constraints import enum_check, non_negative, percentage, positive
 from app.core.db import BaseModel, CompanyModel, VersionMixin
+from app.core.sync import SyncSeqMixin
 from app.modules.procurement.domain.enums import (
     PurchaseOrderStatus,
     PurchaseRequestPriority,
@@ -348,7 +349,7 @@ class VendorQuotationItem(BaseModel):
 # -----------------------------------------------------------------------------
 
 
-class PurchaseOrder(CompanyModel, VersionMixin):
+class PurchaseOrder(CompanyModel, VersionMixin, SyncSeqMixin):
     __tablename__ = "purchase_orders"
     __audited__ = True
 

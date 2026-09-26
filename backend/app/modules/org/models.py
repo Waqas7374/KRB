@@ -35,6 +35,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.constraints import enum_check
 from app.core.db import BaseModel, MasterDataModel
+from app.core.sync import SyncSeqMixin
 from app.modules.org.domain.enums import PhaseStatus, ProjectStatus, ProjectType, SiteType
 
 # -----------------------------------------------------------------------------
@@ -208,7 +209,7 @@ class ProjectPhase(MasterDataModel):
 # -----------------------------------------------------------------------------
 
 
-class Site(MasterDataModel):
+class Site(MasterDataModel, SyncSeqMixin):
     """A physical location where material is delivered, stored or consumed.
 
     Geofencing (§15) uses `boundary` when present, otherwise a radius around

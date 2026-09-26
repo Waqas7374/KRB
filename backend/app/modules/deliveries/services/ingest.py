@@ -48,6 +48,7 @@ from app.modules.deliveries.domain.enums import (
 )
 from app.modules.deliveries.domain.evaluation import FlagDraft
 from app.modules.deliveries.models import Delivery, DeliveryFlag, DeliveryItem
+from app.modules.deliveries.schemas import DeliveryCreate
 from app.modules.masterdata.services import material_lookup
 from app.modules.masterdata.services.conversion import UnitConverter
 from app.modules.org.services import company_service, site_lookup
@@ -101,6 +102,41 @@ class DeliveryInput:
     # The device's clock at the moment it sent this: how skew is measured,
     # separately from how long the delivery waited offline.
     device_time: datetime | None = None
+
+
+def input_from(payload: DeliveryCreate) -> DeliveryInput:
+    return DeliveryInput(
+        id=payload.id,
+        site_id=payload.site_id,
+        vendor_id=payload.vendor_id,
+        purchase_order_id=payload.purchase_order_id,
+        po_item_id=payload.po_item_id,
+        truck_number=payload.truck_number,
+        truck_type_id=payload.truck_type_id,
+        driver_name=payload.driver_name,
+        driver_phone=payload.driver_phone,
+        challan_number=payload.challan_number,
+        challan_date=payload.challan_date,
+        captured_at=payload.captured_at or utcnow(),
+        latitude=payload.latitude,
+        longitude=payload.longitude,
+        gps_accuracy_m=payload.gps_accuracy_m,
+        location_source=payload.location_source.value,
+        remarks=payload.remarks,
+        device_id=payload.device_id,
+        app_version=payload.app_version,
+        was_offline=payload.was_offline,
+        device_time=payload.device_time,
+        items=[
+            LineInput(
+                material_id=i.material_id,
+                quantity=i.quantity,
+                unit_id=i.unit_id,
+                remarks=i.remarks,
+            )
+            for i in payload.items
+        ],
+    )
 
 
 @dataclass(slots=True)

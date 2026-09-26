@@ -12,10 +12,11 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.constraints import enum_check
 from app.core.db import CompanyModel, VersionMixin
+from app.core.sync import SyncSeqMixin
 from app.modules.rules.domain.enums import RuleType
 
 
-class BusinessRule(CompanyModel, VersionMixin):
+class BusinessRule(CompanyModel, VersionMixin, SyncSeqMixin):
     __tablename__ = "business_rules"
     __audited__ = True
     # Company-wide configuration: a project- or site-scoped holder of

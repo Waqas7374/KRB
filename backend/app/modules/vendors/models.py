@@ -38,10 +38,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.constraints import enum_check, non_negative
 from app.core.db import CompanyModel, MasterDataModel
+from app.core.sync import SyncSeqMixin
 from app.modules.vendors.domain.enums import VendorStatus, VendorType
 
 
-class Vendor(MasterDataModel):
+class Vendor(MasterDataModel, SyncSeqMixin):
     __tablename__ = "vendors"
     # Company-wide reference data: see core/scoping.py.
     __scope_company_wide__ = True

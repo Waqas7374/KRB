@@ -14,7 +14,7 @@ from app.modules.procurement.domain.enums import PurchaseOrderStatus
 from app.modules.procurement.models import PurchaseOrder
 
 # An order can be received against once it stands, until it ends.
-_RECEIVABLE = frozenset(
+RECEIVABLE = frozenset(
     {
         PurchaseOrderStatus.APPROVED,
         PurchaseOrderStatus.SENT,
@@ -45,7 +45,7 @@ class OrderInfo:
 
     @property
     def receivable(self) -> bool:
-        return PurchaseOrderStatus(self.status) in _RECEIVABLE
+        return PurchaseOrderStatus(self.status) in RECEIVABLE
 
 
 async def order(

@@ -34,6 +34,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.constraints import enum_check, positive
 from app.core.db import MasterDataModel
+from app.core.sync import SyncSeqMixin
 from app.modules.masterdata.domain.enums import (
     CalibrationStatus,
     ConversionScope,
@@ -43,7 +44,7 @@ from app.modules.masterdata.domain.enums import (
 )
 
 
-class Unit(MasterDataModel):
+class Unit(MasterDataModel, SyncSeqMixin):
     """A unit of measure.
 
     `dimension` is what makes an impossible conversion detectable: tonnes to
@@ -172,7 +173,7 @@ class MaterialCategory(MasterDataModel):
     )
 
 
-class Material(MasterDataModel):
+class Material(MasterDataModel, SyncSeqMixin):
     __tablename__ = "materials"
     # Company-wide reference data: see core/scoping.py.
     __scope_company_wide__ = True
@@ -296,7 +297,7 @@ class MaterialUnit(MasterDataModel):
     unit: Mapped[Unit] = relationship(lazy="joined")
 
 
-class TruckType(MasterDataModel):
+class TruckType(MasterDataModel, SyncSeqMixin):
     """Vehicle classes and their legal / practical maximum load.
 
     `default_max_tonnage` seeds the TONNAGE_MAX business rule; the rule store is

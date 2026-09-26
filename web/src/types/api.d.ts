@@ -2419,6 +2419,43 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/sync/push": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Send what was captured offline. Each entry gets its own outcome.
+     * @description Up to 50 operations per call. The result is per operation, never all-or-nothing: `applied`, `duplicate` (already recorded, treat as success), `conflict` (the server's version stands), `rejected` (permanent, fix or drop) or `deferred` (a transient server problem, retry). The request itself succeeds whenever the batch was understood.
+     */
+    post: operations["push_api_v1_sync_push_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/sync/pull": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** What changed since the cursor: reference data the phone caches, with tombstones */
+    get: operations["pull_api_v1_sync_pull_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4436,6 +4473,34 @@ export interface components {
        */
       created_at: string;
     };
+    /** OpError */
+    OpError: {
+      /** Code */
+      code: string;
+      /** Message */
+      message: string;
+      /** Retryable */
+      retryable: boolean;
+      /**
+       * Fields
+       * @default []
+       */
+      fields: {
+        [key: string]: string;
+      }[];
+    };
+    /** OpResult */
+    OpResult: {
+      /** Op Id */
+      op_id: string;
+      /**
+       * Outcome
+       * @enum {string}
+       */
+      outcome: "applied" | "duplicate" | "conflict" | "rejected" | "deferred";
+      record?: components["schemas"]["RecordSummary"] | null;
+      error?: components["schemas"]["OpError"] | null;
+    };
     /** PageMeta */
     PageMeta: {
       /** Limit */
@@ -5062,6 +5127,49 @@ export interface components {
       /** Require Po For Delivery */
       require_po_for_delivery?: boolean | null;
     };
+    /** PullEntity */
+    PullEntity: {
+      /** Entity */
+      entity: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Deleted
+       * @default false
+       */
+      deleted: boolean;
+      /** Server Seq */
+      server_seq: number;
+      /**
+       * Data
+       * @default {}
+       */
+      data: {
+        [key: string]: unknown;
+      };
+    };
+    /** PullResponse */
+    PullResponse: {
+      /**
+       * Server Time
+       * Format: date-time
+       */
+      server_time: string;
+      /**
+       * Not Permitted
+       * @default []
+       */
+      not_permitted: string[];
+      /** Server Seq */
+      server_seq: number;
+      /** Has More */
+      has_more: boolean;
+      /** Changes */
+      changes: components["schemas"]["PullEntity"][];
+    };
     /** PurchaseOrderItemIn */
     PurchaseOrderItemIn: {
       /**
@@ -5628,6 +5736,33 @@ export interface components {
       /** Items */
       items: components["schemas"]["PurchaseRequestItemIn"][];
     };
+    /** PushRequest */
+    PushRequest: {
+      /** Device Id */
+      device_id: string;
+      /** App Version */
+      app_version?: string | null;
+      /** Platform */
+      platform?: ("ANDROID" | "IOS" | "WEB") | null;
+      /** Push Token */
+      push_token?: string | null;
+      /** Network */
+      network?: string | null;
+      /** Device Time */
+      device_time?: string | null;
+      /** Ops */
+      ops: components["schemas"]["SyncOp"][];
+    };
+    /** PushResponse */
+    PushResponse: {
+      /**
+       * Server Time
+       * Format: date-time
+       */
+      server_time: string;
+      /** Results */
+      results: components["schemas"]["OpResult"][];
+    };
     /** QuotationItemIn */
     QuotationItemIn: {
       /**
@@ -6098,6 +6233,36 @@ export interface components {
       checked_at: string;
       /** Components */
       components: components["schemas"]["ReadyComponent"][];
+    };
+    /** RecordFlag */
+    RecordFlag: {
+      /** Type */
+      type: string;
+      /** Severity */
+      severity: string;
+      /** Message */
+      message: string;
+    };
+    /** RecordSummary */
+    RecordSummary: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Delivery Number */
+      delivery_number: string;
+      /** Status */
+      status: string;
+      /**
+       * Flags
+       * @default []
+       */
+      flags: components["schemas"]["RecordFlag"][];
+      /** Rate */
+      rate?: string | null;
+      /** Amount */
+      amount?: string | null;
     };
     /** RefreshRequest */
     RefreshRequest: {
@@ -7085,6 +7250,27 @@ export interface components {
       manager_user_id?: string | null;
       /** Contact Phone */
       contact_phone?: string | null;
+    };
+    /** SyncOp */
+    SyncOp: {
+      /** Op Id */
+      op_id: string;
+      /**
+       * Entity
+       * @enum {string}
+       */
+      entity: "delivery" | "delivery_correction";
+      /**
+       * Op
+       * @enum {string}
+       */
+      op: "create" | "update";
+      /** Client Created At */
+      client_created_at?: string | null;
+      /** Payload */
+      payload: {
+        [key: string]: unknown;
+      };
     };
     /** TokenResponse */
     TokenResponse: {
@@ -13853,6 +14039,76 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Page_LedgerRead_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  push_api_v1_sync_push_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PushRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PushResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  pull_api_v1_sync_pull_get: {
+    parameters: {
+      query?: {
+        /** @description The `server_seq` last received; 0 for all */
+        since?: number;
+        /** @description Default: everything */
+        entities?: string[] | null;
+        limit?: number;
+        site_id?: string | null;
+        device_id?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PullResponse"];
         };
       };
       /** @description Validation Error */
