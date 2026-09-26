@@ -18,7 +18,7 @@ see [the roadmap](docs/10-roadmap.md).
 | [03 — RBAC Model](docs/03-rbac.md) | Permissions, roles, scoped grants, SQL-level scope filtering |
 | [04 — Approval Engine](docs/04-approval-engine.md) | Configurable workflows, condition language, runtime, snapshotting |
 | [05 — Rules, Rates & Units](docs/05-rules-rates-and-units.md) | Business-rule store, geofencing, tonnage validation, effective-dated rates, unit conversion |
-| [06 — Mobile Architecture](docs/06-mobile-architecture.md) | Site Ledger app, local SQLite outbox, sync protocol, conflict policy |
+| [06 — Mobile Architecture](docs/06-mobile-architecture.md) | Site Ledger app (`mobile/`), local SQLite outbox, sync protocol, conflict policy |
 | [07 — API Specification](docs/07-api-specification.md) | Conventions, full endpoint map, worked GRN example, rate limits |
 | [08 — Frontend & Design System](docs/08-frontend-and-design-system.md) | Feature-sliced React, shell, DataTable, tokens, dashboards |
 | [09 — Deployment & Infrastructure](docs/09-deployment-and-infrastructure.md) | Hetzner vs AWS vs DigitalOcean, stage evolution, CI/CD, backups, observability |

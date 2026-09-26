@@ -2,18 +2,24 @@
 
 **Product:** KRB ERP — a multi-project ERP for a land-development company.
 **Site-operations sub-product:** *Site Ledger* (mobile material-delivery capture), continuing the
-existing prototype at `../Site Ledger`.
+earlier prototype, now `mobile/` in this repository.
 
 ---
 
-## 1. What already exists (audited 2026-09-21)
+## 1. What already existed (audited 2026-09-21)
+
+> **Update 2026-09-26.** The prototype folder `Site Ledger` was merged into this repository: its Expo app is
+> now `mobile/`, and its stub backend was retired — the mobile and web apps share the **one** backend in
+> `backend/`. The stub is still in the parent folder's git history (`D:\Projects\KRB`, first commit `e51c8b4`:
+> `git show e51c8b4:"Site Ledger/backend/main.py"`). The rows
+> below describe it as audited, and where each part went.
 
 | Artefact | State | Verdict |
 |---|---|---|
-| `Site Ledger/mobile` (Expo 51, RN 0.74, expo-location/sqlite/camera) | Two screens, UI only. No auth call, no SQLite queue, no sync. | **Reuse the UX; rewrite the code** into the new mobile workspace. |
-| `Site Ledger/backend/models.py` | `Site` (PostGIS polygon + radius), `Vendor`, `RateVersion` (append-only, effective-dated), `Threshold`, `DeliveryBatch`, `VendorOrder`, `TruckEntry` (client-set UUID, `status`, `flag_reason`, `rate_version_id`). | **Design is sound.** Carried forward and generalised — see [02-data-model](02-data-model.md). |
-| `Site Ledger/backend/main.py` | `/sync/truck-entries` stub with a correct docstring: upsert by client id, resolve rate server-side, run threshold checks, flag rather than reject. | **Becomes the spec** for the real sync endpoint. |
-| `Site Ledger/backend/docker-compose.yml` | `postgis/postgis:16-3.4`. | Kept. PostGIS is a hard requirement for geofencing. |
+| `Site Ledger/mobile` (Expo 51, RN 0.74, expo-location/sqlite/camera) → now `mobile/` | Two screens, UI only. No auth call, no SQLite queue, no sync. | **Reuse the UX; rewrite the code** into the new mobile workspace. |
+| `Site Ledger/backend/models.py` (retired; in git history) | `Site` (PostGIS polygon + radius), `Vendor`, `RateVersion` (append-only, effective-dated), `Threshold`, `DeliveryBatch`, `VendorOrder`, `TruckEntry` (client-set UUID, `status`, `flag_reason`, `rate_version_id`). | **Design is sound.** Carried forward and generalised — see [02-data-model](02-data-model.md). |
+| `Site Ledger/backend/main.py` (retired; in git history) | `/sync/truck-entries` stub with a correct docstring: upsert by client id, resolve rate server-side, run threshold checks, flag rather than reject. | **Was the spec** for the real sync endpoint, which is now built (`/sync/push`, `/sync/pull`). |
+| `Site Ledger/backend/docker-compose.yml` (retired) | `postgis/postgis:16-3.4`. | Kept in the root `docker-compose.yml`. PostGIS is a hard requirement for geofencing. |
 
 Three decisions in that prototype are load-bearing and are preserved verbatim in this design:
 

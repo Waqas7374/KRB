@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Site Ledger",
+    "slug": "site-ledger",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "com.yourcompany.siteledger",
+      "permissions": ["CAMERA", "ACCESS_FINE_LOCATION"]
+    },
+    "ios": {
+      "bundleIdentifier": "com.yourcompany.siteledger",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Used to photograph delivery trucks.",
+        "NSLocationWhenInUseUsageDescription": "Used to geotag deliveries."
+      }
+    }
+  }
+}

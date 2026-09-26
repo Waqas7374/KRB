@@ -81,8 +81,8 @@ Bundle: **83 KB gzipped** total across four chunks (target was under 200 KB).
 
 ## Mobile
 
-Not started — Phase 3. The existing prototype at `../Site Ledger` remains the
-reference for the UX and is audited in [00-context-and-scope](00-context-and-scope.md).
+Not started in Phase 0. The earlier prototype is now `mobile/` (its stub backend was retired; the app
+uses the one ERP backend) and is audited in [00-context-and-scope](00-context-and-scope.md).
 
 ## Testing
 
@@ -146,7 +146,7 @@ fiscal year starting month 7), and observability. `web/.env.example` carries
 the five `VITE_*` values.
 
 `POSTGRES_HOST_PORT` and `REDIS_HOST_PORT` were added during this phase because
-port 5432 on this machine is held by the Site Ledger prototype's database; the
+port 5432 on this machine was held by the Site Ledger prototype's database (since retired); the
 containers always reach the database at `db:5432`, so only the published host
 port changes.
 
