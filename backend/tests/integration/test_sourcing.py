@@ -917,3 +917,66 @@ class TestPurchaseOrders:
         assert body["quotation_id"] is None
         # 3 000 - 5% = 2 850; + 17% = 3 334.50
         assert Decimal(body["total_amount"]) == Decimal("3334.5")
+
+
+class TestPurchaseOrderPdf:
+    async def _order(
+        self, api: AsyncClient, login: Any, **extra: str
+    ) -> tuple[dict[str, Any], dict[str, str]]:
+        admin = await login(ADMIN)
+        vendor = (await _vendors(api, admin, 1))[0]
+        material = (await _materials(api, admin, 1))[0]
+        created = await api.post(
+            "/purchase-orders",
+            headers=admin,
+            json={
+                "vendor_id": vendor["id"],
+                **await _place(api, admin),
+                "terms_and_conditions": extra.get("terms", "Pay within 30 days."),
+                "items": [
+                    {
+                        "material_id": material["id"],
+                        "unit_id": material["base_unit_id"],
+                        "quantity": "3",
+                        "rate": "1000",
+                        "tax_pct": "17",
+                    }
+                ],
+            },
+        )
+        assert created.status_code == 201, created.text
+        return created.json(), admin
+
+    async def test_the_pdf_is_a_real_document_named_for_the_order(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        po, admin = await self._order(api, login)
+        response = await api.get(f"/purchase-orders/{po['id']}/pdf", headers=admin)
+        assert response.status_code == 200, response.text
+        assert response.headers["content-type"] == "application/pdf"
+        assert f'filename="{po["po_number"]}.pdf"' in response.headers["content-disposition"]
+        assert response.content.startswith(b"%PDF-") and len(response.content) > 1500
+
+    async def test_a_reader_without_pricing_permission_gets_no_pdf(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        po, _ = await self._order(api, login)
+        site_manager = await login(REQUESTER)
+        response = await api.get(f"/purchase-orders/{po['id']}/pdf", headers=site_manager)
+        assert response.status_code == 403
+
+    async def test_a_draft_is_watermarked_and_typed_text_cannot_inject_markup(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        from app.modules.procurement.api.po_document import render_purchase_order
+        from app.modules.procurement.sourcing_schemas import PurchaseOrderRead
+
+        po, admin = await self._order(api, login, terms="<script>alert(1)</script> & <b>bold</b>")
+        view = PurchaseOrderRead.model_validate(
+            (await api.get(f"/purchase-orders/{po['id']}", headers=admin)).json()
+        )
+        html = render_purchase_order(view, company_name="KRB <Developments>")
+        assert "NOT APPROVED" in html
+        assert "<script>" not in html and "&lt;script&gt;" in html
+        assert "KRB &lt;Developments&gt;" in html
+        assert "PKR 3,510.00" in html  # 3 x 1000 + 17 %

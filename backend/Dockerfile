@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         # WeasyPrint (PDF rendering) native dependencies
         libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 \
-        libffi8 shared-mime-info fonts-dejavu-core \
+        libffi8 libharfbuzz-subset0 shared-mime-info fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

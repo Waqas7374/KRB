@@ -100,6 +100,8 @@ export interface RequestOptions extends Omit<RequestInit, "body"> {
   idempotencyKey?: string;
   /** Optimistic concurrency: the `version` of the record being edited. */
   ifMatch?: string;
+  /** Return the raw body (a file) instead of parsing JSON. */
+  asBlob?: boolean;
 }
 
 let accessToken: string | null = null;
@@ -195,7 +197,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 }
 
 async function send<T>(path: string, options: RequestOptions, mayRefresh: boolean): Promise<T> {
-  const { query, body, idempotencyKey, ifMatch, headers, ...init } = options;
+  const { query, body, idempotencyKey, ifMatch, asBlob, headers, ...init } = options;
 
   const requestHeaders = new Headers(headers);
   if (body !== undefined && !(body instanceof FormData)) {
@@ -234,6 +236,7 @@ async function send<T>(path: string, options: RequestOptions, mayRefresh: boolea
     return undefined as T;
   }
 
+  if (asBlob) return (await response.blob()) as T;
   return (await response.json()) as T;
 }
 

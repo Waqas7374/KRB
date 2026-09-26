@@ -5,16 +5,18 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import Access, PageDep, SessionDep, UowDep, require
 from app.core.access import AccessContext
+from app.core.errors import PermissionDeniedError
 from app.core.pagination import Page
 from app.modules.masterdata.services import material_lookup
-from app.modules.org.services import document_lookup
+from app.modules.org.services import company_service, document_lookup
 from app.modules.procurement.api.common import IfMatch, may
+from app.modules.procurement.api.po_document import render_purchase_order
 from app.modules.procurement.domain.enums import PurchaseOrderStatus
 from app.modules.procurement.models import (
     PurchaseOrder,
@@ -32,6 +34,7 @@ from app.modules.procurement.sourcing_schemas import (
     ReasonBody,
 )
 from app.modules.vendors.services import vendor_lookup
+from app.platform.pdf import html_to_pdf
 
 router = APIRouter(prefix="/purchase-orders", tags=["procurement"])
 
@@ -345,3 +348,27 @@ async def close_order(
 ) -> PurchaseOrderRead:
     po = await service.close(uow.session, ctx, po_id, payload.reason)
     return await _detail(uow.session, ctx, po)
+
+
+@router.get(
+    "/{po_id}/pdf",
+    response_class=Response,
+    responses={200: {"content": {"application/pdf": {}}}},
+    dependencies=[require(service.PERM_VIEW)],
+    summary="The printable order. Needs permission to see prices.",
+)
+async def order_pdf(po_id: UUID, ctx: Access, session: SessionDep) -> Response:
+    # A printout without amounts is useless to a vendor, and one with them
+    # must not reach someone who may not see them.
+    if not ctx.has(service.PERM_VIEW_PRICING):
+        raise PermissionDeniedError(service.PERM_VIEW_PRICING)
+    po = await _detail(session, ctx, await service.get(session, ctx, po_id))
+    company = await company_service.get_profile(session, ctx.company_id)
+    document = await html_to_pdf(
+        render_purchase_order(po, company_name=company.legal_name or company.name)
+    )
+    return Response(
+        content=document,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{po.po_number}.pdf"'},
+    )

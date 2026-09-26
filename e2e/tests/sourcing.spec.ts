@@ -144,6 +144,15 @@ test("request -> RFQ -> three quotations -> selection with a reason -> approved 
   await buyer.getByRole("button", { name: "Mark as sent" }).click();
   await expect(buyer.getByText("Sent", { exact: true }).first()).toBeVisible();
 
+  // The printable order downloads under its own number and is a real PDF.
+  const [download] = await Promise.all([
+    buyer.waitForEvent("download"),
+    buyer.getByRole("button", { name: "Download PDF" }).click(),
+  ]);
+  expect(download.suggestedFilename()).toBe(`${poNumber}.pdf`);
+  const header = (await import("node:fs")).readFileSync((await download.path())!).subarray(0, 5);
+  expect(header.toString()).toBe("%PDF-");
+
   // --- A site manager may see the order but not its prices -----------------------
   const site = await browser.newPage();
   await signIn(site, REQUESTER);

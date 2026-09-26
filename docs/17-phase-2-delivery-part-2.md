@@ -2,9 +2,10 @@
 
 Delivered 2026-09-25 (backend, frontend and browser E2E). Together with
 [16-phase-2-delivery-part-1](16-phase-2-delivery-part-1.md) this is the
-procurement chain from request to approved order. Phase 2 is **not quite
-finished**: purchase-order PDF, budget commitments, SLA reminders and approval
-limits remain — see "Still to do".
+procurement chain from request to approved order. The close-out items added
+afterwards (purchase-order PDF, SLA reminders, the nightly integrity check) are
+listed under "Close-out". Budget commitments and approval limits are deliberately
+deferred to the phases that own their dependencies — see "Still to do".
 
 **Done-when, extended:** an approved purchase request becomes an RFQ, three
 vendors quote, a person selects one *and says why*, the order routes for
@@ -62,25 +63,40 @@ at each step.
 
 | Suite | Result |
 |---|---|
-| Backend `pytest` | 434 passed, coverage 90 % (gate 80 %); ruff, mypy --strict (165 files), import contracts 4/4, `alembic check` clean; migration downgrade / upgrade round-trips |
+| Backend `pytest` | 448 passed (434 + 11 SLA / integrity + 3 PDF), coverage ≥ 90 % (gate 80 %); ruff, mypy --strict (165 files), import contracts 4/4, `alembic check` clean; migration downgrade / upgrade round-trips |
 | New backend | 30 integration (`test_sourcing.py`: RFQ rules, quotation pricing, comparison, selection, PO lifecycle, sourcing loop, oversourcing race, price masking, chain tiers) + 10 unit (`test_pricing.py`) |
 | Web unit | 55 passed; typecheck, eslint `--max-warnings 0`, prettier clean |
 | Browser E2E | 13 passed — the new spec drives request → RFQ → three quotes → selection with a reason → order → finance approval → sourced → sent → site manager sees no prices → amend → cancel → RFQ reopened |
 
+## Close-out (same day)
+
+| Piece | Behaviour | Where |
+|---|---|---|
+| Purchase-order PDF | `GET /purchase-orders/{id}/pdf`. Needs `procurement.po.view_pricing` (a printout without amounts is useless; one with them must not reach a reader who may not see them). Unapproved and cancelled orders carry a banner so a printed draft cannot pass for the real thing. All values are escaped and WeasyPrint is told never to fetch external resources. Rendered in a worker thread. A reusable `platform/pdf.py` serves GRNs, payslips and reports later. | `api/po_document.py`, `platform/pdf.py` |
+| SLA reminders | `approvals.remind` (hourly): approvers are reminded at 50 % and again at 90 % of a step's SLA, once each. A step first seen at 95 % gets one reminder, not two. Overdue steps are left to escalation. | `engine.remind_due`, migration `0b818b783b15` |
+| Integrity check | `approvals.reconcile` (02:15): finds a pending request with no active step, a pending step on an ended request, a step nobody can decide, and any disagreement between a document being "pending approval" and it having a pending request. One alarm per company to the super administrators, and an error log line per finding. | `services/integrity.py` |
+
+An earlier version of this document said `weasyprint` was "not in the image". That
+was a check made on the host, not in the container — the image has always had it. The
+only addition needed was `libharfbuzz-subset0` in the Dockerfile, to silence a
+deprecation notice.
+
 ## Still to do in Phase 2
 
-- **Purchase-order PDF.** `weasyprint` is an optional dependency and is not in the
-  image; needs the dependency, a template and `GET /purchase-orders/{id}/pdf`.
 - **Budget commitments** on PO approval. They need the budget tables, which arrive
-  with finance (Phase 4); the hook is `PurchaseOrderApprovals.on_approved`.
+  with finance (Phase 4); the hook is `PurchaseOrderApprovals.on_approved`. Doing them
+  earlier would mean inventing tables Phase 4 must then reshape.
+- **Approval limits** (`APPROVAL_LIMIT`: who may authorise *how much*). They need the
+  business-rules store, which is the first piece of Phase 3 — see
+  [18-phase-3-delivery](18-phase-3-delivery.md).
 - **Nothing is emailed to vendors.** "Issued" and "Sent" are states a buyer records;
   the document is shared out of band until the vendor portal (the `access_token_hash`
   column is already there) or an email template exists.
 - **No quotations list screen** — quotations are reached from their RFQ (the API list
   exists). RFQs are raised from a purchase request in the UI; the API also accepts a
   request-less RFQ.
-- `approvals.remind`, `approvals.reconcile`, **approval limits**, a visual workflow
-  builder, and the dynamic approvers that need HR / budgets — unchanged from doc 16.
+- A visual workflow builder, and the dynamic approvers that need HR / budgets —
+  unchanged from doc 16.
 - Receiving against an order (`received_quantity`, `PARTIALLY_RECEIVED`, `RECEIVED`)
   belongs to Phase 3; the columns and statuses are in place.
 

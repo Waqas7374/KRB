@@ -177,6 +177,9 @@ class ApprovalRequestStep(BaseModel):
     activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     escalated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Each SLA reminder is sent once (engine.remind_due).
+    reminded_50_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reminded_90_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     request: Mapped[ApprovalRequest] = relationship(back_populates="steps", lazy="noload")

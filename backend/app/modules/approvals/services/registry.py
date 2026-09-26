@@ -64,6 +64,11 @@ class ApprovalDocumentHandler(Protocol):
 
     async def on_recalled(self, session: AsyncSession, outcome: ApprovalOutcome) -> None: ...
 
+    # Optional, used by the nightly integrity check (services/integrity.py):
+    #
+    #   async def pending_document_ids(self, session) -> dict[UUID, UUID]:
+    #       """doc id -> company id for every document awaiting approval."""
+
 
 _HANDLERS: dict[str, ApprovalDocumentHandler] = {}
 

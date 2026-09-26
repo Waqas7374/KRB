@@ -996,6 +996,14 @@ class PurchaseOrderApprovals:
     async def current_hash(self, session: AsyncSession, doc_id: UUID) -> str | None:
         return _hash(await self._load(session, doc_id))
 
+    async def pending_document_ids(self, session: AsyncSession) -> dict[UUID, UUID]:
+        rows = await session.execute(
+            select(PurchaseOrder.id, PurchaseOrder.company_id).where(
+                PurchaseOrder.status == PurchaseOrderStatus.PENDING_APPROVAL.value
+            )
+        )
+        return dict(rows.tuples().all())
+
     async def _set(
         self,
         session: AsyncSession,

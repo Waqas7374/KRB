@@ -979,3 +979,81 @@ async def inbox(
         .offset(page.offset)
     )
     return [InboxItem(request=r, step=s, total_steps=n) for r, s, n in rows.tuples().all()], count
+
+
+# Fractions of a step's SLA at which its approvers are reminded, once each.
+_REMINDER_POINTS = ((Decimal("0.9"), 90), (Decimal("0.5"), 50))
+
+
+async def remind_due(session: AsyncSession, *, now: datetime | None = None) -> int:
+    """Remind approvers at 50 % and 90 % of a step's SLA, once each (docs/04 §5).
+
+    Escalation handles a step that is already overdue; this is the nudge before
+    that. A step first seen at 95 % gets the 90 % reminder only — two messages
+    in one tick would be noise, not help.
+    """
+    now = now or utcnow()
+    candidates = (
+        (
+            await session.execute(
+                select(ApprovalRequestStep)
+                .join(ApprovalRequest, ApprovalRequest.id == ApprovalRequestStep.request_id)
+                .where(
+                    ApprovalRequestStep.status == StepStatus.PENDING.value,
+                    ApprovalRequestStep.activated_at.is_not(None),
+                    ApprovalRequestStep.due_at > now,
+                    ApprovalRequestStep.escalated_at.is_(None),
+                    ApprovalRequestStep.reminded_90_at.is_(None),
+                    ApprovalRequest.status == RequestStatus.PENDING.value,
+                )
+                .options(noload("*"))
+                .with_for_update(of=ApprovalRequestStep, skip_locked=True)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    sent = 0
+    for step in candidates:
+        assert step.activated_at is not None and step.due_at is not None
+        window = (step.due_at - step.activated_at).total_seconds()
+        if window <= 0:
+            continue
+        elapsed = Decimal(str((now - step.activated_at).total_seconds() / window))
+        percent = next((p for fraction, p in _REMINDER_POINTS if elapsed >= fraction), None)
+        if percent is None or (percent == 50 and step.reminded_50_at is not None):
+            continue
+        request = (
+            await session.execute(
+                select(ApprovalRequest)
+                .where(ApprovalRequest.id == step.request_id)
+                .options(noload("*"))
+            )
+        ).scalar_one()
+        approver_ids = (
+            (
+                await session.execute(
+                    select(ApprovalStepApprover.user_id).where(
+                        ApprovalStepApprover.request_step_id == step.id
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        step.reminded_50_at = step.reminded_50_at or now
+        if percent == 90:
+            step.reminded_90_at = now
+        await _emit(
+            session,
+            "approval.reminder",
+            request,
+            step_no=step.step_no,
+            step_name=step.name,
+            percent=percent,
+            hours_left=max(0, round((step.due_at - now).total_seconds() / 3600)),
+            approver_ids=sorted(approver_ids, key=str),
+        )
+        sent += 1
+    await session.flush()
+    return sent

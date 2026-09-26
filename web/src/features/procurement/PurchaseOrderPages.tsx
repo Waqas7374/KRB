@@ -4,6 +4,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 import {
   Ban,
   CheckCheck,
+  Download,
   FilePenLine,
   Lock,
   Pencil,
@@ -32,6 +33,7 @@ import { DecisionActions } from "@/features/approvals/DecisionActions";
 import { FormAlert } from "@/features/auth/auth-layout";
 import { PermissionGate } from "@/features/auth/permission-gate";
 import { api } from "@/lib/api";
+import { downloadFile } from "@/lib/download";
 import { applyServerErrors, describeError } from "@/lib/errors";
 import { DECIMAL_RE, emptyToNull } from "@/lib/forms";
 import {
@@ -687,6 +689,17 @@ export function PurchaseOrderDetailPage() {
         }
         actions={
           <>
+            {!p.prices_hidden && (
+              <Button
+                onClick={() =>
+                  void downloadFile(`/purchase-orders/${p.id}/pdf`, `${p.po_number}.pdf`).catch(
+                    (err: unknown) => toast.error(describeError(err)),
+                  )
+                }
+              >
+                <Download /> Download PDF
+              </Button>
+            )}
             {p.can_edit && (
               <Button asChild>
                 <Link to={`/purchase-orders/${p.id}/edit`}>

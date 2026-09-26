@@ -78,19 +78,20 @@ celery_app.conf.beat_schedule = {
         "schedule": schedule(run_every=60.0),
         "options": {"queue": "outbox"},
     },
-    # Phase 2: overdue approval steps escalate once, at five past the hour.
-    "approvals.escalate": {
-        "task": "approvals.escalate",
-        "schedule": crontab(minute=5),
+    # Phase 2: approvers are reminded at 50 % / 90 % of a step's SLA (on the
+    # hour), overdue steps escalate once (five past), and approvals are
+    # proven consistent with their documents every night.
+    "approvals.remind": {"task": "approvals.remind", "schedule": crontab(minute=0)},
+    "approvals.escalate": {"task": "approvals.escalate", "schedule": crontab(minute=5)},
+    "approvals.reconcile": {
+        "task": "approvals.reconcile",
+        "schedule": crontab(hour=2, minute=15),
     },
 }
 
 # Added to beat_schedule as each feature lands, in the phase noted.
 PLANNED_SCHEDULE: dict[str, dict[str, Any]] = {
     "maintenance.expire_sessions": {"cron": "30 3 * * *", "phase": 1},
-    # Phase 2 (approvals.escalate is live above; these follow with POs)
-    "approvals.remind": {"cron": "0 * * * *", "phase": 2},
-    "approvals.reconcile": {"cron": "15 2 * * *", "phase": 2},
     # Phase 3 — balances are a cached projection of the append-only ledger;
     # this job proves they still agree and alarms if they do not.
     "inventory.reconcile_balances": {"cron": "0 2 * * *", "phase": 3},

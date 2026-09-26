@@ -34,6 +34,7 @@ from app.core.context import system_context
 from app.core.db import SessionFactory, dispose_engine
 from app.core.logging import get_logger
 from app.core.types import utcnow
+from app.modules.access.services import approver_lookup
 from app.modules.notifications.domain.enums import NotificationPriority, NotificationType
 from app.modules.notifications.services import notification_service
 from app.modules.vendors.services import vendor_service
@@ -175,6 +176,52 @@ async def _notify_escalation(session: AsyncSession, event: OutboxEvent) -> None:
         body=f"{event.payload.get('step_name')} for {label} is past its deadline.",
         priority=NotificationPriority.HIGH,
     )
+
+
+@handler("approval.reminder")
+async def _notify_reminder(session: AsyncSession, event: OutboxEvent) -> None:
+    label = _doc_label(event)
+    left = event.payload.get("hours_left")
+    await _notify_users(
+        session,
+        event,
+        list(event.payload.get("approver_ids") or []),
+        kind=NotificationType.APPROVAL_REMINDER,
+        title=f"Reminder: {label} is waiting for you",
+        body=f"{event.payload.get('step_name')} for {label} has used "
+        f"{event.payload.get('percent')}% of its time"
+        + (f"; about {left}h remain." if left is not None else "."),
+    )
+
+
+@handler("approval.integrity_alarm")
+async def _notify_integrity_alarm(session: AsyncSession, event: OutboxEvent) -> None:
+    """Tell the people who can act on drift: the super administrators. A
+    mismatch between a document and its approval is a data fix, not a business
+    decision."""
+    admins = await approver_lookup.users_holding_role(
+        session,
+        company_id=event.company_id,  # type: ignore[arg-type]
+        role_code="SUPER_ADMIN",
+        project_id=None,
+        site_id=None,
+        department_id=None,
+        on=utcnow().date(),
+    )
+    findings = event.payload.get("findings") or []
+    for user_id in sorted(admins, key=str):
+        await notification_service.send(
+            session,
+            company_id=event.company_id,  # type: ignore[arg-type]
+            user_id=user_id,
+            notification_type=NotificationType.APPROVAL_INTEGRITY_ALARM.value,
+            title=f"Approval integrity check found {event.payload.get('count')} problem(s)",
+            body=findings[0]["detail"] if findings else "",
+            priority=NotificationPriority.URGENT,
+            entity_type="Approvals",
+            entity_id=event.aggregate_id,
+            link_path="/approvals",
+        )
 
 
 async def _notify_initiator(
