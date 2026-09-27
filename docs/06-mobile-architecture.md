@@ -154,13 +154,17 @@ batch down.
 ### Pull
 
 ```http
-GET /api/v1/sync/pull?entities=materials,vendors,sites,open_pos,units,truck_types,rules
+GET /api/v1/sync/pull?entities=materials,vendors,sites,open_pos,units,truck_types,rules,my_deliveries
                      &since=418823&site_id=…
 ```
 
 Returns changed rows since the cursor plus a new `server_seq`, page by page. Every syncable table
 carries `server_seq bigint DEFAULT nextval('global_change_seq')` bumped on write, so the cursor is
 monotonic and a missed page is never silently skipped. Deletions arrive as tombstones.
+
+`my_deliveries` is the fate of what *this* phone sent: the caller's own captures from the last 30
+days with status, open flags, the latest review's action and note, and `can_correct` (a reviewer
+asked for a correction). It is how "head office sent this back" reaches the phone. No prices.
 
 Reference data is refreshed on login, on app foreground when older than 30 minutes, and after every
 successful push.

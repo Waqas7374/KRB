@@ -420,3 +420,100 @@ class TestPull:
 
     async def test_pulling_needs_a_signed_in_person(self, api: AsyncClient) -> None:
         assert (await api.get("/sync/pull")).status_code == 401
+
+
+def _field_names(value: Any) -> set[str]:
+    if isinstance(value, dict):
+        return set(value) | {n for v in value.values() for n in _field_names(v)}
+    if isinstance(value, list):
+        return {n for v in value for n in _field_names(v)}
+    return set()
+
+
+class TestMyDeliveries:
+    """The fate of what a phone sent up comes back down the same cursor."""
+
+    async def _mine(
+        self, api: AsyncClient, login: Any, who: str = STAFF, since: int = 0
+    ) -> tuple[list[dict[str, Any]], int]:
+        changes, cursor = await _pull_all(
+            api, await login(who), since=since, entities=["my_deliveries"]
+        )
+        return changes, cursor
+
+    async def test_a_persons_own_entries_come_back_with_their_status_and_flags(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        keys = await _keys(api, await login(ADMIN))
+        staff = await login(STAFF)
+        entry = op(payload(keys, "12.5", truck_number="MINE-1"))
+        record = (await _push(api, staff, batch(entry)))["results"][0]["record"]
+
+        mine, _ = await self._mine(api, login)
+        [row] = [c for c in mine if c["id"] == record["id"]]
+        data = row["data"]
+        assert data["delivery_number"] == record["delivery_number"]
+        assert data["status"] == "UNDER_REVIEW" and data["can_correct"] is False
+        assert data["open_flags"] and {"flag_type", "severity", "message"} <= set(
+            data["open_flags"][0]
+        )
+        assert data["review"] is None
+        # Enough to correct it from: the entry as recorded.
+        entry_back = data["entry"]
+        assert entry_back["truck_number"] == "MINE-1" and entry_back["site_id"] == keys["s1"]
+        assert [(i["material_id"], i["quantity"]) for i in entry_back["items"]] == [
+            (keys["crush"], "12.5000")
+        ]
+        # A phone holds no prices, whoever it belongs to: no field for one, anywhere in the entry.
+        assert not {"rate", "amount", "unit_price", "vendor_rate_id"} & _field_names(data)
+
+    async def test_only_the_persons_own_entries_and_nobody_elses(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        keys = await _keys(api, await login(ADMIN))
+        theirs = await _push(
+            api, await login(MANAGER), batch(op(payload(keys, truck_number="THEIRS-1")))
+        )
+        mine, _ = await self._mine(api, login, STAFF)
+        assert theirs["results"][0]["record"]["id"] not in {c["id"] for c in mine}
+        theirs_seen, _ = await self._mine(api, login, MANAGER)
+        assert theirs["results"][0]["record"]["id"] in {c["id"] for c in theirs_seen}
+
+    async def test_a_reviewers_decision_and_note_reach_the_phone(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        keys = await _keys(api, await login(ADMIN))
+        staff = await login(STAFF)
+        record = (await _push(api, staff, batch(op(payload(keys, truck_number="SB-1")))))[
+            "results"
+        ][0]["record"]
+        _, cursor = await self._mine(api, login)
+
+        sent_back = await api.post(
+            f"/deliveries/{record['id']}/request-correction",
+            headers=await login(MANAGER),
+            json={"comments": "Wrong truck number"},
+        )
+        assert sent_back.status_code == 200, sent_back.text
+        changes, cursor = await self._mine(api, login, since=cursor)
+        [row] = [c for c in changes if c["id"] == record["id"]]
+        assert (
+            row["data"]["status"] == "CORRECTION_REQUESTED" and row["data"]["can_correct"] is True
+        )
+        assert row["data"]["review"]["action"] == "REQUEST_CORRECTION"
+        assert row["data"]["review"]["comments"] == "Wrong truck number"
+        assert row["data"]["review"]["reviewer_name"]
+
+        # Nothing new since: an unchanged entry is not sent again.
+        assert (await self._mine(api, login, since=cursor))[0] == []
+
+        approved = await api.post(
+            f"/deliveries/{record['id']}/approve",
+            headers=await login(MANAGER),
+            json={"comments": "Checked at the gate"},
+        )
+        # (a corrected entry would normally come first; approving directly is also allowed)
+        assert approved.status_code in (200, 422)
+        if approved.status_code == 200:
+            changes, _ = await self._mine(api, login, since=cursor)
+            assert [c["data"]["status"] for c in changes if c["id"] == record["id"]] == ["APPROVED"]

@@ -26,6 +26,7 @@ from app.core.access import AccessContext
 from app.core.errors import ValidationError
 from app.core.sync import FeedRow
 from app.core.types import utcnow
+from app.modules.deliveries.services import sync_feed as deliveries_feed
 from app.modules.identity.services import devices
 from app.modules.masterdata.services import sync_feed as masterdata_feed
 from app.modules.org.services import sync_feed as org_feed
@@ -47,6 +48,8 @@ ENTITY_PERMISSIONS: dict[str, tuple[str, ...]] = {
     "sites": (CAPTURE,),
     "rules": (CAPTURE,),
     "open_pos": (CAPTURE,),
+    # The fate of what this person sent: decisions, flags, corrections asked for.
+    "my_deliveries": (CAPTURE,),
 }
 ENTITIES = tuple(ENTITY_PERMISSIONS)
 
@@ -72,6 +75,8 @@ async def _feed(
         return await org_feed.changes(session, ctx, since=since, limit=limit, site_id=site_id)
     if entity == "rules":
         return await rules_feed.changes(session, company_id=company, since=since, limit=limit)
+    if entity == "my_deliveries":
+        return await deliveries_feed.changes(session, ctx, since=since, limit=limit)
     return await procurement_feed.changes(session, ctx, since=since, limit=limit, site_id=site_id)
 
 

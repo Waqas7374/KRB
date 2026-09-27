@@ -33,6 +33,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.constraints import enum_check, non_negative, positive
 from app.core.db import BaseModel, CompanyModel, VersionMixin
+from app.core.sync import SyncSeqMixin
 from app.modules.deliveries.domain.enums import (
     DeliveryStatus,
     FlagSeverity,
@@ -43,7 +44,7 @@ from app.modules.deliveries.domain.enums import (
 )
 
 
-class Delivery(CompanyModel, VersionMixin):
+class Delivery(CompanyModel, VersionMixin, SyncSeqMixin):
     __tablename__ = "deliveries"
     __audited__ = True
 

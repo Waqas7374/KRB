@@ -18,6 +18,7 @@ what remains.
 | 3f | Mobile sync API (push / pull, idempotency, devices) — the **server** side | 3c | done (the Expo app that calls it is not built) |
 | 3h | Stock issues, transfers and adjustments (more writers to the same ledger) | 3e | done |
 | 3i | The rest of the server-side Phase 3 list: reviewer notifications, GRN PDF, counter purchases, photos and documents, delivery dashboard, rate overview | 3c–3h | done |
+| 3j | The phone: the offline outbox, the sync engine and the app (`mobile/`), plus the `my_deliveries` pull feed | 3f | built; **not yet run on a device** |
 | 3g | Web: delivery, review, GRN, inventory screens | 3c–3e | done (the delivery dashboard tiles, §23, and the vendor-rate history grid remain) |
 
 The order follows what each slice *reads*: deliveries read rules and rates, so they
@@ -288,13 +289,64 @@ defence today); virus scanning of uploads (magic-byte type checks only); an in-p
 (files open in a new tab); expanding a rate-overview row inline to the full trail (a link opens the
 list of every period, which carries reasons and approvers).
 
+## 3j — The phone
+
+The Expo app now lives in `mobile/` (the old prototype folder was merged into this repository,
+and its stub backend retired: the phone and the web app share **one** backend). It is described
+in [`mobile/README.md`](../mobile/README.md); what matters here is the contract and what was
+checked.
+
+**A gap closed on the server.** `pull` carried reference data but not the fate of what the phone
+sent, so a reviewer's decision, a flag, or "please correct this" would never have reached it. A
+`my_deliveries` feed now returns the caller's own deliveries from the last 30 days — status,
+open flags, the latest review's action and note, `can_correct`, and the entry as recorded so a
+correction can start from it — through the same cursor (`deliveries` gained `server_seq` and
+the same trigger). Never a price. Only the caller's own captures.
+
+**The client** (`mobile/src/core`, plain TypeScript behind two interfaces — a SQL database and a
+secure store — so the identical code and SQL run on the phone and in Node tests):
+
+| Rule | Where it is enforced |
+|---|---|
+| Saving writes to the phone and returns; the network is never on that path | `Outbox.captureDelivery` |
+| An entry leaves the queue only when the server says it has it; a lost reply, a killed app and a repeated send all end in `duplicate` | `SyncEngine`, `LocalStore.recoverInflight` |
+| Oldest first, ≤ 50 entries / 512 KB per request; each entry has its own fate | `fit`, `settle` |
+| Backoff 2 s, 5 s, 15 s, 60 s, 5 m, 15 m, 1 h, then hourly, ±20 %; `DEAD` (never discarded) after 72 h | `backoff.ts` |
+| One run at a time, however many things ask | `SyncEngine.run` |
+| A session that ends parks the queue with no penalty; offline at start-up is not signed out; signing out keeps the queue | `Session`, `requeue` |
+| A refused entry stays for the person to fix and resend under the same id; a conflict says "already reviewed" and the server's version stands | `Outbox.fixAndRetry`, `acknowledgeConflict` |
+| The form has nowhere to put a price, a factor or a rule | `buildDraft`, `DeliveryDraft` |
+
+**What was checked, honestly.**
+
+- 56 unit tests of the client, including a fake server that can misbehave on demand. As a
+  check that they can fail, breaking the fake server's idempotency makes three of them fail.
+- The same engine and SQL run against the **real API** (`mobile/src/live`, `npm run test:live`):
+  twenty entries captured with no connection land **exactly once**, in order, when the connection
+  returns — even when the first reply is lost, and again when everything is sent a second time;
+  one entry with a vendor that does not exist is refused without holding up the others; a
+  reviewer's "please correct this" comes back with their words and the correction is checked
+  afresh; a revoked device is refused with its queue untouched. PostgreSQL confirmed exactly
+  twenty rows from one device.
+- The whole app type-checks and **bundles for Android** with Metro (742 modules, Hermes bytecode).
+
+**What was not checked.** The screens have never been run on an emulator or a phone, so layout,
+touch targets, GPS, permissions and the real radio are untested. There is no Detox / airplane-mode
+test and no 72-hour field soak (docs/06 §10). The Phase 3 done-when — "verified end-to-end by
+Playwright + Detox" — is therefore met for the server and the sync logic, and **not yet for the
+device**.
+
+**Not built:** photo capture and upload from the phone (the server side works; photos will be
+their own outbox entries depending on the delivery), the head-office review queue on mobile,
+history filters, language, push notifications.
+
 ## What is not built in Phase 3 yet
 
 | Item | State |
 |---|---|
 | Returns to stock; part-receipt of a transfer; issues to a phase / cost centre | not built (see 3h) |
 | **Mobile sync API** | **built** (3f). What is not: the app that calls it. |
-| **The Expo mobile app** | not started. The contract it needs now exists and is tested end to end (`docs/06 §4`). Rebuilding the app (login by phone, site home, new-delivery screen, SQLite + outbox, sync engine, queue, photos) is a separate body of work that cannot be verified from this environment: the done-when for Phase 3 names Detox and airplane-mode capture. |
+| **The Expo mobile app** | built (3j) and tested from a computer; **never run on a device**, so Detox / airplane-mode and the 72-hour soak remain. Photos from the phone, the mobile review queue, history filters and language are not built. |
 
 ## Found by testing
 

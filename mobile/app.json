@@ -7,7 +7,10 @@
     "userInterfaceStyle": "light",
     "android": {
       "package": "com.yourcompany.siteledger",
-      "permissions": ["CAMERA", "ACCESS_FINE_LOCATION"]
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "ios": {
       "bundleIdentifier": "com.yourcompany.siteledger",
@@ -15,6 +18,9 @@
         "NSCameraUsageDescription": "Used to photograph delivery trucks.",
         "NSLocationWhenInUseUsageDescription": "Used to geotag deliveries."
       }
-    }
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
   }
 }

@@ -77,11 +77,12 @@ queue.
 Web: delivery list and detail, flagged-review screen (§18), vendor-rate management with history
 (§19), GRN screens, inventory ledger and balances, delivery dashboard (§23).
 
-**Progress (2026-09-26): backend and web done, mobile not started** — business-rules store and approval
+**Progress (2026-09-27): backend, web and the phone's sync logic done; the app not yet run on a device** — business-rules store and approval
 limits, vendor rates, deliveries with every check, the review queue, GRN, the append-only stock ledger with
 weighted-average costing, stock issues / transfers / adjustments, and the mobile sync API (push / pull,
-idempotent, per-operation outcomes); see [18-phase-3-delivery](18-phase-3-delivery.md). Open: the Expo
-app with its Detox test.
+idempotent, per-operation outcomes) and the phone app with its offline outbox; see
+[18-phase-3-delivery](18-phase-3-delivery.md). Open: running the app on a device, with its Detox /
+airplane-mode test and the 72-hour field soak.
 
 **Done when:** 20 deliveries captured in airplane mode land exactly once on the server after
 reconnection, priced by server-resolved rates, with geofence and tonnage flags raised, reviewed at

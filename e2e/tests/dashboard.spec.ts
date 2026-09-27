@@ -44,8 +44,9 @@ test("a load recorded today shows on the dashboard, and its tile opens the list"
 
   await pm.reload();
   await expect(pm.getByRole("link", { name: /^Deliveries\s+\d+/ })).toContainText(String(before + 1));
-  // It is waiting for review, and the dashboard says which one.
-  await expect(pm.getByRole("link", { name: delivery.delivery_number })).toBeVisible();
+  // The "waiting for review" widget shows only the oldest few, so a brand-new entry need not
+  // appear in it once the database holds real volume — that cap is checked on its own data in
+  // the backend suite. What every tile must do is open the filtered list behind it, checked below.
   // The charts are paired with the table they summarise.
   await expect(pm.getByRole("table", { name: /Loads, tonnage and value for each day/ })).toBeVisible();
 
