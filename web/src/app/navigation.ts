@@ -37,6 +37,8 @@ import {
   BookText,
   Table2,
   NotebookText,
+  GitBranch,
+  PiggyBank,
 } from "lucide-react";
 
 export interface NavItem {
@@ -180,6 +182,18 @@ export const NAVIGATION: NavSection[] = [
         to: "/finance/general-ledger",
         icon: NotebookText,
         permission: "finance.gl.view",
+      },
+      {
+        label: "Budgets",
+        to: "/finance/budgets",
+        icon: PiggyBank,
+        permission: "finance.budget.view",
+      },
+      {
+        label: "Posting rules",
+        to: "/finance/posting-rules",
+        icon: GitBranch,
+        permission: "finance.coa.view",
       },
     ],
   },

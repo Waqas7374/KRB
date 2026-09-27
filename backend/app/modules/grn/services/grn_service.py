@@ -12,6 +12,7 @@ ledger, gives the quantities back to the order, and returns the delivery to
 
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
@@ -33,6 +34,9 @@ from app.core.pagination import PageParams
 from app.core.scoping import assert_in_scope
 from app.core.types import utcnow
 from app.modules.deliveries.services import receipts
+from app.modules.finance.domain.enums import CommitmentSourceType, JournalSourceType
+from app.modules.finance.services import budgets, posting_rules
+from app.modules.finance.services import ledger as gl
 from app.modules.grn.domain.enums import GrnStatus, InspectionResult
 from app.modules.grn.models import Grn, GrnItem
 from app.modules.grn.schemas import CounterPurchaseCreate
@@ -41,7 +45,7 @@ from app.modules.inventory.services import ledger
 from app.modules.masterdata.services import material_lookup, warehouse_lookup
 from app.modules.masterdata.services.conversion import UnitConverter
 from app.modules.org.services import company_service
-from app.modules.procurement.services import receiving
+from app.modules.procurement.services import po_lookup, receiving
 from app.modules.rules.domain.enums import RuleType
 from app.modules.rules.services import approval_limit
 from app.modules.vendors.services import vendor_lookup
@@ -597,6 +601,15 @@ async def post(
         if item.po_item_id is not None:
             await _apply_receipt(session, converter, grn, item, sign=1)
 
+    po_info = (
+        await po_lookup.order(
+            session, company_id=ctx.company_id, purchase_order_id=grn.purchase_order_id
+        )
+        if grn.purchase_order_id
+        else None
+    )
+    await _post_gl_and_budget(session, ctx, grn, po_info)
+
     grn.status = GrnStatus.POSTED.value
     grn.posted_at = utcnow()
     grn.posted_by_id = ctx.user_id
@@ -605,6 +618,69 @@ async def post(
     if delivery is not None:
         await receipts.mark_received(session, delivery.id, partial=any_short)
     return grn
+
+
+async def _post_gl_and_budget(
+    session: AsyncSession, ctx: AccessContext, grn: Grn, po_info: po_lookup.OrderInfo | None
+) -> None:
+    """The GL side of a receipt, and the budget it counts against (docs/07
+    §3): every accepted, priced line resolves — through the same posting rule,
+    whether it is destined for the ledger or for a budget line — to a debit
+    and a credit account. A GRN with no priced, accepted lines (nothing
+    happened) posts nothing."""
+    debit_totals: dict[UUID, Decimal] = defaultdict(Decimal)
+    credit_totals: dict[UUID, Decimal] = defaultdict(Decimal)
+    commitment_lines: list[budgets.CommitmentLine] = []
+    for item in grn.items:
+        if item.accepted_quantity == 0 or item.amount is None:
+            continue
+        is_po_backed = item.po_item_id is not None
+        rule = await posting_rules.resolve_receipt_account(
+            session, ctx, material_id=item.material_id, is_po_backed=is_po_backed
+        )
+        debit_totals[rule.debit_account_id] += item.amount
+        credit_totals[rule.credit_account_id] += item.amount
+        commitment_lines.append(
+            budgets.CommitmentLine(
+                material_id=item.material_id, amount=item.amount, is_po_backed=is_po_backed
+            )
+        )
+    if not debit_totals:
+        return
+
+    phase_id = po_info.phase_id if po_info else None
+    cost_center_id = po_info.cost_center_id if po_info else None
+    dims = {
+        "project_id": grn.project_id,
+        "site_id": grn.site_id,
+        "phase_id": phase_id,
+        "cost_center_id": cost_center_id,
+    }
+    lines = [gl.debit(account_id, amount, **dims) for account_id, amount in debit_totals.items()]
+    lines += [gl.credit(account_id, amount, **dims) for account_id, amount in credit_totals.items()]
+    await gl.post_system_entry(
+        session,
+        ctx,
+        source_type=JournalSourceType.GRN,
+        source_id=grn.id,
+        entry_date=grn.received_date,
+        description=f"Goods received: {grn.grn_number}",
+        reference=grn.counter_reference,
+        lines=lines,
+    )
+    if grn.project_id is None:
+        return  # nothing to measure the spend against
+    await budgets.release_receipt(
+        session,
+        ctx,
+        source_type=CommitmentSourceType.PO,
+        source_id=grn.purchase_order_id,
+        project_id=grn.project_id,
+        phase_id=phase_id,
+        cost_center_id=cost_center_id,
+        on=grn.received_date,
+        lines=commitment_lines,
+    )
 
 
 async def _apply_receipt(

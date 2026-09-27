@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.modules.finance.domain.enums import AccountType
+from app.modules.finance.domain.enums import AccountType, JournalSourceType
 
 
 class ApiModel(BaseModel):
@@ -221,3 +221,125 @@ class GeneralLedgerRead(ApiModel):
     opening_balance: Decimal
     rows: list[GeneralLedgerRowRead]
     closing_balance: Decimal
+
+
+# -----------------------------------------------------------------------------
+# Posting rules
+# -----------------------------------------------------------------------------
+
+
+class PostingRuleCreate(ApiModel):
+    source_type: JournalSourceType
+    event: Annotated[str, Field(min_length=1, max_length=40)]
+    debit_account_id: UUID
+    credit_account_id: UUID
+    name: Annotated[str | None, Field(max_length=160)] = None
+    condition: Any = None
+    priority: int = 0
+    is_active: bool = True
+
+
+class PostingRuleEdit(ApiModel):
+    name: Annotated[str | None, Field(max_length=160)] = None
+    condition: Any = None
+    debit_account_id: UUID | None = None
+    credit_account_id: UUID | None = None
+    priority: int | None = None
+    is_active: bool | None = None
+
+
+class PostingRuleRead(ApiModel):
+    id: UUID
+    source_type: str
+    event: str
+    name: str | None
+    condition: Any = None
+    debit_account_id: UUID
+    debit_account_code: str | None = None
+    credit_account_id: UUID
+    credit_account_code: str | None = None
+    priority: int
+    is_active: bool
+    version: int
+    created_at: datetime
+    updated_at: datetime
+
+
+# -----------------------------------------------------------------------------
+# Budgets
+# -----------------------------------------------------------------------------
+
+
+class BudgetLineIn(ApiModel):
+    account_id: UUID
+    budgeted_amount: Annotated[Decimal, Field(ge=0, max_digits=18, decimal_places=4)]
+    phase_id: UUID | None = None
+    cost_center_id: UUID | None = None
+    material_category_id: UUID | None = None
+    period_id: UUID | None = None
+
+
+class BudgetCreate(ApiModel):
+    project_id: UUID
+    fiscal_year: Annotated[int, Field(ge=2000, le=2100)]
+    name: Annotated[str, Field(min_length=2, max_length=160)]
+    lines: Annotated[list[BudgetLineIn], Field(min_length=1, max_length=200)]
+
+
+class BudgetRevise(ApiModel):
+    # budget_line_id -> revised_amount
+    revisions: dict[UUID, Annotated[Decimal, Field(ge=0, max_digits=18, decimal_places=4)]]
+
+
+class BudgetLineRead(ApiModel):
+    id: UUID
+    account_id: UUID
+    account_code: str | None = None
+    account_name: str | None = None
+    phase_id: UUID | None
+    phase_code: str | None = None
+    cost_center_id: UUID | None
+    cost_center_code: str | None = None
+    material_category_id: UUID | None
+    period_id: UUID | None
+    budgeted_amount: Decimal
+    revised_amount: Decimal | None
+    committed_amount: Decimal
+    actual_amount: Decimal
+    # Neither is a database column (see finance/models.py's BudgetLine
+    # docstring) — both are filled in by the route from the columns above.
+    remaining_amount: Decimal = Decimal(0)
+    variance_pct: Decimal | None = None
+
+
+class BudgetListItem(ApiModel):
+    id: UUID
+    project_id: UUID
+    project_code: str | None = None
+    fiscal_year: int
+    name: str
+    status: str
+    total_amount: Decimal
+    approved_at: datetime | None
+    version: int
+
+
+class BudgetRead(BudgetListItem):
+    approved_by_id: UUID | None
+    closed_at: datetime | None
+    lines: list[BudgetLineRead]
+    can_edit: bool = False
+    can_approve: bool = False
+    can_revise: bool = False
+    can_close: bool = False
+
+
+class BudgetCommitmentRead(ApiModel):
+    id: UUID
+    budget_line_id: UUID
+    source_type: str
+    source_id: UUID
+    amount: Decimal
+    released_amount: Decimal
+    status: str
+    created_at: datetime

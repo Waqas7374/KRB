@@ -19,7 +19,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.access import AccessContext
+from app.core.access import AccessContext, system_access_context
 from app.core.crud import ScopedRepository
 from app.core.errors import BusinessRuleError, ValidationError, VersionConflictError
 from app.core.pagination import PageParams
@@ -29,6 +29,7 @@ from app.modules.approvals.services import engine as approvals
 from app.modules.approvals.services import registry
 from app.modules.audit.domain.enums import AuditAction
 from app.modules.audit.services.writer import record as record_audit
+from app.modules.finance.services import budgets
 from app.modules.org.services import company_service, document_lookup
 from app.modules.procurement.domain import pricing
 from app.modules.procurement.domain.enums import (
@@ -1023,6 +1024,23 @@ class PurchaseOrderApprovals:
         # from the request and, if it came from an RFQ, ends that RFQ.
         await claim_sourcing(session, po)
         await _close_rfq_for(session, po)
+        # ...and commits whatever budget line its items match (docs/07 §3).
+        sys_ctx = system_access_context(
+            po.company_id, outcome.actor_user_id or po.created_by_id or UUID(int=0)
+        )
+        await budgets.commit_purchase_order(
+            session,
+            sys_ctx,
+            source_id=po.id,
+            project_id=po.project_id,
+            phase_id=po.phase_id,
+            cost_center_id=po.cost_center_id,
+            on=po.po_date,
+            lines=[
+                budgets.CommitmentLine(material_id=item.material_id, amount=item.line_total)
+                for item in po.items
+            ],
+        )
 
     async def on_rejected(self, session: AsyncSession, outcome: registry.ApprovalOutcome) -> None:
         await self._set(session, outcome, PurchaseOrderStatus.REJECTED)

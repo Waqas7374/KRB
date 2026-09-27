@@ -66,3 +66,29 @@ class JournalStatus(StrEnum):
     @property
     def is_editable(self) -> bool:
         return self is JournalStatus.DRAFT
+
+
+class BudgetStatus(StrEnum):
+    DRAFT = "DRAFT"
+    APPROVED = "APPROVED"
+    # Entered automatically the first time a line's revised_amount is set on
+    # an approved budget (see finance/services/budgets.py) — not a status
+    # anyone chooses directly.
+    REVISED = "REVISED"
+    CLOSED = "CLOSED"
+
+    @property
+    def is_editable(self) -> bool:
+        return self is BudgetStatus.DRAFT
+
+
+class CommitmentSourceType(StrEnum):
+    PO = "PO"
+    CONTRACT = "CONTRACT"
+
+
+class CommitmentStatus(StrEnum):
+    OPEN = "OPEN"
+    PARTIALLY_RELEASED = "PARTIALLY_RELEASED"
+    RELEASED = "RELEASED"
+    CANCELLED = "CANCELLED"

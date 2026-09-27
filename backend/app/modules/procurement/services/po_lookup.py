@@ -40,6 +40,8 @@ class OrderInfo:
     vendor_id: UUID
     project_id: UUID
     site_id: UUID | None
+    phase_id: UUID | None
+    cost_center_id: UUID | None
     status: str
     items: tuple[OrderItemInfo, ...]
 
@@ -67,6 +69,8 @@ async def order(
         vendor_id=row.vendor_id,
         project_id=row.project_id,
         site_id=row.site_id,
+        phase_id=row.phase_id,
+        cost_center_id=row.cost_center_id,
         status=row.status,
         items=tuple(
             OrderItemInfo(

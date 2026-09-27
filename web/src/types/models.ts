@@ -180,3 +180,14 @@ export type TrialBalanceRowRead = S["TrialBalanceRowRead"];
 export type GeneralLedgerRead = S["GeneralLedgerRead"];
 export type GeneralLedgerRowRead = S["GeneralLedgerRowRead"];
 export type FinanceCancelBody = S["app__modules__finance__schemas__CancelBody"];
+
+export type PostingRuleRead = S["PostingRuleRead"];
+export type PostingRuleCreate = S["PostingRuleCreate"];
+export type PostingRuleEdit = S["PostingRuleEdit"];
+export type BudgetLineIn = S["BudgetLineIn"];
+export type BudgetCreate = S["BudgetCreate"];
+export type BudgetRevise = S["BudgetRevise"];
+export type BudgetLineRead = S["BudgetLineRead"];
+export type BudgetListItem = S["BudgetListItem"];
+export type BudgetRead = S["BudgetRead"];
+export type BudgetCommitmentRead = S["BudgetCommitmentRead"];

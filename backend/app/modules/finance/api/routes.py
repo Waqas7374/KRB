@@ -19,9 +19,17 @@ from app.core.pagination import Page
 from app.core.scoping import assert_in_scope
 from app.core.types import today_utc
 from app.modules.finance import schemas as s
-from app.modules.finance.domain.enums import JournalStatus
-from app.modules.finance.models import Account, JournalEntry
-from app.modules.finance.services import accounts, journal_entries, ledger, periods, reports
+from app.modules.finance.domain.enums import BudgetStatus, JournalSourceType, JournalStatus
+from app.modules.finance.models import Account, Budget, BudgetLine, JournalEntry, PostingRule
+from app.modules.finance.services import (
+    accounts,
+    budgets,
+    journal_entries,
+    ledger,
+    periods,
+    posting_rules,
+    reports,
+)
 from app.modules.masterdata.services import material_lookup
 from app.modules.org.services import document_lookup
 from app.modules.vendors.services import vendor_lookup
@@ -492,4 +500,320 @@ async def get_general_ledger(
         opening_balance=result.opening_balance,
         rows=[s.GeneralLedgerRowRead.model_validate(r) for r in result.rows],
         closing_balance=result.closing_balance,
+    )
+
+
+# -----------------------------------------------------------------------------
+# Posting rules
+# -----------------------------------------------------------------------------
+
+
+async def _posting_rule_views(
+    session: AsyncSession, rows: list[PostingRule]
+) -> list[s.PostingRuleRead]:
+    account_ids = {r.debit_account_id for r in rows} | {r.credit_account_id for r in rows}
+    codes = {
+        a.id: a.code
+        for a in (await session.execute(select(Account).where(Account.id.in_(account_ids))))
+        .scalars()
+        .all()
+    }
+    out = []
+    for row in rows:
+        view = s.PostingRuleRead.model_validate(row)
+        view.debit_account_code = codes.get(row.debit_account_id)
+        view.credit_account_code = codes.get(row.credit_account_id)
+        out.append(view)
+    return out
+
+
+@router.get(
+    "/posting-rules",
+    response_model=Page[s.PostingRuleRead],
+    dependencies=[require(posting_rules.PERM_VIEW)],
+)
+async def list_posting_rules(
+    ctx: Access,
+    session: SessionDep,
+    page: PageDep,
+    source_type: JournalSourceType | None = None,
+    event: str | None = None,
+) -> Page[s.PostingRuleRead]:
+    rows, total = await posting_rules.list_rules(
+        session,
+        ctx,
+        page=page,
+        search=None,
+        filters={"source_type": source_type.value if source_type else None, "event": event},
+    )
+    return Page.of(await _posting_rule_views(session, rows), params=page, total=total)
+
+
+@router.post(
+    "/posting-rules",
+    response_model=s.PostingRuleRead,
+    status_code=201,
+    dependencies=[require(posting_rules.PERM_MANAGE)],
+)
+async def create_posting_rule(
+    payload: s.PostingRuleCreate, ctx: Access, uow: UowDep
+) -> s.PostingRuleRead:
+    row = await posting_rules.create(
+        uow.session,
+        ctx,
+        posting_rules.PostingRuleInput(
+            source_type=payload.source_type,
+            event=payload.event,
+            debit_account_id=payload.debit_account_id,
+            credit_account_id=payload.credit_account_id,
+            name=payload.name,
+            condition=payload.condition,
+            priority=payload.priority,
+            is_active=payload.is_active,
+        ),
+    )
+    return (await _posting_rule_views(uow.session, [row]))[0]
+
+
+@router.patch(
+    "/posting-rules/{rule_id}",
+    response_model=s.PostingRuleRead,
+    dependencies=[require(posting_rules.PERM_MANAGE)],
+)
+async def update_posting_rule(
+    rule_id: UUID, payload: s.PostingRuleEdit, ctx: Access, uow: UowDep, if_match: IfMatch = None
+) -> s.PostingRuleRead:
+    row = await posting_rules.update(
+        uow.session,
+        ctx,
+        rule_id,
+        posting_rules.PostingRuleEdit(
+            name=payload.name,
+            condition=payload.condition,
+            debit_account_id=payload.debit_account_id,
+            credit_account_id=payload.credit_account_id,
+            priority=payload.priority,
+            is_active=payload.is_active,
+        ),
+        expected_version=if_match,
+    )
+    await uow.session.refresh(row)
+    return (await _posting_rule_views(uow.session, [row]))[0]
+
+
+# -----------------------------------------------------------------------------
+# Budgets
+# -----------------------------------------------------------------------------
+
+
+async def _budget_line_views(
+    session: AsyncSession, company_id: UUID, lines: list[BudgetLine]
+) -> list[s.BudgetLineRead]:
+    account_ids = {line.account_id for line in lines}
+    account_codes = {
+        a.id: (a.code, a.name)
+        for a in (await session.execute(select(Account).where(Account.id.in_(account_ids))))
+        .scalars()
+        .all()
+    }
+    codes = await document_lookup.codes(
+        session,
+        company_id=company_id,
+        project_ids=set(),
+        phase_ids={line.phase_id for line in lines if line.phase_id},
+        cost_center_ids={line.cost_center_id for line in lines if line.cost_center_id},
+    )
+    out = []
+    for line in lines:
+        effective = line.revised_amount if line.revised_amount is not None else line.budgeted_amount
+        view = s.BudgetLineRead.model_validate(line)
+        account = account_codes.get(line.account_id)
+        view.account_code = account[0] if account else None
+        view.account_name = account[1] if account else None
+        view.phase_code = codes.get(line.phase_id, (None, None))[0] if line.phase_id else None
+        view.cost_center_code = (
+            codes.get(line.cost_center_id, (None, None))[0] if line.cost_center_id else None
+        )
+        view.remaining_amount = effective - line.committed_amount - line.actual_amount
+        view.variance_pct = (
+            ((line.actual_amount - effective) / effective * 100) if effective else None
+        )
+        out.append(view)
+    return out
+
+
+async def _budget_detail(session: AsyncSession, ctx: AccessContext, budget: Budget) -> s.BudgetRead:
+    project_codes = await document_lookup.codes(
+        session, company_id=ctx.company_id, project_ids={budget.project_id}
+    )
+    view = s.BudgetRead.model_validate(budget)
+    view.project_code = project_codes.get(budget.project_id, (None, None))[0]
+    view.lines = await _budget_line_views(session, ctx.company_id, list(budget.lines))
+    status = BudgetStatus(budget.status)
+    can_approve_step = status in (BudgetStatus.APPROVED, BudgetStatus.REVISED) and ctx.has(
+        budgets.PERM_APPROVE
+    )
+    view.can_edit = status is BudgetStatus.DRAFT and ctx.has(budgets.PERM_CREATE)
+    view.can_approve = status is BudgetStatus.DRAFT and ctx.has(budgets.PERM_APPROVE)
+    view.can_revise = can_approve_step
+    view.can_close = can_approve_step
+    return view
+
+
+@router.get(
+    "/budgets", response_model=Page[s.BudgetListItem], dependencies=[require(budgets.PERM_VIEW)]
+)
+async def list_budgets(
+    ctx: Access,
+    session: SessionDep,
+    page: PageDep,
+    project_id: UUID | None = None,
+    fiscal_year: int | None = None,
+) -> Page[s.BudgetListItem]:
+    rows, total = await budgets.list_budgets(
+        session, ctx, page=page, filters={"project_id": project_id, "fiscal_year": fiscal_year}
+    )
+    project_codes = await document_lookup.codes(
+        session, company_id=ctx.company_id, project_ids={r.project_id for r in rows}
+    )
+    items = []
+    for row in rows:
+        item = s.BudgetListItem.model_validate(row)
+        item.project_code = project_codes.get(row.project_id, (None, None))[0]
+        items.append(item)
+    return Page.of(items, params=page, total=total)
+
+
+@router.post(
+    "/budgets",
+    response_model=s.BudgetRead,
+    status_code=201,
+    dependencies=[require(budgets.PERM_CREATE)],
+)
+async def create_budget(payload: s.BudgetCreate, ctx: Access, uow: UowDep) -> s.BudgetRead:
+    budget = await budgets.create(
+        uow.session,
+        ctx,
+        budgets.BudgetInput(
+            project_id=payload.project_id,
+            fiscal_year=payload.fiscal_year,
+            name=payload.name,
+            lines=[
+                budgets.BudgetLineInput(
+                    account_id=line.account_id,
+                    budgeted_amount=line.budgeted_amount,
+                    phase_id=line.phase_id,
+                    cost_center_id=line.cost_center_id,
+                    material_category_id=line.material_category_id,
+                    period_id=line.period_id,
+                )
+                for line in payload.lines
+            ],
+        ),
+    )
+    return await _budget_detail(uow.session, ctx, budget)
+
+
+@router.get(
+    "/budgets/{budget_id}", response_model=s.BudgetRead, dependencies=[require(budgets.PERM_VIEW)]
+)
+async def get_budget(budget_id: UUID, ctx: Access, session: SessionDep) -> s.BudgetRead:
+    return await _budget_detail(session, ctx, await budgets.get(session, ctx, budget_id))
+
+
+@router.put(
+    "/budgets/{budget_id}", response_model=s.BudgetRead, dependencies=[require(budgets.PERM_CREATE)]
+)
+async def update_budget(
+    budget_id: UUID, payload: s.BudgetCreate, ctx: Access, uow: UowDep, if_match: IfMatch = None
+) -> s.BudgetRead:
+    budget = await budgets.update(
+        uow.session,
+        ctx,
+        budget_id,
+        budgets.BudgetInput(
+            project_id=payload.project_id,
+            fiscal_year=payload.fiscal_year,
+            name=payload.name,
+            lines=[
+                budgets.BudgetLineInput(
+                    account_id=line.account_id,
+                    budgeted_amount=line.budgeted_amount,
+                    phase_id=line.phase_id,
+                    cost_center_id=line.cost_center_id,
+                    material_category_id=line.material_category_id,
+                    period_id=line.period_id,
+                )
+                for line in payload.lines
+            ],
+        ),
+        expected_version=if_match,
+    )
+    return await _budget_detail(uow.session, ctx, budget)
+
+
+@router.post(
+    "/budgets/{budget_id}/approve",
+    response_model=s.BudgetRead,
+    dependencies=[require(budgets.PERM_APPROVE)],
+)
+async def approve_budget(
+    budget_id: UUID, ctx: Access, uow: UowDep, if_match: IfMatch = None
+) -> s.BudgetRead:
+    budget = await budgets.approve(uow.session, ctx, budget_id, expected_version=if_match)
+    return await _budget_detail(uow.session, ctx, budget)
+
+
+@router.post(
+    "/budgets/{budget_id}/revise",
+    response_model=s.BudgetRead,
+    dependencies=[require(budgets.PERM_APPROVE)],
+    summary="Set a new revised_amount on one or more of the budget's existing lines",
+)
+async def revise_budget(
+    budget_id: UUID, payload: s.BudgetRevise, ctx: Access, uow: UowDep, if_match: IfMatch = None
+) -> s.BudgetRead:
+    budget = await budgets.revise_lines(
+        uow.session, ctx, budget_id, payload.revisions, expected_version=if_match
+    )
+    return await _budget_detail(uow.session, ctx, budget)
+
+
+@router.post(
+    "/budgets/{budget_id}/close",
+    response_model=s.BudgetRead,
+    dependencies=[require(budgets.PERM_APPROVE)],
+)
+async def close_budget(
+    budget_id: UUID, ctx: Access, uow: UowDep, if_match: IfMatch = None
+) -> s.BudgetRead:
+    budget = await budgets.close(uow.session, ctx, budget_id, expected_version=if_match)
+    return await _budget_detail(uow.session, ctx, budget)
+
+
+@router.get(
+    "/commitments",
+    response_model=Page[s.BudgetCommitmentRead],
+    dependencies=[require(budgets.PERM_VIEW)],
+)
+async def list_commitments(
+    ctx: Access,
+    session: SessionDep,
+    page: PageDep,
+    budget_line_id: UUID | None = None,
+    source_type: str | None = None,
+    source_id: UUID | None = None,
+) -> Page[s.BudgetCommitmentRead]:
+    rows, total = await budgets.list_commitments(
+        session,
+        ctx,
+        page=page,
+        filters={
+            "budget_line_id": budget_line_id,
+            "source_type": source_type,
+            "source_id": source_id,
+        },
+    )
+    return Page.of(
+        [s.BudgetCommitmentRead.model_validate(r) for r in rows], params=page, total=total
     )

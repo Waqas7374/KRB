@@ -3036,6 +3036,145 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/finance/posting-rules": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Posting Rules */
+    get: operations["list_posting_rules_api_v1_finance_posting_rules_get"];
+    put?: never;
+    /** Create Posting Rule */
+    post: operations["create_posting_rule_api_v1_finance_posting_rules_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/posting-rules/{rule_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Update Posting Rule */
+    patch: operations["update_posting_rule_api_v1_finance_posting_rules__rule_id__patch"];
+    trace?: never;
+  };
+  "/api/v1/finance/budgets": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Budgets */
+    get: operations["list_budgets_api_v1_finance_budgets_get"];
+    put?: never;
+    /** Create Budget */
+    post: operations["create_budget_api_v1_finance_budgets_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/budgets/{budget_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Budget */
+    get: operations["get_budget_api_v1_finance_budgets__budget_id__get"];
+    /** Update Budget */
+    put: operations["update_budget_api_v1_finance_budgets__budget_id__put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/budgets/{budget_id}/approve": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Approve Budget */
+    post: operations["approve_budget_api_v1_finance_budgets__budget_id__approve_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/budgets/{budget_id}/revise": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Set a new revised_amount on one or more of the budget's existing lines */
+    post: operations["revise_budget_api_v1_finance_budgets__budget_id__revise_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/budgets/{budget_id}/close": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Close Budget */
+    post: operations["close_budget_api_v1_finance_budgets__budget_id__close_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/commitments": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Commitments */
+    get: operations["list_commitments_api_v1_finance_commitments_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3494,6 +3633,200 @@ export interface components {
        * @default false
        */
       is_low: boolean;
+    };
+    /** BudgetCommitmentRead */
+    BudgetCommitmentRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Budget Line Id
+       * Format: uuid
+       */
+      budget_line_id: string;
+      /** Source Type */
+      source_type: string;
+      /**
+       * Source Id
+       * Format: uuid
+       */
+      source_id: string;
+      /** Amount */
+      amount: string;
+      /** Released Amount */
+      released_amount: string;
+      /** Status */
+      status: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+    };
+    /** BudgetCreate */
+    BudgetCreate: {
+      /**
+       * Project Id
+       * Format: uuid
+       */
+      project_id: string;
+      /** Fiscal Year */
+      fiscal_year: number;
+      /** Name */
+      name: string;
+      /** Lines */
+      lines: components["schemas"]["BudgetLineIn"][];
+    };
+    /** BudgetLineIn */
+    BudgetLineIn: {
+      /**
+       * Account Id
+       * Format: uuid
+       */
+      account_id: string;
+      /** Budgeted Amount */
+      budgeted_amount: number | string;
+      /** Phase Id */
+      phase_id?: string | null;
+      /** Cost Center Id */
+      cost_center_id?: string | null;
+      /** Material Category Id */
+      material_category_id?: string | null;
+      /** Period Id */
+      period_id?: string | null;
+    };
+    /** BudgetLineRead */
+    BudgetLineRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Account Id
+       * Format: uuid
+       */
+      account_id: string;
+      /** Account Code */
+      account_code?: string | null;
+      /** Account Name */
+      account_name?: string | null;
+      /** Phase Id */
+      phase_id: string | null;
+      /** Phase Code */
+      phase_code?: string | null;
+      /** Cost Center Id */
+      cost_center_id: string | null;
+      /** Cost Center Code */
+      cost_center_code?: string | null;
+      /** Material Category Id */
+      material_category_id: string | null;
+      /** Period Id */
+      period_id: string | null;
+      /** Budgeted Amount */
+      budgeted_amount: string;
+      /** Revised Amount */
+      revised_amount: string | null;
+      /** Committed Amount */
+      committed_amount: string;
+      /** Actual Amount */
+      actual_amount: string;
+      /**
+       * Remaining Amount
+       * @default 0
+       */
+      remaining_amount: string;
+      /** Variance Pct */
+      variance_pct?: string | null;
+    };
+    /** BudgetListItem */
+    BudgetListItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Project Id
+       * Format: uuid
+       */
+      project_id: string;
+      /** Project Code */
+      project_code?: string | null;
+      /** Fiscal Year */
+      fiscal_year: number;
+      /** Name */
+      name: string;
+      /** Status */
+      status: string;
+      /** Total Amount */
+      total_amount: string;
+      /** Approved At */
+      approved_at: string | null;
+      /** Version */
+      version: number;
+    };
+    /** BudgetRead */
+    BudgetRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Project Id
+       * Format: uuid
+       */
+      project_id: string;
+      /** Project Code */
+      project_code?: string | null;
+      /** Fiscal Year */
+      fiscal_year: number;
+      /** Name */
+      name: string;
+      /** Status */
+      status: string;
+      /** Total Amount */
+      total_amount: string;
+      /** Approved At */
+      approved_at: string | null;
+      /** Version */
+      version: number;
+      /** Approved By Id */
+      approved_by_id: string | null;
+      /** Closed At */
+      closed_at: string | null;
+      /** Lines */
+      lines: components["schemas"]["BudgetLineRead"][];
+      /**
+       * Can Edit
+       * @default false
+       */
+      can_edit: boolean;
+      /**
+       * Can Approve
+       * @default false
+       */
+      can_approve: boolean;
+      /**
+       * Can Revise
+       * @default false
+       */
+      can_revise: boolean;
+      /**
+       * Can Close
+       * @default false
+       */
+      can_close: boolean;
+    };
+    /** BudgetRevise */
+    BudgetRevise: {
+      /** Revisions */
+      revisions: {
+        [key: string]: number | string;
+      };
     };
     /**
      * CalibrationConfirm
@@ -5441,6 +5774,19 @@ export interface components {
       /** Material Name */
       material_name?: string | null;
     };
+    /**
+     * JournalSourceType
+     * @enum {string}
+     */
+    JournalSourceType:
+      | "MANUAL"
+      | "GRN"
+      | "INVENTORY"
+      | "INVOICE"
+      | "PAYMENT"
+      | "PAYROLL"
+      | "DEPRECIATION"
+      | "OPENING_BALANCE";
     /** LedgerRead */
     LedgerRead: {
       /**
@@ -6059,6 +6405,26 @@ export interface components {
         [key: string]: unknown;
       };
     };
+    /** Page[BudgetCommitmentRead] */
+    Page_BudgetCommitmentRead_: {
+      /** Items */
+      items: components["schemas"]["BudgetCommitmentRead"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
+    /** Page[BudgetListItem] */
+    Page_BudgetListItem_: {
+      /** Items */
+      items: components["schemas"]["BudgetListItem"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
     /** Page[CostCenterRead] */
     Page_CostCenterRead_: {
       /** Items */
@@ -6153,6 +6519,16 @@ export interface components {
     Page_MaterialListItem_: {
       /** Items */
       items: components["schemas"]["MaterialListItem"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
+    /** Page[PostingRuleRead] */
+    Page_PostingRuleRead_: {
+      /** Items */
+      items: components["schemas"]["PostingRuleRead"][];
       page: components["schemas"]["PageMeta"];
       /** Meta */
       meta?: {
@@ -6392,6 +6768,97 @@ export interface components {
       latitude: number;
       /** Longitude */
       longitude: number;
+    };
+    /** PostingRuleCreate */
+    PostingRuleCreate: {
+      source_type: components["schemas"]["JournalSourceType"];
+      /** Event */
+      event: string;
+      /**
+       * Debit Account Id
+       * Format: uuid
+       */
+      debit_account_id: string;
+      /**
+       * Credit Account Id
+       * Format: uuid
+       */
+      credit_account_id: string;
+      /** Name */
+      name?: string | null;
+      /** Condition */
+      condition?: unknown;
+      /**
+       * Priority
+       * @default 0
+       */
+      priority: number;
+      /**
+       * Is Active
+       * @default true
+       */
+      is_active: boolean;
+    };
+    /** PostingRuleEdit */
+    PostingRuleEdit: {
+      /** Name */
+      name?: string | null;
+      /** Condition */
+      condition?: unknown;
+      /** Debit Account Id */
+      debit_account_id?: string | null;
+      /** Credit Account Id */
+      credit_account_id?: string | null;
+      /** Priority */
+      priority?: number | null;
+      /** Is Active */
+      is_active?: boolean | null;
+    };
+    /** PostingRuleRead */
+    PostingRuleRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Source Type */
+      source_type: string;
+      /** Event */
+      event: string;
+      /** Name */
+      name: string | null;
+      /** Condition */
+      condition?: unknown;
+      /**
+       * Debit Account Id
+       * Format: uuid
+       */
+      debit_account_id: string;
+      /** Debit Account Code */
+      debit_account_code?: string | null;
+      /**
+       * Credit Account Id
+       * Format: uuid
+       */
+      credit_account_id: string;
+      /** Credit Account Code */
+      credit_account_code?: string | null;
+      /** Priority */
+      priority: number;
+      /** Is Active */
+      is_active: boolean;
+      /** Version */
+      version: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
     };
     /** PreferenceRead */
     PreferenceRead: {
@@ -17526,6 +17993,406 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["GeneralLedgerRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_posting_rules_api_v1_finance_posting_rules_get: {
+    parameters: {
+      query?: {
+        source_type?: components["schemas"]["JournalSourceType"] | null;
+        event?: string | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_PostingRuleRead_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_posting_rule_api_v1_finance_posting_rules_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PostingRuleCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PostingRuleRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_posting_rule_api_v1_finance_posting_rules__rule_id__patch: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        rule_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PostingRuleEdit"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PostingRuleRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_budgets_api_v1_finance_budgets_get: {
+    parameters: {
+      query?: {
+        project_id?: string | null;
+        fiscal_year?: number | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_BudgetListItem_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_budget_api_v1_finance_budgets_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BudgetCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BudgetRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_budget_api_v1_finance_budgets__budget_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        budget_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BudgetRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_budget_api_v1_finance_budgets__budget_id__put: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        budget_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BudgetCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BudgetRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  approve_budget_api_v1_finance_budgets__budget_id__approve_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        budget_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BudgetRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  revise_budget_api_v1_finance_budgets__budget_id__revise_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        budget_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BudgetRevise"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BudgetRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  close_budget_api_v1_finance_budgets__budget_id__close_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        budget_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BudgetRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_commitments_api_v1_finance_commitments_get: {
+    parameters: {
+      query?: {
+        budget_line_id?: string | null;
+        source_type?: string | null;
+        source_id?: string | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_BudgetCommitmentRead_"];
         };
       };
       /** @description Validation Error */

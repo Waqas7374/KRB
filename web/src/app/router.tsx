@@ -169,6 +169,14 @@ const JournalEntryDetailPage = page(jePages, "JournalEntryDetailPage");
 const financeReportPages = () => import("@/features/finance/ReportsPages");
 const TrialBalancePage = page(financeReportPages, "TrialBalancePage");
 const GeneralLedgerPage = page(financeReportPages, "GeneralLedgerPage");
+const PostingRulesPage = page(
+  () => import("@/features/finance/PostingRulesPage"),
+  "PostingRulesPage",
+);
+const budgetPages = () => import("@/features/finance/BudgetPages");
+const BudgetListPage = page(budgetPages, "BudgetListPage");
+const BudgetFormPage = page(budgetPages, "BudgetFormPage");
+const BudgetDetailPage = page(budgetPages, "BudgetDetailPage");
 
 const gate = (permission: string, element: ReactNode) => (
   <RequirePermission permission={permission}>{element}</RequirePermission>
@@ -297,6 +305,20 @@ export const router = createBrowserRouter([
       },
       { path: "finance/trial-balance", element: gate("finance.gl.view", <TrialBalancePage />) },
       { path: "finance/general-ledger", element: gate("finance.gl.view", <GeneralLedgerPage />) },
+      {
+        path: "finance/posting-rules",
+        element: gate("finance.coa.view", <PostingRulesPage />),
+      },
+      { path: "finance/budgets", element: gate("finance.budget.view", <BudgetListPage />) },
+      { path: "finance/budgets/new", element: gate("finance.budget.create", <BudgetFormPage />) },
+      {
+        path: "finance/budgets/:budgetId",
+        element: gate("finance.budget.view", <BudgetDetailPage />),
+      },
+      {
+        path: "finance/budgets/:budgetId/edit",
+        element: gate("finance.budget.create", <BudgetFormPage />),
+      },
       { path: "rfqs", element: gate("procurement.rfq.view", <RfqsListPage />) },
       { path: "rfqs/new", element: gate("procurement.rfq.create", <RfqFormPage />) },
       { path: "rfqs/:rfqId", element: gate("procurement.rfq.view", <RfqDetailPage />) },

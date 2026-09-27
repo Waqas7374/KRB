@@ -18,9 +18,11 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
@@ -31,6 +33,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -38,6 +41,9 @@ from app.core.constraints import enum_check, non_negative
 from app.core.db import BaseModel, CompanyModel, MasterDataModel, VersionMixin
 from app.modules.finance.domain.enums import (
     AccountType,
+    BudgetStatus,
+    CommitmentSourceType,
+    CommitmentStatus,
     JournalSourceType,
     JournalStatus,
     NormalBalance,
@@ -222,4 +228,164 @@ class JournalEntryLine(BaseModel):
             "(debit > 0 AND credit = 0) OR (credit > 0 AND debit = 0)",
             name="moves_one_way",
         ),
+    )
+
+
+class PostingRule(CompanyModel, VersionMixin):
+    """Sub-ledger → GL mapping, as configuration (docs/02 §8): which accounts a
+    GRN receipt (or, from a later slice, an invoice or a payment) debits and
+    credits. `condition` picks between rules for the same `source_type` and
+    `event` — e.g. a stockable material against a non-stockable one, or a
+    receipt with a purchase order behind it against one without — using the
+    same JSON language as approval workflows and business rules."""
+
+    __tablename__ = "posting_rules"
+    __audited__ = True
+    __scope_company_wide__ = True
+
+    source_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    # A source_type's own sub-cases: "RECEIPT" today, "PAYMENT_ISSUED" and
+    # similar arriving with 4c-4d. Free text on purpose — a new event needs no
+    # migration, only a seed row and the code that calls `resolve()` for it.
+    event: Mapped[str] = mapped_column(String(40), nullable=False)
+    name: Mapped[str | None] = mapped_column(String(160))
+    condition: Mapped[Any | None] = mapped_column(JSONB)
+    debit_account_id: Mapped[UUID] = mapped_column(
+        ForeignKey("accounts.id", ondelete="RESTRICT"), nullable=False
+    )
+    credit_account_id: Mapped[UUID] = mapped_column(
+        ForeignKey("accounts.id", ondelete="RESTRICT"), nullable=False
+    )
+    priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    __table_args__ = (
+        Index("ix_posting_rules_lookup", "company_id", "source_type", "event", "is_active"),
+        enum_check("source_type", JournalSourceType),
+    )
+
+
+class Budget(CompanyModel, VersionMixin):
+    """One project's spending plan for one fiscal year (docs/02 §8). `REVISED`
+    is entered automatically the first time a line's `revised_amount` is set
+    on an approved budget — it is a fact about the budget's history, not a
+    step someone chooses."""
+
+    __tablename__ = "budgets"
+    __audited__ = True
+
+    project_id: Mapped[UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    fiscal_year: Mapped[int] = mapped_column(Integer, nullable=False)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default=BudgetStatus.DRAFT.value
+    )
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    approved_by_id: Mapped[UUID | None] = mapped_column(PgUUID(as_uuid=True))
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # The sum of every line's own effective amount (revised_amount if the line
+    # has one, else budgeted_amount) — kept in step by the service, not a
+    # database trigger, since it changes on plain UPDATEs to child rows.
+    total_amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+
+    lines: Mapped[list[BudgetLine]] = relationship(
+        back_populates="budget",
+        order_by="BudgetLine.created_at",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+    )
+
+    __table_args__ = (
+        UniqueConstraint("company_id", "project_id", "fiscal_year", name="uq_budgets_project_fy"),
+        enum_check("status", BudgetStatus),
+        non_negative("total_amount"),
+    )
+
+
+class BudgetLine(BaseModel):
+    """One line of a budget: a phase and/or cost centre, an account, and how
+    much of it has been committed (by an approved PO) and actually spent (by a
+    posted GRN) against the figure. `remaining_amount` and `variance_pct` are
+    not stored — they are read straight off `budgeted_amount`/`revised_amount`
+    minus `committed_amount`/`actual_amount` wherever a line is read, so they
+    can never drift from the columns that back them."""
+
+    __tablename__ = "budget_lines"
+    __audited__ = True
+
+    budget_id: Mapped[UUID] = mapped_column(
+        ForeignKey("budgets.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    phase_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("project_phases.id", ondelete="RESTRICT")
+    )
+    cost_center_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("cost_centers.id", ondelete="RESTRICT")
+    )
+    account_id: Mapped[UUID] = mapped_column(
+        ForeignKey("accounts.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    material_category_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("material_categories.id", ondelete="RESTRICT")
+    )
+    period_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("accounting_periods.id", ondelete="RESTRICT")
+    )
+    budgeted_amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+    revised_amount: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
+    # Written only by `budgets.commit_purchase_order` / `.release_receipt` —
+    # never edited by hand, so *committed → actual → remaining* stays true.
+    committed_amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+    actual_amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+
+    budget: Mapped[Budget] = relationship(back_populates="lines", lazy="noload")
+
+    __table_args__ = (
+        # One line per (phase, cost centre, account) inside a budget — two
+        # lines for the same combination would split what is really one figure.
+        UniqueConstraint(
+            "budget_id",
+            "phase_id",
+            "cost_center_id",
+            "account_id",
+            name="uq_budget_lines_scope",
+        ),
+        non_negative("budgeted_amount"),
+        non_negative("committed_amount"),
+        non_negative("actual_amount"),
+        CheckConstraint(
+            "revised_amount IS NULL OR revised_amount >= 0", name="revised_amount_non_negative"
+        ),
+    )
+
+
+class BudgetCommitment(BaseModel):
+    """Append-only (docs/02 §8): a row is added when a PO is approved and
+    never removed, only released as GRNs come in against it. `source_id` is
+    polymorphic (a purchase order today, a contract later) and carries no
+    foreign key — budgets must not depend on procurement's tables."""
+
+    __tablename__ = "budget_commitments"
+    __audited__ = True
+
+    budget_line_id: Mapped[UUID] = mapped_column(
+        ForeignKey("budget_lines.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    source_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    source_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
+    released_amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default=CommitmentStatus.OPEN.value
+    )
+
+    __table_args__ = (
+        Index("ix_budget_commitments_source", "source_type", "source_id"),
+        enum_check("source_type", CommitmentSourceType),
+        enum_check("status", CommitmentStatus),
+        non_negative("amount"),
+        non_negative("released_amount"),
+        CheckConstraint("released_amount <= amount", name="released_not_over_committed"),
     )

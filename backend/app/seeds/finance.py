@@ -18,10 +18,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.access import system_access_context
 from app.core.types import utcnow
-from app.modules.finance.domain.enums import AccountType
-from app.modules.finance.models import Account, AccountingPeriod
+from app.modules.finance.domain.enums import AccountType, JournalSourceType
+from app.modules.finance.models import Account, AccountingPeriod, PostingRule
 from app.modules.finance.services import accounts as accounts_service
 from app.modules.finance.services import periods as periods_service
+from app.modules.finance.services import posting_rules as posting_rules_service
 from app.modules.org.models import Company
 from app.seeds.registry import SeedResult
 
@@ -109,4 +110,100 @@ async def seed_periods(session: AsyncSession, company: Company) -> SeedResult:
         rows = await periods_service.generate_fiscal_year(session, ctx, fiscal_year)
         result.created += len(rows) - existing
         result.skipped += existing
+    return result
+
+
+# (name, condition, debit code, credit code) for event="RECEIPT". A stockable
+# material's cost sits in inventory until it is issued; a non-stockable one
+# (a contractor's work, say) is a development cost the moment it is received.
+# A receipt with a purchase order behind it accrues (2110) until the vendor's
+# invoice is matched (4c); one with none — a counter purchase, whose bill
+# stands in for the invoice — is already payable (2100).
+_POSTING_RULES: tuple[tuple[str, dict[str, object], str, str], ...] = (
+    (
+        "Stockable material, against a purchase order",
+        {"and": [{"==": [{"var": "is_stockable"}, True]}, {"==": [{"var": "is_po_backed"}, True]}]},
+        "1400",
+        "2110",
+    ),
+    (
+        "Stockable material, bought over the counter",
+        {
+            "and": [
+                {"==": [{"var": "is_stockable"}, True]},
+                {"==": [{"var": "is_po_backed"}, False]},
+            ]
+        },
+        "1400",
+        "2100",
+    ),
+    (
+        "Non-stockable material, against a purchase order",
+        {
+            "and": [
+                {"==": [{"var": "is_stockable"}, False]},
+                {"==": [{"var": "is_po_backed"}, True]},
+            ]
+        },
+        "6200",
+        "2110",
+    ),
+    (
+        "Non-stockable material, bought over the counter",
+        {
+            "and": [
+                {"==": [{"var": "is_stockable"}, False]},
+                {"==": [{"var": "is_po_backed"}, False]},
+            ]
+        },
+        "6200",
+        "2100",
+    ),
+)
+
+
+async def seed_posting_rules(session: AsyncSession, company: Company) -> SeedResult:
+    result = SeedResult("posting rules")
+    ctx = system_access_context(company.id, UUID(int=0))
+    codes = {
+        a.code: a.id
+        for a in (
+            await session.execute(
+                select(Account).where(
+                    Account.company_id == company.id,
+                    Account.code.in_({c for _, _, d, cr in _POSTING_RULES for c in (d, cr)}),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    }
+    for name, condition, debit_code, credit_code in _POSTING_RULES:
+        existing = await session.scalar(
+            select(func.count())
+            .select_from(PostingRule)
+            .where(
+                PostingRule.company_id == company.id,
+                PostingRule.source_type == JournalSourceType.GRN.value,
+                PostingRule.event == "RECEIPT",
+                PostingRule.name == name,
+            )
+        )
+        if existing:
+            result.skipped += 1
+            continue
+        row = await posting_rules_service.create(
+            session,
+            ctx,
+            posting_rules_service.PostingRuleInput(
+                source_type=JournalSourceType.GRN,
+                event="RECEIPT",
+                name=name,
+                condition=condition,
+                debit_account_id=codes[debit_code],
+                credit_account_id=codes[credit_code],
+            ),
+        )
+        row.created_by_id = None
+        result.created += 1
     return result

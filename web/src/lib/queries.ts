@@ -9,6 +9,7 @@ import type {
   MaterialCategoryRead,
   MaterialListItem,
   ProjectListItem,
+  ProjectPhaseRead,
   RoleRead,
   SiteListItem,
   TruckTypeRead,
@@ -86,6 +87,23 @@ export const useSiteOptions = (projectId?: string) =>
     (s) => ({ value: s.id, label: `${s.code} — ${s.name}` }),
     { sort: "code", project_id: projectId },
   );
+
+/** A project's own phases — there is no cross-project listing, unlike sites. */
+export const usePhaseOptions = (projectId: string | undefined) => {
+  const allowed = useCan("projects.view");
+  const result = useQuery({
+    queryKey: ["project-phases", "lookup", projectId],
+    queryFn: () => api.get<ProjectPhaseRead[]>(`/projects/${projectId}/phases`),
+    staleTime: MASTER_STALE,
+    enabled: allowed && Boolean(projectId),
+  });
+  const rows = result.data ?? [];
+  return {
+    options: rows.map((p) => ({ value: p.id, label: `${p.code} — ${p.name}` })),
+    rows,
+    isLoading: result.isLoading,
+  };
+};
 
 export const useUnitOptions = () =>
   useLookup<UnitRead>(
