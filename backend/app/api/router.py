@@ -13,6 +13,7 @@ from app.modules.approvals.api import routes as approval_routes
 from app.modules.deliveries.api import review_routes as delivery_review_routes
 from app.modules.deliveries.api import routes as delivery_routes
 from app.modules.documents.api import routes as document_routes
+from app.modules.finance.api import routes as finance_routes
 from app.modules.grn.api import routes as grn_routes
 from app.modules.identity.api import routes as identity_routes
 from app.modules.identity.api import user_routes as identity_user_routes
@@ -63,5 +64,6 @@ api_router.include_router(stock_routes.issue_router)
 api_router.include_router(stock_routes.transfer_router)
 api_router.include_router(stock_routes.adjustment_router)
 api_router.include_router(sync_routes.router)
+api_router.include_router(finance_routes.router)
 
 # Registered as each module lands:

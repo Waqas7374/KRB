@@ -32,6 +32,11 @@ import {
   ArrowRightLeft,
   LayoutDashboard,
   TrendingUp,
+  Landmark,
+  CalendarRange,
+  BookText,
+  Table2,
+  NotebookText,
 } from "lucide-react";
 
 export interface NavItem {
@@ -140,6 +145,41 @@ export const NAVIGATION: NavSection[] = [
         to: "/inventory/adjustments",
         icon: SlidersHorizontal,
         permission: "inventory.view",
+      },
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      {
+        label: "Chart of accounts",
+        to: "/finance/accounts",
+        icon: Landmark,
+        permission: "finance.coa.view",
+      },
+      {
+        label: "Accounting periods",
+        to: "/finance/periods",
+        icon: CalendarRange,
+        permission: "finance.gl.view",
+      },
+      {
+        label: "Journal entries",
+        to: "/finance/journal-entries",
+        icon: BookText,
+        permission: "finance.gl.view",
+      },
+      {
+        label: "Trial balance",
+        to: "/finance/trial-balance",
+        icon: Table2,
+        permission: "finance.gl.view",
+      },
+      {
+        label: "General ledger",
+        to: "/finance/general-ledger",
+        icon: NotebookText,
+        permission: "finance.gl.view",
       },
     ],
   },

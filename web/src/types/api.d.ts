@@ -2776,10 +2776,361 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/finance/accounts": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Accounts */
+    get: operations["list_accounts_api_v1_finance_accounts_get"];
+    put?: never;
+    /** Create Account */
+    post: operations["create_account_api_v1_finance_accounts_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/accounts/tree": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The chart of accounts as a tree, for the CoA screen and account pickers */
+    get: operations["accounts_tree_api_v1_finance_accounts_tree_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/accounts/{account_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Account */
+    get: operations["get_account_api_v1_finance_accounts__account_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Update Account */
+    patch: operations["update_account_api_v1_finance_accounts__account_id__patch"];
+    trace?: never;
+  };
+  "/api/v1/finance/periods": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Periods */
+    get: operations["list_periods_api_v1_finance_periods_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/periods/generate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Create the twelve periods of a fiscal year. Safe to call again for the same year. */
+    post: operations["generate_periods_api_v1_finance_periods_generate_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/periods/{period_id}/close": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Close Period */
+    post: operations["close_period_api_v1_finance_periods__period_id__close_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/periods/{period_id}/reopen": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Reopen Period */
+    post: operations["reopen_period_api_v1_finance_periods__period_id__reopen_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/periods/{period_id}/lock": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Lock Period */
+    post: operations["lock_period_api_v1_finance_periods__period_id__lock_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/journal-entries": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Journal Entries */
+    get: operations["list_journal_entries_api_v1_finance_journal_entries_get"];
+    put?: never;
+    /** Draft a manual journal entry. It moves nothing until it is approved. */
+    post: operations["create_journal_entry_api_v1_finance_journal_entries_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/journal-entries/{je_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Journal Entry */
+    get: operations["get_journal_entry_api_v1_finance_journal_entries__je_id__get"];
+    /** Edit a draft (or a rejected entry, which is a draft again) */
+    put: operations["update_journal_entry_api_v1_finance_journal_entries__je_id__put"];
+    post?: never;
+    /** Delete a draft that never happened: there is nothing yet for the ledger to protect */
+    delete: operations["delete_journal_entry_api_v1_finance_journal_entries__je_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/journal-entries/{je_id}/submit": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Submit Journal Entry */
+    post: operations["submit_journal_entry_api_v1_finance_journal_entries__je_id__submit_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/journal-entries/{je_id}/withdraw": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Withdraw Journal Entry */
+    post: operations["withdraw_journal_entry_api_v1_finance_journal_entries__je_id__withdraw_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/journal-entries/{je_id}/reverse": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Post a new entry with every line reversed. The original is marked REVERSED. */
+    post: operations["reverse_journal_entry_api_v1_finance_journal_entries__je_id__reverse_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/trial-balance": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Trial Balance */
+    get: operations["get_trial_balance_api_v1_finance_trial_balance_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/general-ledger": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get General Ledger */
+    get: operations["get_general_ledger_api_v1_finance_general_ledger_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** AccountCreate */
+    AccountCreate: {
+      /** Code */
+      code: string;
+      /** Name */
+      name: string;
+      account_type: components["schemas"]["AccountType"];
+      /** Parent Id */
+      parent_id?: string | null;
+      /**
+       * Requires Project
+       * @default false
+       */
+      requires_project: boolean;
+      /**
+       * Requires Cost Center
+       * @default false
+       */
+      requires_cost_center: boolean;
+      /** Description */
+      description?: string | null;
+    };
+    /** AccountEdit */
+    AccountEdit: {
+      /** Name */
+      name?: string | null;
+      /** Description */
+      description?: string | null;
+      /** Requires Project */
+      requires_project?: boolean | null;
+      /** Requires Cost Center */
+      requires_cost_center?: boolean | null;
+      /** Is Active */
+      is_active?: boolean | null;
+    };
+    /** AccountNodeRead */
+    AccountNodeRead: {
+      account: components["schemas"]["AccountRead"];
+      /**
+       * Children
+       * @default []
+       */
+      children: components["schemas"]["AccountNodeRead"][];
+    };
+    /** AccountRead */
+    AccountRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Code */
+      code: string;
+      /** Name */
+      name: string;
+      /** Account Type */
+      account_type: string;
+      /** Normal Balance */
+      normal_balance: string;
+      /** Parent Id */
+      parent_id: string | null;
+      /** Path */
+      path: string;
+      /** Is Postable */
+      is_postable: boolean;
+      /** Requires Project */
+      requires_project: boolean;
+      /** Requires Cost Center */
+      requires_cost_center: boolean;
+      /** Is Active */
+      is_active: boolean;
+      /** Description */
+      description: string | null;
+      /** Version */
+      version: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /**
+     * AccountType
+     * @enum {string}
+     */
+    AccountType: "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE" | "COGS_DEV_COST";
     /** ActionRead */
     ActionRead: {
       /**
@@ -3306,11 +3657,6 @@ export interface components {
      * @enum {string}
      */
     CalibrationStatus: "PENDING" | "APPLIED" | "DISCARDED";
-    /** CancelBody */
-    CancelBody: {
-      /** Reason */
-      reason: string;
-    };
     /** ChangePasswordRequest */
     ChangePasswordRequest: {
       /** Current Password */
@@ -4297,6 +4643,59 @@ export interface components {
       /** Identifier */
       identifier: string;
     };
+    /** GeneralLedgerRead */
+    GeneralLedgerRead: {
+      /**
+       * Account Id
+       * Format: uuid
+       */
+      account_id: string;
+      /** Account Code */
+      account_code: string;
+      /** Account Name */
+      account_name: string;
+      /** Opening Balance */
+      opening_balance: string;
+      /** Rows */
+      rows: components["schemas"]["GeneralLedgerRowRead"][];
+      /** Closing Balance */
+      closing_balance: string;
+    };
+    /** GeneralLedgerRowRead */
+    GeneralLedgerRowRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Je Id
+       * Format: uuid
+       */
+      je_id: string;
+      /** Je Number */
+      je_number: string;
+      /**
+       * Entry Date
+       * Format: date
+       */
+      entry_date: string;
+      /** Description */
+      description: string;
+      /** Line Description */
+      line_description: string | null;
+      /** Debit */
+      debit: string;
+      /** Credit */
+      credit: string;
+      /** Running Balance */
+      running_balance: string;
+    };
+    /** GenerateFiscalYear */
+    GenerateFiscalYear: {
+      /** Fiscal Year */
+      fiscal_year: number;
+    };
     /**
      * GeofenceUpdate
      * @description Set a site's geofence.
@@ -4812,6 +5211,236 @@ export interface components {
      * @enum {string}
      */
     IssuedToType: "EMPLOYEE" | "CONTRACTOR" | "WORK_ORDER";
+    /** JournalEntryCreate */
+    JournalEntryCreate: {
+      /**
+       * Entry Date
+       * Format: date
+       */
+      entry_date: string;
+      /** Description */
+      description: string;
+      /** Reference */
+      reference?: string | null;
+      /** Lines */
+      lines: components["schemas"]["JournalLineIn"][];
+    };
+    /** JournalEntryListItem */
+    JournalEntryListItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Je Number */
+      je_number: string;
+      /**
+       * Entry Date
+       * Format: date
+       */
+      entry_date: string;
+      /** Source Type */
+      source_type: string;
+      /** Description */
+      description: string;
+      /** Reference */
+      reference: string | null;
+      /** Status */
+      status: string;
+      /** Total Debit */
+      total_debit: string;
+      /** Total Credit */
+      total_credit: string;
+      /** Posted At */
+      posted_at: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /** JournalEntryRead */
+    JournalEntryRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Je Number */
+      je_number: string;
+      /**
+       * Entry Date
+       * Format: date
+       */
+      entry_date: string;
+      /** Source Type */
+      source_type: string;
+      /** Description */
+      description: string;
+      /** Reference */
+      reference: string | null;
+      /** Status */
+      status: string;
+      /** Total Debit */
+      total_debit: string;
+      /** Total Credit */
+      total_credit: string;
+      /** Posted At */
+      posted_at: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Source Id */
+      source_id: string | null;
+      /**
+       * Period Id
+       * Format: uuid
+       */
+      period_id: string;
+      /** Fiscal Year */
+      fiscal_year?: number | null;
+      /** Period No */
+      period_no?: number | null;
+      /** Submitted At */
+      submitted_at: string | null;
+      /** Approval Request Id */
+      approval_request_id: string | null;
+      /** Decision Reason */
+      decision_reason: string | null;
+      /** Posted By Id */
+      posted_by_id: string | null;
+      /** Reversal Of Id */
+      reversal_of_id: string | null;
+      /** Reversed At */
+      reversed_at: string | null;
+      /** Version */
+      version: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Lines */
+      lines: components["schemas"]["JournalLineRead"][];
+      /**
+       * Can Edit
+       * @default false
+       */
+      can_edit: boolean;
+      /**
+       * Can Submit
+       * @default false
+       */
+      can_submit: boolean;
+      /**
+       * Can Withdraw
+       * @default false
+       */
+      can_withdraw: boolean;
+      /**
+       * Can Delete
+       * @default false
+       */
+      can_delete: boolean;
+      /**
+       * Can Reverse
+       * @default false
+       */
+      can_reverse: boolean;
+    };
+    /** JournalLineIn */
+    JournalLineIn: {
+      /**
+       * Account Id
+       * Format: uuid
+       */
+      account_id: string;
+      /**
+       * Debit
+       * @default 0
+       */
+      debit: number | string;
+      /**
+       * Credit
+       * @default 0
+       */
+      credit: number | string;
+      /** Description */
+      description?: string | null;
+      /** Project Id */
+      project_id?: string | null;
+      /** Phase Id */
+      phase_id?: string | null;
+      /** Site Id */
+      site_id?: string | null;
+      /** Department Id */
+      department_id?: string | null;
+      /** Cost Center Id */
+      cost_center_id?: string | null;
+      /** Vendor Id */
+      vendor_id?: string | null;
+      /** Customer Id */
+      customer_id?: string | null;
+      /** Employee Id */
+      employee_id?: string | null;
+      /** Material Id */
+      material_id?: string | null;
+    };
+    /** JournalLineRead */
+    JournalLineRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Line No */
+      line_no: number;
+      /**
+       * Account Id
+       * Format: uuid
+       */
+      account_id: string;
+      /** Account Code */
+      account_code?: string | null;
+      /** Account Name */
+      account_name?: string | null;
+      /** Debit */
+      debit: string;
+      /** Credit */
+      credit: string;
+      /** Description */
+      description: string | null;
+      /** Project Id */
+      project_id: string | null;
+      /** Project Code */
+      project_code?: string | null;
+      /** Phase Id */
+      phase_id: string | null;
+      /** Site Id */
+      site_id: string | null;
+      /** Site Code */
+      site_code?: string | null;
+      /** Department Id */
+      department_id: string | null;
+      /** Cost Center Id */
+      cost_center_id: string | null;
+      /** Cost Center Code */
+      cost_center_code?: string | null;
+      /** Vendor Id */
+      vendor_id: string | null;
+      /** Vendor Name */
+      vendor_name?: string | null;
+      /** Customer Id */
+      customer_id: string | null;
+      /** Employee Id */
+      employee_id: string | null;
+      /** Material Id */
+      material_id: string | null;
+      /** Material Name */
+      material_name?: string | null;
+    };
     /** LedgerRead */
     LedgerRead: {
       /**
@@ -5400,6 +6029,16 @@ export interface components {
       /** Next Cursor */
       next_cursor?: string | null;
     };
+    /** Page[AccountRead] */
+    Page_AccountRead_: {
+      /** Items */
+      items: components["schemas"]["AccountRead"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
     /** Page[AdjustmentListItem] */
     Page_AdjustmentListItem_: {
       /** Items */
@@ -5474,6 +6113,16 @@ export interface components {
     Page_IssueListItem_: {
       /** Items */
       items: components["schemas"]["IssueListItem"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
+    /** Page[JournalEntryListItem] */
+    Page_JournalEntryListItem_: {
+      /** Items */
+      items: components["schemas"]["JournalEntryListItem"][];
       page: components["schemas"]["PageMeta"];
       /** Meta */
       meta?: {
@@ -5688,6 +6337,36 @@ export interface components {
        * @default Password reset issued.
        */
       message: string;
+    };
+    /** PeriodRead */
+    PeriodRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Fiscal Year */
+      fiscal_year: number;
+      /** Period No */
+      period_no: number;
+      /**
+       * Start Date
+       * Format: date
+       */
+      start_date: string;
+      /**
+       * End Date
+       * Format: date
+       */
+      end_date: string;
+      /** Status */
+      status: string;
+      /** Closed By Id */
+      closed_by_id: string | null;
+      /** Closed At */
+      closed_at: string | null;
+      /** Version */
+      version: number;
     };
     /** PermissionRead */
     PermissionRead: {
@@ -8484,6 +9163,38 @@ export interface components {
        */
       can_cancel: boolean;
     };
+    /** TrialBalanceRead */
+    TrialBalanceRead: {
+      /**
+       * As Of
+       * Format: date
+       */
+      as_of: string;
+      /** Rows */
+      rows: components["schemas"]["TrialBalanceRowRead"][];
+      /** Total Debit */
+      total_debit: string;
+      /** Total Credit */
+      total_credit: string;
+    };
+    /** TrialBalanceRowRead */
+    TrialBalanceRowRead: {
+      /**
+       * Account Id
+       * Format: uuid
+       */
+      account_id: string;
+      /** Code */
+      code: string;
+      /** Name */
+      name: string;
+      /** Account Type */
+      account_type: string;
+      /** Debit */
+      debit: string;
+      /** Credit */
+      credit: string;
+    };
     /** TruckTypeCreate */
     TruckTypeCreate: {
       /** Code */
@@ -9343,8 +10054,23 @@ export interface components {
       /** Comments */
       comments?: string | null;
     };
+    /** CancelBody */
+    app__modules__finance__schemas__CancelBody: {
+      /** Reason */
+      reason: string;
+    };
+    /** CancelBody */
+    app__modules__grn__schemas__CancelBody: {
+      /** Reason */
+      reason: string;
+    };
     /** ReasonBody */
     app__modules__procurement__sourcing_schemas__ReasonBody: {
+      /** Reason */
+      reason: string;
+    };
+    /** CancelBody */
+    app__modules__stock__schemas__CancelBody: {
       /** Reason */
       reason: string;
     };
@@ -15295,7 +16021,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["CancelBody"];
+        "application/json": components["schemas"]["app__modules__grn__schemas__CancelBody"];
       };
     };
     responses: {
@@ -15605,7 +16331,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["CancelBody"];
+        "application/json": components["schemas"]["app__modules__stock__schemas__CancelBody"];
       };
     };
     responses: {
@@ -15808,7 +16534,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["CancelBody"];
+        "application/json": components["schemas"]["app__modules__stock__schemas__CancelBody"];
       };
     };
     responses: {
@@ -16022,7 +16748,8 @@ export interface operations {
     };
     requestBody?: {
       content: {
-        "application/json": components["schemas"]["CancelBody"] | null;
+        "application/json":
+          components["schemas"]["app__modules__stock__schemas__CancelBody"] | null;
       };
     };
     responses: {
@@ -16057,7 +16784,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["CancelBody"];
+        "application/json": components["schemas"]["app__modules__stock__schemas__CancelBody"];
       };
     };
     responses: {
@@ -16138,6 +16865,667 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["PullResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_accounts_api_v1_finance_accounts_get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        account_type?: string | null;
+        is_active?: boolean | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_AccountRead_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_account_api_v1_finance_accounts_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AccountCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AccountRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  accounts_tree_api_v1_finance_accounts_tree_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AccountNodeRead"][];
+        };
+      };
+    };
+  };
+  get_account_api_v1_finance_accounts__account_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        account_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AccountRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_account_api_v1_finance_accounts__account_id__patch: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        account_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AccountEdit"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AccountRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_periods_api_v1_finance_periods_get: {
+    parameters: {
+      query?: {
+        fiscal_year?: number | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PeriodRead"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  generate_periods_api_v1_finance_periods_generate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["GenerateFiscalYear"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PeriodRead"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  close_period_api_v1_finance_periods__period_id__close_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        period_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PeriodRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  reopen_period_api_v1_finance_periods__period_id__reopen_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        period_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PeriodRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  lock_period_api_v1_finance_periods__period_id__lock_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        period_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PeriodRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_journal_entries_api_v1_finance_journal_entries_get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        status?: string[] | null;
+        source_type?: string | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_JournalEntryListItem_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_journal_entry_api_v1_finance_journal_entries_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["JournalEntryCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["JournalEntryRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_journal_entry_api_v1_finance_journal_entries__je_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        je_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["JournalEntryRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_journal_entry_api_v1_finance_journal_entries__je_id__put: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        je_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["JournalEntryCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["JournalEntryRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_journal_entry_api_v1_finance_journal_entries__je_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        je_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  submit_journal_entry_api_v1_finance_journal_entries__je_id__submit_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        je_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["JournalEntryRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  withdraw_journal_entry_api_v1_finance_journal_entries__je_id__withdraw_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        je_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json":
+          components["schemas"]["app__modules__finance__schemas__CancelBody"] | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["JournalEntryRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  reverse_journal_entry_api_v1_finance_journal_entries__je_id__reverse_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        je_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["app__modules__finance__schemas__CancelBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["JournalEntryRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_trial_balance_api_v1_finance_trial_balance_get: {
+    parameters: {
+      query?: {
+        as_of?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TrialBalanceRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_general_ledger_api_v1_finance_general_ledger_get: {
+    parameters: {
+      query: {
+        account_id: string;
+        from_date?: string | null;
+        to_date?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GeneralLedgerRead"];
         };
       };
       /** @description Validation Error */

@@ -34,13 +34,9 @@ def upgrade() -> None:
     # statement, then is dropped so future inserts must supply a value (the
     # model default is Python-side, matching every other MasterDataModel
     # table's version column).
-    op.add_column(
-        "roles", sa.Column("version", sa.Integer(), nullable=False, server_default="1")
-    )
+    op.add_column("roles", sa.Column("version", sa.Integer(), nullable=False, server_default="1"))
     op.alter_column("roles", "version", server_default=None)
-    op.add_column(
-        "users", sa.Column("version", sa.Integer(), nullable=False, server_default="1")
-    )
+    op.add_column("users", sa.Column("version", sa.Integer(), nullable=False, server_default="1"))
     op.alter_column("users", "version", server_default=None)
 
 

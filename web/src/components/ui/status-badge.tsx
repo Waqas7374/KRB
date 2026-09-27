@@ -51,6 +51,7 @@ const TONES: Record<string, Tone> = {
   DECLINED: "danger",
   CHANGES_REQUESTED: "warning",
   DEACTIVATED: "neutral",
+  REVERSED: "neutral",
 };
 
 const toneClass: Record<Tone, { dot: string; text: string }> = {

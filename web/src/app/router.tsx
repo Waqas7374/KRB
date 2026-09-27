@@ -160,6 +160,16 @@ const AdjustmentListPage = page(adjustmentPages, "AdjustmentListPage");
 const AdjustmentFormPage = page(adjustmentPages, "AdjustmentFormPage");
 const AdjustmentDetailPage = page(adjustmentPages, "AdjustmentDetailPage");
 
+const AccountsPage = page(() => import("@/features/finance/AccountsPage"), "AccountsPage");
+const PeriodsPage = page(() => import("@/features/finance/PeriodsPage"), "PeriodsPage");
+const jePages = () => import("@/features/finance/JournalEntryPages");
+const JournalEntryListPage = page(jePages, "JournalEntryListPage");
+const JournalEntryFormPage = page(jePages, "JournalEntryFormPage");
+const JournalEntryDetailPage = page(jePages, "JournalEntryDetailPage");
+const financeReportPages = () => import("@/features/finance/ReportsPages");
+const TrialBalancePage = page(financeReportPages, "TrialBalancePage");
+const GeneralLedgerPage = page(financeReportPages, "GeneralLedgerPage");
+
 const gate = (permission: string, element: ReactNode) => (
   <RequirePermission permission={permission}>{element}</RequirePermission>
 );
@@ -266,6 +276,27 @@ export const router = createBrowserRouter([
         path: "inventory/adjustments/:adjustmentId/edit",
         element: gate("inventory.adjust", <AdjustmentFormPage />),
       },
+
+      { path: "finance/accounts", element: gate("finance.coa.view", <AccountsPage />) },
+      { path: "finance/periods", element: gate("finance.gl.view", <PeriodsPage />) },
+      {
+        path: "finance/journal-entries",
+        element: gate("finance.gl.view", <JournalEntryListPage />),
+      },
+      {
+        path: "finance/journal-entries/new",
+        element: gate("finance.gl.create", <JournalEntryFormPage />),
+      },
+      {
+        path: "finance/journal-entries/:jeId",
+        element: gate("finance.gl.view", <JournalEntryDetailPage />),
+      },
+      {
+        path: "finance/journal-entries/:jeId/edit",
+        element: gate("finance.gl.create", <JournalEntryFormPage />),
+      },
+      { path: "finance/trial-balance", element: gate("finance.gl.view", <TrialBalancePage />) },
+      { path: "finance/general-ledger", element: gate("finance.gl.view", <GeneralLedgerPage />) },
       { path: "rfqs", element: gate("procurement.rfq.view", <RfqsListPage />) },
       { path: "rfqs/new", element: gate("procurement.rfq.create", <RfqFormPage />) },
       { path: "rfqs/:rfqId", element: gate("procurement.rfq.view", <RfqDetailPage />) },

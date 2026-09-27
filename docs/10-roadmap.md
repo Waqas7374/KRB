@@ -99,11 +99,16 @@ auto-posting · vendor invoices and the 3-way match with tolerance · payment re
 allocations · AP ageing · budgets, budget lines, commitment consumption, budget vs actual ·
 project costing · minimal AR (customers, invoices, receipts).
 
+**Progress (2026-09-27): slice 4a done** — chart of accounts, accounting periods, manual journal
+entries (full dimension set, approval-gated, a deferred trigger enforcing debit = credit), trial
+balance and general ledger; see [19-phase-4-delivery](19-phase-4-delivery.md). Posting rules, GRN
+auto-posting, budgets, vendor invoices, payments and AR remain.
+
 **Done when:** approving a GRN produces a balanced journal entry, consumes the PO commitment,
 increments budget actuals and moves stock — all in one transaction, and the trial balance balances
 after the seeded dataset is fully processed.
 
-*Depends on open decisions Q1 (jurisdiction) and Q2 (book of record).*
+*Depends on open decisions Q1 (jurisdiction) and Q2 (book of record) — both answered, docs/12.*
 
 ---
 

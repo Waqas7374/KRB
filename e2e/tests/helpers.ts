@@ -11,6 +11,8 @@ export const USERS = {
   auditor: "auditor@krb.example",
   siteStaff: "staff.gvh1@krb.example",
   accounts: "accounts@krb.example",
+  finance: "finance@krb.example",
+  ceo: "ceo@krb.example",
 } as const;
 
 /** Sign in through the real login screen and wait for the shell. */

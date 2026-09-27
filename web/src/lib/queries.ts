@@ -3,6 +3,8 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useCan } from "@/features/auth/use-can";
 import { api, type Page } from "@/lib/api";
 import type {
+  AccountRead,
+  CostCenterRead,
   DepartmentRead,
   MaterialCategoryRead,
   MaterialListItem,
@@ -110,6 +112,22 @@ export const useDepartmentOptions = () =>
     value: d.id,
     label: `${d.code} — ${d.name}`,
   }));
+
+export const useCostCenterOptions = () =>
+  useLookup<CostCenterRead>("cost-centers", "/cost-centers", "departments.view", (c) => ({
+    value: c.id,
+    label: `${c.code} — ${c.name}`,
+  }));
+
+/** Postable accounts only — a manual line can never target a group account. */
+export const useAccountOptions = () =>
+  useLookup<AccountRead>(
+    "finance-accounts",
+    "/finance/accounts",
+    "finance.coa.view",
+    (a) => ({ value: a.id, label: `${a.code} — ${a.name}` }),
+    { sort: "code" },
+  );
 
 export const useRoleOptions = () =>
   useLookup<RoleRead>("roles", "/roles", "roles.view", (r) => ({

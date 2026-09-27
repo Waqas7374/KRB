@@ -162,3 +162,21 @@ export type RuleVerdict = S["VerdictRead"];
 
 export type NotificationInbox = S["NotificationInbox"];
 export type NotificationRead = S["NotificationRead"];
+
+export type AccountType = S["AccountType"];
+export type AccountRead = S["AccountRead"];
+export type AccountNodeRead = S["AccountNodeRead"];
+export type AccountCreate = S["AccountCreate"];
+export type AccountEdit = S["AccountEdit"];
+export type PeriodRead = S["PeriodRead"];
+export type GenerateFiscalYear = S["GenerateFiscalYear"];
+export type JournalLineIn = S["JournalLineIn"];
+export type JournalLineRead = S["JournalLineRead"];
+export type JournalEntryListItem = S["JournalEntryListItem"];
+export type JournalEntryRead = S["JournalEntryRead"];
+export type JournalEntryCreate = S["JournalEntryCreate"];
+export type TrialBalanceRead = S["TrialBalanceRead"];
+export type TrialBalanceRowRead = S["TrialBalanceRowRead"];
+export type GeneralLedgerRead = S["GeneralLedgerRead"];
+export type GeneralLedgerRowRead = S["GeneralLedgerRowRead"];
+export type FinanceCancelBody = S["app__modules__finance__schemas__CancelBody"];

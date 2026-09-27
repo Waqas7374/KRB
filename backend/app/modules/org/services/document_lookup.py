@@ -46,9 +46,11 @@ async def codes(
     project_ids: set[UUID],
     site_ids: set[UUID] | None = None,
     phase_ids: set[UUID] | None = None,
+    department_ids: set[UUID] | None = None,
+    cost_center_ids: set[UUID] | None = None,
 ) -> dict[UUID, tuple[str, str]]:
-    """id -> (code, name) for a batch of projects, sites and phases, for list
-    screens that show codes without a query per row."""
+    """id -> (code, name) for a batch of projects, sites, phases, departments
+    and cost centres, for list screens that show codes without a query per row."""
     out: dict[UUID, tuple[str, str]] = {}
     if project_ids:
         rows = await session.execute(
@@ -68,6 +70,20 @@ async def codes(
         rows = await session.execute(
             select(ProjectPhase.id, ProjectPhase.code, ProjectPhase.name).where(
                 ProjectPhase.id.in_(list(phase_ids))
+            )
+        )
+        out.update({i: (c, n) for i, c, n in rows.tuples().all()})
+    if department_ids:
+        rows = await session.execute(
+            select(Department.id, Department.code, Department.name).where(
+                Department.company_id == company_id, Department.id.in_(list(department_ids))
+            )
+        )
+        out.update({i: (c, n) for i, c, n in rows.tuples().all()})
+    if cost_center_ids:
+        rows = await session.execute(
+            select(CostCenter.id, CostCenter.code, CostCenter.name).where(
+                CostCenter.company_id == company_id, CostCenter.id.in_(list(cost_center_ids))
             )
         )
         out.update({i: (c, n) for i, c, n in rows.tuples().all()})

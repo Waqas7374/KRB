@@ -85,6 +85,7 @@ STANDARD_ROLES: Final[tuple[RoleDef, ...]] = (
             "rates.approve",
             "finance.budget.approve",
             "finance.payment.approve",
+            "finance.gl.post",
             "projects.close",
         ),
         allowed_scopes=(ScopeType.COMPANY,),

@@ -17,6 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.access import system_access_context
 from app.modules.approvals.models import ApprovalWorkflow
 from app.modules.approvals.services import workflow_service
+
+# Importing the service registers the journal-entry approval handler.
+from app.modules.finance.services import journal_entries
 from app.modules.org.models import Company
 
 # Importing the service registers the purchase-request approval handler.
@@ -174,6 +177,30 @@ STOCK_ADJUSTMENT_WORKFLOW: dict[str, Any] = {
     ]
 }
 
+# A manual journal entry is the one posting that is not the automatic result of
+# an already-approved document, so it goes through finance's own signature: under
+# 100,000 finance alone, at or above it finance plus the executive. When finance
+# itself raises the entry, the finance step has nobody eligible to act (a person
+# cannot approve their own step) and escalates to the executive on its SLA.
+_JE_FINANCE = {**_FINANCE, "escalate_to_type": "ROLE", "escalate_to_ref": "EXECUTIVE"}
+
+JOURNAL_ENTRY_WORKFLOW: dict[str, Any] = {
+    "rules": [
+        {
+            "sequence": 10,
+            "name": "Below 100,000",
+            "condition": {"<": [{"var": "amount_abs"}, 100000]},
+            "steps": _steps(_JE_FINANCE),
+        },
+        {
+            "sequence": 99,
+            "name": "100,000 or more",
+            "condition": True,
+            "steps": _steps(_JE_FINANCE, _EXECUTIVE),
+        },
+    ]
+}
+
 _DEFAULTS = (
     (
         purchase_requests.DOC_TYPE,
@@ -192,6 +219,12 @@ _DEFAULTS = (
         "Vendor rate approval",
         "Small changes and first rates approve themselves; larger ones go to finance.",
         VENDOR_RATE_WORKFLOW,
+    ),
+    (
+        journal_entries.DOC_TYPE,
+        "Journal entry approval",
+        "Every manual entry is signed by finance; 100,000 and above also needs the executive.",
+        JOURNAL_ENTRY_WORKFLOW,
     ),
     (
         adjustments.DOC_TYPE,
