@@ -10,9 +10,10 @@ GVH-S1-YARD.
 
 from __future__ import annotations
 
+from datetime import timedelta
 from decimal import Decimal
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import AsyncClient
@@ -628,3 +629,269 @@ class TestLedgerGuarantees:
         alarms = [n for n in inbox if n["notification_type"] == "INVENTORY_INTEGRITY_ALARM"]
         assert len(alarms) == 1 and alarms[0]["priority"] == "URGENT"
         assert utcnow() is not None
+
+
+class TestPrintout:
+    async def test_the_note_prints_as_a_real_pdf_named_for_it(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        keys = await _keys(api, await login(ADMIN))
+        await _rate(api, await login(PROCUREMENT), keys, "100")
+        grn = await _grn(api, login, await _approved_delivery(api, login, keys, "10"))
+        for who in (MANAGER, PM):  # both may print it; only one sees valuation
+            response = await api.get(f"/grns/{grn['id']}/pdf", headers=await login(who))
+            assert response.status_code == 200, response.text
+            assert response.headers["content-type"] == "application/pdf"
+            assert response.content.startswith(b"%PDF")
+            assert f'filename="{grn["grn_number"]}.pdf"' in response.headers["content-disposition"]
+        assert (
+            await api.get(f"/grns/{grn['id']}/pdf", headers=await login(AUDITOR))
+        ).status_code == 200
+
+    async def test_someone_outside_the_scope_cannot_print_it(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        keys = await _keys(api, await login(ADMIN))
+        await _rate(api, await login(PROCUREMENT), keys, "100")
+        grn = await _grn(api, login, await _approved_delivery(api, login, keys, "10"))
+        elsewhere = await api.get(
+            f"/grns/{grn['id']}/pdf", headers=await login("pm.rsd@krb.example")
+        )
+        assert elsewhere.status_code == 404
+
+    async def test_the_document_never_shows_valuation_the_screen_would_hide(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        from app.modules.grn.api.grn_document import render_grn
+        from app.modules.grn.schemas import GrnRead
+
+        keys = await _keys(api, await login(ADMIN))
+        await _rate(api, await login(PROCUREMENT), keys, "100")
+        grn = await _grn(api, login, await _approved_delivery(api, login, keys, "10"))
+        as_manager = GrnRead.model_validate(
+            (await api.get(f"/grns/{grn['id']}", headers=await login(MANAGER))).json()
+        )
+        as_pm = GrnRead.model_validate(
+            (await api.get(f"/grns/{grn['id']}", headers=await login(PM))).json()
+        )
+        hidden = render_grn(as_manager, company_name="KRB")
+        shown = render_grn(as_pm, company_name="KRB")
+        assert (
+            "Amount" not in hidden and "Value received" not in hidden and "1,000.00" not in hidden
+        )
+        assert "Amount" in shown and "1,000.00" in shown
+        # A draft says so, so a printout cannot pass for the record of stock that moved.
+        assert "DRAFT — NO STOCK HAS MOVED" in hidden
+
+    async def test_a_posted_note_carries_no_banner_and_typed_text_cannot_inject_markup(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        from app.modules.grn.api.grn_document import render_grn
+        from app.modules.grn.schemas import GrnRead
+
+        keys = await _keys(api, await login(ADMIN))
+        await _rate(api, await login(PROCUREMENT), keys, "100")
+        grn = await _grn(api, login, await _approved_delivery(api, login, keys, "10"))
+        inspected = await api.patch(
+            f"/grns/{grn['id']}/inspection",
+            headers=await login(MANAGER),
+            json={
+                "lines": [
+                    {
+                        "grn_item_id": grn["items"][0]["id"],
+                        "accepted_quantity": "8",
+                        "rejection_reason": "<script>alert(1)</script>",
+                    }
+                ]
+            },
+        )
+        assert inspected.status_code == 200, inspected.text
+        posted = await _post(api, login, grn)
+        html = render_grn(
+            GrnRead.model_validate(
+                (await api.get(f"/grns/{posted['id']}", headers=await login(PM))).json()
+            ),
+            company_name="KRB & <Sons>",
+        )
+        assert "NO STOCK HAS MOVED" not in html and "CANCELLED" not in html
+        assert "<script>" not in html and "&lt;script&gt;" in html
+        assert "KRB &amp; &lt;Sons&gt;" in html
+
+
+class TestCounterPurchase:
+    """Stock bought over the counter: no delivery, no order, a bill instead."""
+
+    async def _body(
+        self, api: AsyncClient, login: Any, keys: dict[str, str], **extra: Any
+    ) -> dict[str, Any]:
+        warehouses = (
+            await api.get("/warehouses", headers=await login(ADMIN), params={"limit": 50})
+        ).json()["items"]
+        yard = next(w for w in warehouses if w["code"] == "GVH-S1-YARD")
+        body: dict[str, Any] = {
+            "warehouse_id": yard["id"],
+            "vendor_id": keys["vendor"],
+            "reference": f"BILL-{uuid4().hex[:6]}",
+            "lines": [
+                {
+                    "material_id": keys["crush"],
+                    "quantity": "10",
+                    "unit_id": keys["ton"],
+                    "rate": "95",
+                }
+            ],
+        }
+        body.update(extra)
+        return body
+
+    async def _create(
+        self, api: AsyncClient, login: Any, keys: dict[str, str], **extra: Any
+    ) -> dict[str, Any]:
+        made = await api.post(
+            "/grns", headers=await login(MANAGER), json=await self._body(api, login, keys, **extra)
+        )
+        assert made.status_code == 201, made.text
+        return made.json()  # type: ignore[no-any-return]
+
+    async def test_it_is_raised_priced_from_the_bill_and_posts_like_any_other_note(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        keys = await _keys(api, await login(ADMIN))
+        grn = await self._create(api, login, keys)
+        assert grn["status"] == "DRAFT" and grn["is_counter_purchase"] is True
+        assert grn["delivery_id"] is None and grn["counter_reference"].startswith("BILL-")
+        assert grn["prices_hidden"] is True  # the site manager may not see valuation
+        assert await _balance(api, login, keys) is None  # a draft moves no stock
+
+        as_pm = await _as_pm(api, login, grn)
+        assert Decimal(as_pm["items"][0]["amount"]) == Decimal(950)
+        assert as_pm["has_unpriced_lines"] is False and as_pm["can_post"] is True
+        posted = await _post(api, login, grn)
+        assert posted["status"] == "POSTED"
+        balance = await _balance(api, login, keys)
+        assert balance is not None
+        assert Decimal(balance["quantity_on_hand"]) == 10
+        assert Decimal(balance["average_cost"]) == Decimal(95)
+
+    async def test_inspection_prices_what_is_accepted_at_the_rate_on_the_bill(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        keys = await _keys(api, await login(ADMIN))
+        grn = await self._create(api, login, keys)
+        inspected = await api.patch(
+            f"/grns/{grn['id']}/inspection",
+            headers=await login(MANAGER),
+            json={
+                "lines": [
+                    {
+                        "grn_item_id": grn["items"][0]["id"],
+                        "accepted_quantity": "8",
+                        "rejection_reason": "Two bags split open",
+                    }
+                ]
+            },
+        )
+        assert inspected.status_code == 200, inspected.text
+        assert Decimal((await _as_pm(api, login, grn))["items"][0]["amount"]) == Decimal(760)
+        await _post(api, login, grn)
+        balance = await _balance(api, login, keys)
+        assert balance is not None
+        assert Decimal(balance["quantity_on_hand"]) == 8
+        assert Decimal(balance["average_cost"]) == Decimal(95)
+
+    async def test_a_bill_is_received_once_per_vendor_until_it_is_cancelled(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        keys = await _keys(api, await login(ADMIN))
+        first = await self._create(api, login, keys, reference="BILL-DUP-1")
+        again = await api.post(
+            "/grns",
+            headers=await login(MANAGER),
+            json=await self._body(api, login, keys, reference="BILL-DUP-1"),
+        )
+        assert again.status_code == 422 and again.json()["rule"] == "duplicate_reference"
+        # The same number from another vendor is a different bill.
+        other = await api.post(
+            "/grns",
+            headers=await login(MANAGER),
+            json=await self._body(
+                api, login, keys, reference="BILL-DUP-1", vendor_id=keys["vendor2"]
+            ),
+        )
+        assert other.status_code == 201, other.text
+        # Once the first is cancelled, its number is free again.
+        cancelled = await api.post(
+            f"/grns/{first['id']}/cancel",
+            headers=await login(ADMIN),
+            json={"reason": "Entered against the wrong store"},
+        )
+        assert cancelled.status_code == 200, cancelled.text
+        retry = await api.post(
+            "/grns",
+            headers=await login(MANAGER),
+            json=await self._body(api, login, keys, reference="BILL-DUP-1"),
+        )
+        assert retry.status_code == 201, retry.text
+
+    async def test_a_purchase_limit_on_the_role_stops_a_large_one(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        keys = await _keys(api, await login(ADMIN))
+        admin = await login(ADMIN)
+        roles = (await api.get("/roles", headers=admin, params={"q": "SITE_MANAGER"})).json()
+        role_id = next(r["id"] for r in roles["items"] if r["code"] == "SITE_MANAGER")
+        made = await api.post(
+            "/business-rules",
+            headers=admin,
+            json={
+                "rule_type": "PURCHASE_LIMIT",
+                "name": "Site managers: counter purchases up to 500",
+                "scope": {"role_id": role_id, "doc_type": "counter_purchase"},
+                "value": {"limit": "500", "currency": "PKR"},
+                "effective_from": (utcnow() - timedelta(days=1)).date().isoformat(),
+            },
+        )
+        assert made.status_code == 201, made.text
+        refused = await api.post(
+            "/grns", headers=await login(MANAGER), json=await self._body(api, login, keys)
+        )
+        assert refused.status_code == 422 and refused.json()["rule"] == "purchase_limit_exceeded"
+        assert "purchase limit" in refused.json()["detail"]
+        small = await self._body(api, login, keys)
+        small["lines"][0]["quantity"] = "5"  # 475
+        assert (
+            await api.post("/grns", headers=await login(MANAGER), json=small)
+        ).status_code == 201
+
+    async def test_only_stocked_materials_usable_vendors_and_reachable_stores(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        keys = await _keys(api, await login(ADMIN))
+        base = await self._body(api, login, keys)
+        for change in (
+            {"vendor_id": str(uuid4())},
+            {"warehouse_id": str(uuid4())},
+            {"reference": "x"},
+        ):
+            refused = await api.post("/grns", headers=await login(MANAGER), json={**base, **change})
+            assert refused.status_code == 422, (change, refused.text)
+        # A store on a site this person is not assigned to reads as unknown.
+        warehouses = (
+            await api.get("/warehouses", headers=await login(ADMIN), params={"limit": 50})
+        ).json()["items"]
+        elsewhere = next(w for w in warehouses if w["code"] == "CS-LHR-MAIN")
+        refused = await api.post(
+            "/grns", headers=await login(MANAGER), json={**base, "warehouse_id": elsewhere["id"]}
+        )
+        assert refused.status_code == 404
+        # Site staff record deliveries; they do not raise GRNs.
+        assert (await api.post("/grns", headers=await login(STAFF), json=base)).status_code == 403
+
+    async def test_it_prints_with_its_bill_number(self, api: AsyncClient, login: Any) -> None:
+        from app.modules.grn.api.grn_document import render_grn
+        from app.modules.grn.schemas import GrnRead
+
+        keys = await _keys(api, await login(ADMIN))
+        grn = await self._create(api, login, keys, reference="BILL-PRINT-9")
+        html = render_grn(GrnRead.model_validate(await _as_pm(api, login, grn)), company_name="KRB")
+        assert "Counter purchase, bill BILL-PRINT-9" in html

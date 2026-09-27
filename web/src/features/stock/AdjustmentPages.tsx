@@ -18,8 +18,10 @@ import { Input, Select, Textarea } from "@/components/ui/input";
 import { ErrorState, PageSkeleton } from "@/components/ui/states";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ApprovalSection } from "@/features/approvals/ApprovalSection";
+import { AttachmentsSection } from "@/features/documents/AttachmentsSection";
 import { FormAlert } from "@/features/auth/auth-layout";
 import { PermissionGate } from "@/features/auth/permission-gate";
+import { useCan } from "@/features/auth/use-can";
 import { api, type Page } from "@/lib/api";
 import { applyServerErrors } from "@/lib/errors";
 import { DECIMAL_RE, emptyToNull } from "@/lib/forms";
@@ -460,6 +462,7 @@ type Dialogs = null | "submit" | "withdraw" | "cancel";
 
 export function AdjustmentDetailPage() {
   const { adjustmentId = "" } = useParams();
+  const canAttach = useCan("inventory.adjust");
   const queryClient = useQueryClient();
   const [dialog, setDialog] = useState<Dialogs>(null);
   const query = useQuery({
@@ -620,6 +623,14 @@ export function AdjustmentDetailPage() {
           docId={a.id}
           label={a.adjustment_number}
           empty="Not submitted yet. Once it is, the people who must sign it and each decision appear here."
+        />
+
+        <AttachmentsSection
+          entityType="stock_adjustment"
+          entityId={a.id}
+          canUpload={canAttach && (a.can_edit || a.status === "PENDING_APPROVAL")}
+          documentTypes={["PHOTO", "OTHER"]}
+          title="Evidence"
         />
       </PageBody>
 

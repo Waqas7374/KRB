@@ -18,7 +18,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.access import AccessContext
@@ -35,12 +35,16 @@ from app.core.types import utcnow
 from app.modules.deliveries.services import receipts
 from app.modules.grn.domain.enums import GrnStatus, InspectionResult
 from app.modules.grn.models import Grn, GrnItem
+from app.modules.grn.schemas import CounterPurchaseCreate
 from app.modules.inventory.domain.enums import TxnType
 from app.modules.inventory.services import ledger
 from app.modules.masterdata.services import material_lookup, warehouse_lookup
 from app.modules.masterdata.services.conversion import UnitConverter
 from app.modules.org.services import company_service
 from app.modules.procurement.services import receiving
+from app.modules.rules.domain.enums import RuleType
+from app.modules.rules.services import approval_limit
+from app.modules.vendors.services import vendor_lookup
 from app.platform.numbering import DocumentType, next_number
 
 PERM_VIEW = "grn.view"
@@ -193,6 +197,151 @@ async def create_from_delivery(
     return grn
 
 
+PURCHASE_LIMIT_DOC = "counter_purchase"
+
+
+async def _next_grn_number(session: AsyncSession, ctx: AccessContext) -> str:
+    return await next_number(
+        session,
+        company_id=ctx.company_id,
+        doc_type=DocumentType.GRN,
+        fiscal_year_start_month=await company_service.fiscal_year_start_month(
+            session, ctx.company_id
+        ),
+    )
+
+
+async def create_counter_purchase(
+    session: AsyncSession, ctx: AccessContext, data: CounterPurchaseCreate
+) -> Grn:
+    """Stock bought over the counter, with no delivery and no order behind it.
+
+    The riskiest way stock arrives, so it asks for what makes it checkable: a bill
+    or receipt number (entered once per vendor), a price per line from that bill,
+    and, if a `PURCHASE_LIMIT` rule applies to the person, a value within it.
+    Otherwise it is an ordinary GRN: drafted, inspected, and posted by someone
+    with the right to post, which is when stock moves.
+    """
+    warehouse = await warehouse_lookup.get(
+        session, company_id=ctx.company_id, warehouse_id=data.warehouse_id
+    )
+    if warehouse is None:
+        raise _fail("warehouse_id", "Unknown warehouse")
+    assert_in_scope(
+        ctx,
+        PERM_CREATE,
+        company_id=ctx.company_id,
+        project_id=warehouse.project_id,
+        site_id=warehouse.site_id,
+        entity="Warehouse",
+    )
+    vendor = (
+        await vendor_lookup.vendors(session, company_id=ctx.company_id, vendor_ids={data.vendor_id})
+    ).get(data.vendor_id)
+    if vendor is None:
+        raise _fail("vendor_id", "Unknown vendor")
+    if not vendor.can_receive_orders:
+        raise BusinessRuleError(
+            "vendor_not_usable",
+            f"{vendor.name} is {_human(vendor.status)}; nothing can be bought from them.",
+        )
+
+    materials = await material_lookup.materials(
+        session, company_id=ctx.company_id, material_ids={i.material_id for i in data.lines}
+    )
+    errors: list[dict[str, str]] = []
+    for index, line in enumerate(data.lines):
+        material = materials.get(line.material_id)
+        if material is None or not material.is_stockable:
+            errors.append(
+                {
+                    "field": f"lines.{index}.material_id",
+                    "code": "invalid",
+                    "message": "unknown, or not a material held in stock",
+                }
+            )
+    if errors:
+        raise ValidationError("Some lines are not valid.", errors=errors)
+
+    reference = data.reference.strip()
+    clash = await session.scalar(
+        select(func.count())
+        .select_from(Grn)
+        .where(
+            Grn.company_id == ctx.company_id,
+            Grn.vendor_id == vendor.id,
+            Grn.counter_reference == reference,
+            Grn.status != GrnStatus.CANCELLED.value,
+        )
+    )
+    if clash:
+        raise BusinessRuleError(
+            "duplicate_reference",
+            f"Bill {reference} from {vendor.name} has already been received.",
+        )
+
+    amounts = [
+        (line.rate * line.quantity).quantize(_AMOUNT, rounding=ROUND_HALF_UP) for line in data.lines
+    ]
+    total = sum(amounts, Decimal(0))
+    limit = await approval_limit.check(
+        session,
+        company_id=ctx.company_id,
+        user_id=ctx.user_id,
+        doc_type=PURCHASE_LIMIT_DOC,
+        approve_permission=PERM_CREATE,
+        amount=total,
+        project_id=warehouse.project_id,
+        site_id=warehouse.site_id,
+        rule_type=RuleType.PURCHASE_LIMIT,
+    )
+    if not limit.allowed:
+        raise BusinessRuleError(
+            "purchase_limit_exceeded",
+            limit.message("counter purchase", total, noun="purchase limit")
+            + " Raise a purchase order instead.",
+        )
+
+    grn = Grn(
+        company_id=ctx.company_id,
+        grn_number=await _next_grn_number(session, ctx),
+        status=GrnStatus.DRAFT.value,
+        delivery_id=None,
+        purchase_order_id=None,
+        vendor_id=vendor.id,
+        project_id=warehouse.project_id,
+        site_id=warehouse.site_id,
+        warehouse_id=warehouse.id,
+        received_date=data.received_date or utcnow().date(),
+        counter_reference=reference,
+        inspection_result=InspectionResult.PENDING.value,
+        gross_amount=Decimal(0),
+        tax_amount=Decimal(0),
+        net_amount=Decimal(0),
+        remarks=data.remarks,
+        created_by_id=ctx.user_id,
+        items=[
+            GrnItem(
+                line_no=index + 1,
+                material_id=line.material_id,
+                unit_id=line.unit_id,
+                delivered_quantity=line.quantity,
+                accepted_quantity=line.quantity,
+                rejected_quantity=Decimal(0),
+                rate=line.rate,
+                amount=amounts[index],
+                batch_no=line.batch_no,
+                created_by_id=ctx.user_id,
+            )
+            for index, line in enumerate(data.lines)
+        ],
+    )
+    _sum(grn)
+    session.add(grn)
+    await session.flush()
+    return grn
+
+
 def _sum(grn: Grn) -> None:
     grn.gross_amount = sum((i.amount or Decimal(0) for i in grn.items), Decimal(0))
     grn.net_amount = grn.gross_amount + grn.tax_amount
@@ -269,15 +418,23 @@ async def inspect(
         item.rejection_reason = (line.rejection_reason or "").strip() or None
         item.batch_no = line.batch_no
         item.expiry_date = line.expiry_date
-        # Price follows what is accepted: the load was priced whole.
-        source = await receipts.item_amount(session, item.delivery_item_id)
-        item.amount = (
-            None
-            if source is None
-            else (source * item.accepted_quantity / item.delivered_quantity).quantize(
-                _AMOUNT, rounding=ROUND_HALF_UP
+        # Price follows what is accepted. A delivery's load was priced whole, so it is
+        # scaled; a counter purchase has no delivery, so its bill's rate does the work.
+        if item.delivery_item_id is None:
+            item.amount = (
+                None
+                if item.rate is None
+                else (item.rate * item.accepted_quantity).quantize(_AMOUNT, rounding=ROUND_HALF_UP)
             )
-        )
+        else:
+            source = await receipts.item_amount(session, item.delivery_item_id)
+            item.amount = (
+                None
+                if source is None
+                else (source * item.accepted_quantity / item.delivered_quantity).quantize(
+                    _AMOUNT, rounding=ROUND_HALF_UP
+                )
+            )
     if errors:
         raise ValidationError("The inspection is not valid.", errors=errors)
 

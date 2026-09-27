@@ -32,6 +32,7 @@ import { EmptyState, ErrorState, PageSkeleton } from "@/components/ui/states";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FormAlert } from "@/features/auth/auth-layout";
 import { PermissionGate } from "@/features/auth/permission-gate";
+import { AttachmentsSection } from "@/features/documents/AttachmentsSection";
 import { useCan } from "@/features/auth/use-can";
 import { api, type Page } from "@/lib/api";
 import { applyServerErrors, describeError } from "@/lib/errors";
@@ -697,6 +698,7 @@ type Dialogs = null | "approve" | "reject" | "correction" | "reopen" | "order";
 
 export function DeliveryDetailPage() {
   const { deliveryId = "" } = useParams();
+  const canAttach = useCan("deliveries.create");
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [dialog, setDialog] = useState<Dialogs>(null);
@@ -990,6 +992,14 @@ export function DeliveryDetailPage() {
             </ol>
           )}
         </Section>
+
+        <AttachmentsSection
+          entityType="delivery"
+          entityId={d.id}
+          canUpload={canAttach && !["REJECTED", "CANCELLED"].includes(d.status)}
+          documentTypes={["PHOTO", "CHALLAN", "OTHER"]}
+          title="Photos and challan"
+        />
       </PageBody>
 
       <ConfirmDialog

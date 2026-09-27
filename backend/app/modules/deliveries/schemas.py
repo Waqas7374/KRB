@@ -56,6 +56,59 @@ class DeliveryCreate(ApiModel):
     device_time: datetime | None = None
 
 
+class QuantityRead(ApiModel):
+    unit_code: str
+    quantity: Decimal
+
+
+class DayPointRead(ApiModel):
+    day: date
+    deliveries: int
+    # In tonnes. Loads counted in other units add to `quantities`, never to this.
+    tonnage: Decimal
+    value: Decimal | None = None
+
+
+class RankRead(ApiModel):
+    id: UUID
+    label: str
+    sublabel: str | None = None
+    deliveries: int
+    quantities: list[QuantityRead] = []
+    value: Decimal | None = None
+
+
+class WaitingRead(ApiModel):
+    id: UUID
+    delivery_number: str
+    captured_at: datetime
+    site_code: str | None = None
+    vendor_name: str | None = None
+    flag_count: int
+    status: str
+
+
+class DeliverySummaryRead(ApiModel):
+    """The material-delivery dashboard: one screen's worth of figures."""
+
+    from_date: date
+    to_date: date
+    deliveries: int
+    by_status: dict[str, int]
+    open_flags: int
+    tonnage: Decimal
+    quantities: list[QuantityRead]
+    # None for a reader without rates.view.
+    value: Decimal | None = None
+    values_hidden: bool = False
+    by_day: list[DayPointRead]
+    top_materials: list[RankRead]
+    top_vendors: list[RankRead]
+    by_site: list[RankRead]
+    waiting: list[WaitingRead]
+    waiting_total: int
+
+
 class DeliveryItemRead(ApiModel):
     id: UUID
     line_no: int

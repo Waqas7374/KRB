@@ -13,7 +13,7 @@ upload.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 import boto3
 from botocore.client import Config as BotoConfig
@@ -93,14 +93,22 @@ class S3ObjectStore:
     only the endpoint URL and credentials change."""
 
     def __init__(self) -> None:
-        self._client = boto3.client(
-            "s3",
-            endpoint_url=settings.storage_endpoint_url,
-            aws_access_key_id=settings.storage_access_key,
-            aws_secret_access_key=settings.storage_secret_key,
-            region_name=settings.storage_region,
-            config=BotoConfig(signature_version="s3v4"),
-        )
+        def client(endpoint_url: str | None) -> Any:
+            return boto3.client(
+                "s3",
+                endpoint_url=endpoint_url,
+                aws_access_key_id=settings.storage_access_key,
+                aws_secret_access_key=settings.storage_secret_key,
+                region_name=settings.storage_region,
+                config=BotoConfig(signature_version="s3v4"),
+            )
+
+        # The server talks to storage on its own (often internal) address...
+        self._client = client(settings.storage_endpoint_url)
+        # ...but a URL handed to a browser or a phone must be one *they* can reach, and a
+        # presigned URL's signature covers its host, so it has to be signed for that host
+        # rather than rewritten afterwards. This client only signs; it never connects.
+        self._signer = client(settings.storage_public_base_url or settings.storage_endpoint_url)
         self._bucket = settings.storage_bucket
 
     def build_key(self, *, company_id: str, entity_type: str, entity_id: str, filename: str) -> str:
@@ -114,7 +122,7 @@ class S3ObjectStore:
         return f"{company_id}/{entity_type}/{entity_id}/{uuid7_str()}-{safe_name}"
 
     def presign_upload(self, key: str, *, content_type: str) -> PresignedUpload:
-        url = self._client.generate_presigned_url(
+        url = self._signer.generate_presigned_url(
             "put_object",
             Params={
                 "Bucket": self._bucket,
@@ -131,7 +139,7 @@ class S3ObjectStore:
         params: dict[str, str] = {"Bucket": self._bucket, "Key": key}
         if filename:
             params["ResponseContentDisposition"] = f'attachment; filename="{filename}"'
-        url = self._client.generate_presigned_url(
+        url = self._signer.generate_presigned_url(
             "get_object", Params=params, ExpiresIn=settings.storage_presign_ttl_seconds
         )
         return PresignedDownload(url=url, expires_in=settings.storage_presign_ttl_seconds)

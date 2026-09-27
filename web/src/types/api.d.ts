@@ -2004,6 +2004,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/vendor-rates/grid": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Vendor x material, current rate with its history (head-office rate screen, §19)
+     * @description One row per rate now in force, in the scope it applies to, each with the periods that have stood (oldest first) for a sparkline. Only rates the caller may see.
+     */
+    get: operations["rate_grid_api_v1_vendor_rates_grid_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/vendor-rates/history": {
     parameters: {
       query?: never;
@@ -2245,6 +2265,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/deliveries/summary": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * The delivery dashboard: totals and trends for a period (default: today)
+     * @description Days are the company's, not the server's. Loads rejected or cancelled are counted as such but add nothing to a quantity or value. Values need `rates.view`.
+     */
+    get: operations["delivery_summary_api_v1_deliveries_summary_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/deliveries/{delivery_id}/convert-to-grn": {
     parameters: {
       query?: never;
@@ -2272,7 +2312,8 @@ export interface paths {
     /** List Grns */
     get: operations["list_grns_api_v1_grns_get"];
     put?: never;
-    post?: never;
+    /** Raise a GRN for stock bought over the counter: a bill number and a rate per line */
+    post: operations["create_counter_purchase_api_v1_grns_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -2288,6 +2329,23 @@ export interface paths {
     };
     /** Get Grn */
     get: operations["get_grn_api_v1_grns__grn_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/grns/{grn_id}/pdf": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The printable goods received note. Valuation shows only to those who may see it. */
+    get: operations["grn_pdf_api_v1_grns__grn_id__pdf_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -2428,7 +2486,7 @@ export interface paths {
     };
     /**
      * The stores a person may act on, for the pickers on stock forms
-     * @description `issue`, `adjust` and `transfer_from` return only stores at sites the caller may act on. `transfer_to` returns every store: sending stock to another site is the point of a transfer. Needs no warehouse-management permission.
+     * @description `issue`, `adjust`, `receive` and `transfer_from` return only stores at sites the caller may act on. `transfer_to` returns every store: sending stock to another site is the point of a transfer. Needs no warehouse-management permission.
      */
     get: operations["warehouse_options_api_v1_inventory_warehouse_options_get"];
     put?: never;
@@ -3586,6 +3644,60 @@ export interface components {
       /** Description */
       description?: string | null;
     };
+    /** CounterPurchaseCreate */
+    CounterPurchaseCreate: {
+      /**
+       * Warehouse Id
+       * Format: uuid
+       */
+      warehouse_id: string;
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Reference */
+      reference: string;
+      /** Received Date */
+      received_date?: string | null;
+      /** Remarks */
+      remarks?: string | null;
+      /** Lines */
+      lines: components["schemas"]["CounterPurchaseLineIn"][];
+    };
+    /** CounterPurchaseLineIn */
+    CounterPurchaseLineIn: {
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Quantity */
+      quantity: number | string;
+      /**
+       * Unit Id
+       * Format: uuid
+       */
+      unit_id: string;
+      /** Rate */
+      rate: number | string;
+      /** Batch No */
+      batch_no?: string | null;
+    };
+    /** DayPointRead */
+    DayPointRead: {
+      /**
+       * Day
+       * Format: date
+       */
+      day: string;
+      /** Deliveries */
+      deliveries: number;
+      /** Tonnage */
+      tonnage: string;
+      /** Value */
+      value?: string | null;
+    };
     /** DecisionRequest */
     DecisionRequest: {
       /** Comments */
@@ -3945,6 +4057,53 @@ export interface components {
        */
       can_waive: boolean;
     };
+    /**
+     * DeliverySummaryRead
+     * @description The material-delivery dashboard: one screen's worth of figures.
+     */
+    DeliverySummaryRead: {
+      /**
+       * From Date
+       * Format: date
+       */
+      from_date: string;
+      /**
+       * To Date
+       * Format: date
+       */
+      to_date: string;
+      /** Deliveries */
+      deliveries: number;
+      /** By Status */
+      by_status: {
+        [key: string]: number;
+      };
+      /** Open Flags */
+      open_flags: number;
+      /** Tonnage */
+      tonnage: string;
+      /** Quantities */
+      quantities: components["schemas"]["QuantityRead"][];
+      /** Value */
+      value?: string | null;
+      /**
+       * Values Hidden
+       * @default false
+       */
+      values_hidden: boolean;
+      /** By Day */
+      by_day: components["schemas"]["DayPointRead"][];
+      /** Top Materials */
+      top_materials: components["schemas"]["RankRead"][];
+      /** Top Vendors */
+      top_vendors: components["schemas"]["RankRead"][];
+      /** By Site */
+      by_site: components["schemas"]["RankRead"][];
+      /** Waiting */
+      waiting: components["schemas"]["WaitingRead"][];
+      /** Waiting Total */
+      waiting_total: number;
+    };
     /** DepartmentCreate */
     DepartmentCreate: {
       /** Code */
@@ -4254,6 +4413,13 @@ export interface components {
       delivery_number?: string | null;
       /** Purchase Order Id */
       purchase_order_id: string | null;
+      /** Counter Reference */
+      counter_reference?: string | null;
+      /**
+       * Is Counter Purchase
+       * @default false
+       */
+      is_counter_purchase: boolean;
       /**
        * Received Date
        * Format: date
@@ -4290,6 +4456,13 @@ export interface components {
       purchase_order_id: string | null;
       /** Purchase Order Number */
       purchase_order_number?: string | null;
+      /** Counter Reference */
+      counter_reference?: string | null;
+      /**
+       * Is Counter Purchase
+       * @default false
+       */
+      is_counter_purchase: boolean;
       /**
        * Vendor Id
        * Format: uuid
@@ -5371,6 +5544,16 @@ export interface components {
     Page_QuotationListItem_: {
       /** Items */
       items: components["schemas"]["QuotationListItem"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
+    /** Page[RateGridRow] */
+    Page_RateGridRow_: {
+      /** Items */
+      items: components["schemas"]["RateGridRow"][];
       page: components["schemas"]["PageMeta"];
       /** Meta */
       meta?: {
@@ -6503,6 +6686,13 @@ export interface components {
       /** Results */
       results: components["schemas"]["OpResult"][];
     };
+    /** QuantityRead */
+    QuantityRead: {
+      /** Unit Code */
+      unit_code: string;
+      /** Quantity */
+      quantity: string;
+    };
     /** QuotationItemIn */
     QuotationItemIn: {
       /**
@@ -6753,6 +6943,27 @@ export interface components {
       /** Items */
       items: components["schemas"]["QuotationItemIn"][];
     };
+    /** RankRead */
+    RankRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Label */
+      label: string;
+      /** Sublabel */
+      sublabel?: string | null;
+      /** Deliveries */
+      deliveries: number;
+      /**
+       * Quantities
+       * @default []
+       */
+      quantities: components["schemas"]["QuantityRead"][];
+      /** Value */
+      value?: string | null;
+    };
     /** RateCreate */
     RateCreate: {
       /**
@@ -6790,6 +7001,64 @@ export interface components {
       reason?: string | null;
       /** @default MANUAL */
       source: components["schemas"]["RateSource"];
+    };
+    /**
+     * RateGridRow
+     * @description One vendor's current price for one material in one scope, with the road it took.
+     */
+    RateGridRow: {
+      /**
+       * Rate Id
+       * Format: uuid
+       */
+      rate_id: string;
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Vendor Code */
+      vendor_code?: string | null;
+      /** Vendor Name */
+      vendor_name?: string | null;
+      /**
+       * Material Id
+       * Format: uuid
+       */
+      material_id: string;
+      /** Material Sku */
+      material_sku?: string | null;
+      /** Material Name */
+      material_name?: string | null;
+      /**
+       * Unit Id
+       * Format: uuid
+       */
+      unit_id: string;
+      /** Unit Code */
+      unit_code?: string | null;
+      /** Scope */
+      scope: string;
+      /** Currency Code */
+      currency_code: string;
+      /** Rate */
+      rate: string;
+      /**
+       * Effective From
+       * Format: date
+       */
+      effective_from: string;
+      /** Previous Rate */
+      previous_rate: string | null;
+      /** Change Pct */
+      change_pct: string | null;
+      /** Points */
+      points: components["schemas"]["RatePoint"][];
+      /**
+       * Has Pending
+       * @default false
+       */
+      has_pending: boolean;
     };
     /** RateHistoryRead */
     RateHistoryRead: {
@@ -6844,6 +7113,16 @@ export interface components {
     RateNotes: {
       /** Notes */
       notes?: string | null;
+    };
+    /** RatePoint */
+    RatePoint: {
+      /**
+       * Effective From
+       * Format: date
+       */
+      effective_from: string;
+      /** Rate */
+      rate: string;
     };
     /** RateRead */
     RateRead: {
@@ -8887,6 +9166,29 @@ export interface components {
       environment: string;
       /** Migration Head */
       migration_head?: string | null;
+    };
+    /** WaitingRead */
+    WaitingRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Delivery Number */
+      delivery_number: string;
+      /**
+       * Captured At
+       * Format: date-time
+       */
+      captured_at: string;
+      /** Site Code */
+      site_code?: string | null;
+      /** Vendor Name */
+      vendor_name?: string | null;
+      /** Flag Count */
+      flag_count: number;
+      /** Status */
+      status: string;
     };
     /** WaiveFlag */
     WaiveFlag: {
@@ -14023,6 +14325,48 @@ export interface operations {
       };
     };
   };
+  rate_grid_api_v1_vendor_rates_grid_get: {
+    parameters: {
+      query?: {
+        vendor_id?: string | null;
+        material_id?: string | null;
+        site_id?: string | null;
+        project_id?: string | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_RateGridRow_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   rate_history_api_v1_vendor_rates_history_get: {
     parameters: {
       query?: {
@@ -14631,6 +14975,38 @@ export interface operations {
       };
     };
   };
+  delivery_summary_api_v1_deliveries_summary_get: {
+    parameters: {
+      query?: {
+        from_date?: string | null;
+        to_date?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DeliverySummaryRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   convert_to_grn_api_v1_deliveries__delivery_id__convert_to_grn_post: {
     parameters: {
       query?: never;
@@ -14710,6 +15086,39 @@ export interface operations {
       };
     };
   };
+  create_counter_purchase_api_v1_grns_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CounterPurchaseCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GrnRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   get_grn_api_v1_grns__grn_id__get: {
     parameters: {
       query?: never;
@@ -14728,6 +15137,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["GrnRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  grn_pdf_api_v1_grns__grn_id__pdf_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        grn_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/pdf": unknown;
         };
       };
       /** @description Validation Error */
@@ -14986,7 +15426,7 @@ export interface operations {
   warehouse_options_api_v1_inventory_warehouse_options_get: {
     parameters: {
       query: {
-        action: "issue" | "adjust" | "transfer_from" | "transfer_to";
+        action: "issue" | "adjust" | "transfer_from" | "transfer_to" | "receive";
       };
       header?: never;
       path?: never;

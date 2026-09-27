@@ -130,12 +130,17 @@ export type DeliveryItemRead = S["DeliveryItemRead"];
 export type DeliveryFlagRead = S["FlagRead"];
 export type DeliveryReviewRead = S["ReviewRead"];
 export type DeliveryCreate = S["DeliveryCreate"];
+export type DeliverySummary = S["DeliverySummaryRead"];
+export type VendorRateGridRow = S["RateGridRow"];
 
 export type GrnListItem = S["GrnListItem"];
 export type GrnRead = S["GrnRead"];
 export type GrnItemRead = S["GrnItemRead"];
 export type StockBalance = S["BalanceRead"];
 export type StockLineRead = S["LineRead"];
+export type AttachmentRead = S["AttachmentRead"];
+export type AttachmentUpload = S["PresignUploadResponse"];
+export type AttachmentDownload = S["DownloadUrlResponse"];
 export type StockIssueListItem = S["IssueListItem"];
 export type StockIssueRead = S["IssueRead"];
 export type StockIssueCreate = S["IssueCreate"];

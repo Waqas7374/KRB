@@ -57,6 +57,9 @@ class Grn(CompanyModel, VersionMixin):
         ForeignKey("warehouses.id", ondelete="RESTRICT"), nullable=False
     )
     received_date: Mapped[date] = mapped_column(Date, nullable=False)
+    # A counter purchase (no delivery) is bought over the counter against a bill or
+    # receipt; that document's number is what makes it checkable afterwards.
+    counter_reference: Mapped[str | None] = mapped_column(String(60))
     inspection_result: Mapped[str] = mapped_column(
         String(10), nullable=False, default=InspectionResult.PENDING.value
     )
@@ -82,6 +85,15 @@ class Grn(CompanyModel, VersionMixin):
 
     __table_args__ = (
         UniqueConstraint("company_id", "grn_number", name="uq_grns_number"),
+        # A bill is entered once per vendor: the same receipt cannot be received twice.
+        Index(
+            "uq_grns_live_counter_reference",
+            "company_id",
+            "vendor_id",
+            "counter_reference",
+            unique=True,
+            postgresql_where="status <> 'CANCELLED' AND counter_reference IS NOT NULL",
+        ),
         # One live GRN per delivery: a delivery is received once.
         Index(
             "uq_grns_live_delivery",
@@ -94,6 +106,12 @@ class Grn(CompanyModel, VersionMixin):
         non_negative("gross_amount"),
         CheckConstraint(
             "status <> 'CANCELLED' OR cancel_reason IS NOT NULL", name="cancel_needs_reason"
+        ),
+        # Stock arrives either on a recorded delivery or against a named bill; a
+        # GRN with neither has nothing behind it.
+        CheckConstraint(
+            "delivery_id IS NOT NULL OR counter_reference IS NOT NULL",
+            name="counter_purchase_needs_reference",
         ),
     )
 

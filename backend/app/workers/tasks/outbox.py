@@ -224,6 +224,86 @@ async def _notify_integrity_alarm(session: AsyncSession, event: OutboxEvent) -> 
         )
 
 
+@handler("delivery.received")
+@handler("delivery.corrected")
+async def _notify_reviewers(session: AsyncSession, event: OutboxEvent) -> None:
+    """A delivery that needs a person's attention: tell the people who may review
+    it at that site or project — not the person who captured it, and not the
+    super administrator (whose grant covers everything and would hear of every
+    delivery everywhere)."""
+    payload = event.payload
+    if not payload.get("needs_review"):
+        return
+    site_id = UUID(payload["site_id"]) if payload.get("site_id") else None
+    project_id = UUID(payload["project_id"]) if payload.get("project_id") else None
+    reviewers = await approver_lookup.users_with_permission(
+        session,
+        company_id=event.company_id,  # type: ignore[arg-type]
+        permission="deliveries.review",
+        project_id=project_id,
+        site_id=site_id,
+        on=utcnow().date(),
+    )
+    submitter = payload.get("submitted_by_id")
+    if submitter:
+        reviewers.discard(UUID(submitter))
+    number = payload.get("delivery_number", "A delivery")
+    again = event.event_type == "delivery.corrected"
+    critical = payload.get("worst_severity") == "CRITICAL"
+    for user_id in sorted(reviewers, key=str):
+        await notification_service.send(
+            session,
+            company_id=event.company_id,  # type: ignore[arg-type]
+            user_id=user_id,
+            notification_type=NotificationType.DELIVERY_REQUIRES_REVIEW.value,
+            title=f"{number} {'corrected, needs review again' if again else 'needs review'}"
+            + (f" at {payload['site_code']}" if payload.get("site_code") else ""),
+            body=str(payload.get("top_flag") or "It has been flagged for review."),
+            priority=NotificationPriority.HIGH if critical else NotificationPriority.NORMAL,
+            entity_type="Delivery",
+            entity_id=event.aggregate_id,
+            link_path=payload.get("link_path"),
+        )
+
+
+_DECISION_COPY = {
+    "approved": (NotificationType.DELIVERY_APPROVED, "approved", NotificationPriority.NORMAL),
+    "rejected": (NotificationType.DELIVERY_REJECTED, "rejected", NotificationPriority.HIGH),
+    "correction_requested": (
+        NotificationType.DELIVERY_CORRECTION_REQUESTED,
+        "sent back for correction",
+        NotificationPriority.HIGH,
+    ),
+}
+
+
+@handler("delivery.decided")
+async def _notify_capturer(session: AsyncSession, event: OutboxEvent) -> None:
+    """Tell the person who captured a delivery what head office decided, and why."""
+    payload = event.payload
+    submitter = payload.get("submitted_by_id")
+    copy = _DECISION_COPY.get(str(payload.get("decision")))
+    if not submitter or copy is None:
+        return
+    if payload.get("decided_by_id") == submitter:
+        return  # they decided it themselves; no need to tell them
+    kind, verb, priority = copy
+    number = payload.get("delivery_number", "Your delivery")
+    comments = payload.get("comments")
+    await notification_service.send(
+        session,
+        company_id=event.company_id,  # type: ignore[arg-type]
+        user_id=UUID(submitter),
+        notification_type=kind.value,
+        title=f"{number} {verb}",
+        body=f"{number} was {verb}." + (f" {comments}" if comments else ""),
+        priority=priority,
+        entity_type="Delivery",
+        entity_id=event.aggregate_id,
+        link_path=payload.get("link_path"),
+    )
+
+
 @handler("inventory.integrity_alarm")
 async def _notify_inventory_alarm(session: AsyncSession, event: OutboxEvent) -> None:
     """Stock balances disagree with the ledger: tell the super administrators,

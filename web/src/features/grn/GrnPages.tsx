@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createColumnHelper } from "@tanstack/react-table";
-import { Ban, Check, ClipboardCheck, RefreshCw } from "lucide-react";
+import { Ban, Check, ClipboardCheck, Download, Plus, RefreshCw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
@@ -15,7 +15,11 @@ import { Input } from "@/components/ui/input";
 import { ErrorState, PageSkeleton } from "@/components/ui/states";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FormAlert } from "@/features/auth/auth-layout";
+import { PermissionGate } from "@/features/auth/permission-gate";
+import { useCan } from "@/features/auth/use-can";
+import { AttachmentsSection } from "@/features/documents/AttachmentsSection";
 import { api } from "@/lib/api";
+import { downloadFile } from "@/lib/download";
 import { describeError } from "@/lib/errors";
 import { DECIMAL_RE } from "@/lib/forms";
 import { usePagedList, useSiteOptions, useVendorOptions } from "@/lib/queries";
@@ -74,6 +78,8 @@ export function GrnListPage() {
             >
               {c.getValue()}
             </Link>
+          ) : c.row.original.is_counter_purchase ? (
+            <span className="text-fg-muted">Counter · {c.row.original.counter_reference}</span>
           ) : (
             "—"
           ),
@@ -105,6 +111,15 @@ export function GrnListPage() {
       <PageHeader
         title="Goods received"
         subtitle="What turns an approved delivery into stock. A GRN is drafted from a delivery, inspected, and posted — posting is the moment stock moves."
+        actions={
+          <PermissionGate permission="grn.create">
+            <Button asChild>
+              <Link to="/grns/new">
+                <Plus /> Counter purchase
+              </Link>
+            </Button>
+          </PermissionGate>
+        }
       />
       <PageBody>
         <DataTable
@@ -151,6 +166,7 @@ export function GrnDetailPage() {
   const { grnId = "" } = useParams();
   const queryClient = useQueryClient();
   const [dialog, setDialog] = useState<Dialogs>(null);
+  const canAttach = useCan("grn.create");
 
   const query = useQuery({
     queryKey: ["grns", "detail", grnId],
@@ -200,6 +216,15 @@ export function GrnDetailPage() {
         }
         actions={
           <>
+            <Button
+              onClick={() =>
+                void downloadFile(`/grns/${g.id}/pdf`, `${g.grn_number}.pdf`).catch(
+                  (err: unknown) => toast.error(describeError(err)),
+                )
+              }
+            >
+              <Download /> Download PDF
+            </Button>
             {g.can_inspect && (
               <Button onClick={() => setDialog("inspect")}>
                 <ClipboardCheck /> Record inspection
@@ -311,7 +336,7 @@ export function GrnDetailPage() {
           <FieldGrid
             items={[
               {
-                label: "Delivery",
+                label: g.is_counter_purchase ? "Source" : "Delivery",
                 value: g.delivery_id ? (
                   <Link
                     to={`/deliveries/${g.delivery_id}`}
@@ -319,6 +344,8 @@ export function GrnDetailPage() {
                   >
                     {g.delivery_number}
                   </Link>
+                ) : g.is_counter_purchase ? (
+                  `Counter purchase · bill ${g.counter_reference}`
                 ) : null,
               },
               {
@@ -343,6 +370,15 @@ export function GrnDetailPage() {
           />
         </Section>
       </PageBody>
+
+      <AttachmentsSection
+        entityType="grn"
+        entityId={g.id}
+        canUpload={canAttach && g.status !== "CANCELLED"}
+        documentTypes={
+          g.is_counter_purchase ? ["BILL", "PHOTO", "OTHER"] : ["PHOTO", "BILL", "OTHER"]
+        }
+      />
 
       {dialog === "inspect" && <InspectionDialog grn={g} onClose={() => setDialog(null)} />}
       <ConfirmDialog

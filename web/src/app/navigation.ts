@@ -30,6 +30,8 @@ import {
   History,
   PackageMinus,
   ArrowRightLeft,
+  LayoutDashboard,
+  TrendingUp,
 } from "lucide-react";
 
 export interface NavItem {
@@ -84,11 +86,23 @@ export const NAVIGATION: NavSection[] = [
         icon: BadgeDollarSign,
         permission: "rates.view",
       },
+      {
+        label: "Rate overview",
+        to: "/vendor-rates/grid",
+        icon: TrendingUp,
+        permission: "rates.view",
+      },
     ],
   },
   {
     label: "Material tracking",
     items: [
+      {
+        label: "Delivery dashboard",
+        to: "/deliveries/dashboard",
+        icon: LayoutDashboard,
+        permission: "deliveries.view",
+      },
       {
         label: "Deliveries",
         to: "/deliveries",

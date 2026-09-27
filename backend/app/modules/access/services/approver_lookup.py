@@ -85,6 +85,47 @@ async def users_holding_role(
     return set(rows.scalars().all())
 
 
+async def users_with_permission(
+    session: AsyncSession,
+    *,
+    company_id: UUID,
+    permission: str,
+    project_id: UUID | None,
+    site_id: UUID | None,
+    on: date,
+    include_global: bool = False,
+) -> set[UUID]:
+    """Active users holding `permission` through a grant that covers this place.
+
+    Coverage is per grant, as in `users_holding_role`. A *global* grant (the super
+    administrator's) is left out unless asked for: it covers everything, so
+    counting it would tell the super administrator about every delivery at every
+    site, which is noise rather than routing.
+    """
+    coverage = _coverage(project_id=project_id, site_id=site_id, department_id=None)
+    if not include_global:
+        # `_coverage` puts "global or company" first; keep only "company".
+        coverage[0] = UserRoleGrant.scope_type == ScopeType.COMPANY.value
+    rows = await session.execute(
+        select(UserRoleGrant.user_id)
+        .join(Role, Role.id == UserRoleGrant.role_id)
+        .join(RolePermission, RolePermission.role_id == Role.id)
+        .join(Permission, Permission.id == RolePermission.permission_id)
+        .where(
+            Role.company_id == company_id,
+            Permission.code == permission,
+            UserRoleGrant.revoked_at.is_(None),
+            or_(UserRoleGrant.valid_from.is_(None), UserRoleGrant.valid_from <= on),
+            or_(UserRoleGrant.valid_to.is_(None), UserRoleGrant.valid_to >= on),
+            or_(*coverage),
+        )
+        .distinct()
+    )
+    candidates = set(rows.scalars().all())
+    people = await user_lookup.people(session, company_id=company_id, user_ids=candidates)
+    return {u for u in candidates if u in people and people[u].can_act}
+
+
 async def role_permission_codes(
     session: AsyncSession, *, company_id: UUID, role_code: str
 ) -> frozenset[str] | None:

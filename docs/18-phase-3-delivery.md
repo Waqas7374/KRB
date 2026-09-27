@@ -17,6 +17,7 @@ what remains.
 | 3e | GRN and the inventory ledger (balances, weighted-average cost, reversal, nightly reconcile) | 3c, 3d | done |
 | 3f | Mobile sync API (push / pull, idempotency, devices) — the **server** side | 3c | done (the Expo app that calls it is not built) |
 | 3h | Stock issues, transfers and adjustments (more writers to the same ledger) | 3e | done |
+| 3i | The rest of the server-side Phase 3 list: reviewer notifications, GRN PDF, counter purchases, photos and documents, delivery dashboard, rate overview | 3c–3h | done |
 | 3g | Web: delivery, review, GRN, inventory screens | 3c–3e | done (the delivery dashboard tiles, §23, and the vendor-rate history grid remain) |
 
 The order follows what each slice *reads*: deliveries read rules and rates, so they
@@ -128,8 +129,7 @@ see only their site (out of scope reads as "no such site", not "forbidden").
 
 **Deliberately not in this slice** (and why):
 - **Stock issues, transfers and adjustments** — built in slice 3h below, as further writers to the *same* ledger through the *same* `ledger.post`, so they changed nothing above.
-- **GRN PDF.** `platform/pdf.py` is ready; the template is not written.
-- **Counter purchases** (a GRN with no delivery). The columns are nullable and ready.
+- **GRN PDF** and **counter purchases** (a GRN with no delivery) — built in slice 3i below.
 - **General-ledger posting** on GRN approval and the `PENDING_APPROVAL` / `APPROVED` GRN states — Phase 4, with finance.
 
 ## 3f — Mobile sync API
@@ -254,6 +254,40 @@ is recorded by receiving and then adjusting, with a reason); issues to a phase o
 to stock (`RETURN_IN` / `RETURN_OUT` exist as ledger types with no document); attaching files to
 an adjustment (the attachment entity type exists, the screen does not link it).
 
+## 3i — Notifications, printing, counter purchases, photos, dashboards
+
+Everything below is additive: it reads what earlier slices wrote and adds surfaces on top.
+
+| Piece | Behaviour |
+|---|---|
+| **Reviewer notifications** | When a delivery is saved and needs a person's attention (`needs_review`), the people who hold `deliveries.review` at that site or project are told, with what the flag is (a critical one is high priority). Not the person who captured it, and **not the super administrator**: a global grant covers everything and would hear of every delivery everywhere. A corrected entry that still needs a look is announced again. Delivered by the outbox after commit, so nobody is told of a change that rolled back. |
+| **Decisions reach the capturer** | Approved, rejected and sent-back-for-correction each notify the person who captured the delivery, with the reviewer's note (a rejection is high priority). Deciding your own entry does not notify you. |
+| **GRN PDF** | `GET /grns/{id}/pdf`, built from the same read model the screen uses, so valuation is withheld from anyone the screen withholds it from. A draft carries a "no stock has moved" banner and a cancelled note a "cancelled" one, so a printout cannot pass for the record of stock that moved. Every typed value is escaped. |
+| **Counter purchases** | A GRN with no delivery, for stock bought over the counter. The riskiest way stock arrives, so it asks for what makes it checkable: a **bill or receipt number** (entered once per vendor, freed if the note is cancelled), **a rate per line from that bill**, an active vendor, a stocked material, a store the person may act on, and — if a `PURCHASE_LIMIT` rule applies to their role (`doc_type = counter_purchase`) — a total within it. Nothing is limited until someone defines the limits. Drafted, inspected and **posted by someone with the right to post**, like any GRN; inspection prices what is accepted by the bill's rate. A database check says a GRN has a delivery or a bill reference, never neither. |
+| **Photos and documents** | A reusable attachments block on the delivery (photo, challan), GRN (bill, photo) and adjustment (evidence) pages: pick a file, it goes **straight to storage** on a short-lived address, then the API checks what actually landed before it counts. Open, and remove with a reason (the file stays in storage as evidence). |
+| **Delivery dashboard** | `GET /deliveries/summary` and `/deliveries/dashboard`: totals, status counts, open flags, tonnage and per-unit quantities, value (with `rates.view` only), daily series, top materials and vendors, loads and quantity by site, and what is waiting for review, oldest first. Today is the *company's* day. Rejected and cancelled loads are counted as such but add nothing to a quantity or value. A load with no price yet still counts toward quantities (in the unit it was entered in). **Every tile links to the filtered list behind it**, and every chart has its table beside it. |
+| **Rate overview** | `GET /vendor-rates/grid` and `/vendor-rates/grid`: one row per rate now in force, in the scope it applies to, with the periods that have stood as a sparkline (with the same facts in words for a screen reader), the last change, and a "change pending" marker for a proposal not yet in force. Only rates the caller may see. |
+
+### Found by building it
+
+- **Uploads could never have worked from a browser.** Presigned storage URLs were signed
+  against the internal address (`http://minio:9000`), which no browser or phone can reach, and a
+  presigned signature covers its host, so it cannot be rewritten afterwards. The store now signs
+  with a second client pointed at `STORAGE_PUBLIC_BASE_URL` (default `http://localhost:9000` in
+  the compose file; from an Android emulator use `10.0.2.2`, from a real phone the LAN address).
+  It was invisible to every API test and was found the first time a file was chosen in a browser.
+- **A load with no price yet vanished from the dashboard totals**, because converted quantities
+  are only written once a rate is found. Found by the dashboard's first look at real data; a test
+  now pins it.
+- **The dashboard's "today" is the company's.** A test that captured loads "hours ago" failed when
+  run just after midnight in Karachi — correct behaviour, so the tests now use minutes.
+
+**Deliberately not in this slice.** Daily caps on counter purchases (a storekeeper could split
+bills under the limit; the duplicate-bill check and the reviewer-visible bill number are the
+defence today); virus scanning of uploads (magic-byte type checks only); an in-page image preview
+(files open in a new tab); expanding a rate-overview row inline to the full trail (a link opens the
+list of every period, which carries reasons and approvers).
+
 ## What is not built in Phase 3 yet
 
 | Item | State |
@@ -261,9 +295,6 @@ an adjustment (the attachment entity type exists, the screen does not link it).
 | Returns to stock; part-receipt of a transfer; issues to a phase / cost centre | not built (see 3h) |
 | **Mobile sync API** | **built** (3f). What is not: the app that calls it. |
 | **The Expo mobile app** | not started. The contract it needs now exists and is tested end to end (`docs/06 §4`). Rebuilding the app (login by phone, site home, new-delivery screen, SQLite + outbox, sync engine, queue, photos) is a separate body of work that cannot be verified from this environment: the done-when for Phase 3 names Detox and airplane-mode capture. |
-| Delivery dashboard tiles (§23) and the vendor-rate grid with sparklines (§19) | not built; the data for both exists. |
-| Notifications to reviewers when a delivery is flagged | the `delivery.received` event is emitted; no handler yet. |
-| Photos on deliveries | attachments exist (Phase 1); not wired to the delivery screen. |
 
 ## Found by testing
 
@@ -288,14 +319,14 @@ an adjustment (the attachment entity type exists, the screen does not link it).
   which the "posted needs an approval" check would refuse. The handler now records its own request
   id. A test publishes an always-approve workflow and submits an adjustment through it.
 
-## Testing (state after slice 3h)
+## Testing (state after slice 3i)
 
 | Suite | Result |
 |---|---|
-| Backend | 681 passed, 0 failed, coverage 92 % (gate 80 %); ruff, mypy --strict (260 files), import contracts 4/4, `alembic check` clean; every migration round-trips |
-| New in 3e–3h | GRN and ledger (22 + costing unit tests) · mobile sync (23: idempotency, per-operation outcomes, conflicts, revoked devices, cursor paging, tombstones, no prices) · stock movements (34: issues, transfers, adjustments through approval, pickers, and that every balance still matches its ledger afterwards) |
-| Web | 68 unit; typecheck, eslint (no warnings), prettier, build clean |
-| Browser E2E | 19 passed, including **stock movements**: an adjustment signed by the project manager puts stock on the shelf, an issue takes some out, a transfer crosses sites and is counted in by the other store, with PostgreSQL asserted at each step |
+| Backend | 713 passed, 0 failed, coverage 92 % (gate 80 %); ruff, mypy --strict (263 files), import contracts 4/4, `alembic check` clean; every migration round-trips |
+| New in 3e–3i | GRN and ledger (22 + costing unit tests) · mobile sync (23) · stock movements (34) · delivery notifications (6) · GRN print (4) and counter purchases (6) · delivery dashboard (10) · rate overview (3) · presigned-URL addressing (3) |
+| Web | 68 unit; typecheck, eslint (no warnings), prettier, build clean (the charts library is its own chunk, loaded only by the dashboard) |
+| Browser E2E | 23 passed, including stock movements, **a counter purchase from a bill with a photo uploaded straight to storage, the PDF, and posting**, a photo on a delivery, the dashboard (a load recorded through the API appears, and its tile opens the filtered list) and the rate overview |
 
 ## Decisions to confirm
 

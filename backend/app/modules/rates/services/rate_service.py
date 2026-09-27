@@ -490,6 +490,48 @@ async def list_rates(
     return list(rows), total
 
 
+RateKey = tuple[UUID, UUID, UUID, UUID | None, UUID | None]
+TREND_POINTS = 12
+
+
+def key_of(row: VendorRate) -> RateKey:
+    return (row.vendor_id, row.material_id, row.unit_id, row.project_id, row.site_id)
+
+
+async def trends(
+    session: AsyncSession, ctx: AccessContext, rows: list[VendorRate]
+) -> tuple[dict[RateKey, list[VendorRate]], set[RateKey]]:
+    """For a page of rates: each one's periods, oldest first (the last `TREND_POINTS`), and
+    which of them have a change waiting for approval.
+
+    Only rows the caller may see are read, so a sparkline never carries a rate from a scope
+    they cannot open.
+    """
+    if not rows:
+        return {}, set()
+    repo = repository(session)
+    stmt = repo.base_query(ctx, PERM_VIEW).where(
+        VendorRate.vendor_id.in_({r.vendor_id for r in rows}),
+        VendorRate.material_id.in_({r.material_id for r in rows}),
+        VendorRate.status.in_((RateStatus.ACTIVE.value, RateStatus.PENDING_APPROVAL.value)),
+    )
+    wanted = {key_of(r) for r in rows}
+    periods: dict[RateKey, list[VendorRate]] = {}
+    pending: set[RateKey] = set()
+    for row in (await session.execute(stmt)).scalars().unique().all():
+        key = key_of(row)
+        if key not in wanted:
+            continue
+        if row.status == RateStatus.PENDING_APPROVAL.value:
+            pending.add(key)
+        else:
+            periods.setdefault(key, []).append(row)
+    return (
+        {k: sorted(v, key=lambda r: r.effective_from)[-TREND_POINTS:] for k, v in periods.items()},
+        pending,
+    )
+
+
 async def get(session: AsyncSession, ctx: AccessContext, rate_id: UUID) -> VendorRate:
     return await repository(session).get(ctx, PERM_VIEW, rate_id)
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from datetime import date, datetime, time, timedelta
 from typing import Annotated
 from uuid import UUID
@@ -10,10 +11,16 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Query, Response
 
 from app.api.deps import Access, PageDep, SessionDep, UowDep, require
+from app.core.errors import ValidationError
 from app.core.pagination import Page
 from app.modules.deliveries.api import views
-from app.modules.deliveries.schemas import DeliveryCreate, DeliveryListItem, DeliveryRead
-from app.modules.deliveries.services import ingest, queries
+from app.modules.deliveries.schemas import (
+    DeliveryCreate,
+    DeliveryListItem,
+    DeliveryRead,
+    DeliverySummaryRead,
+)
+from app.modules.deliveries.services import ingest, queries, summary
 from app.modules.org.services import company_service
 
 router = APIRouter(prefix="/deliveries", tags=["deliveries"])
@@ -56,6 +63,53 @@ async def list_deliveries(
         only_open_flags=bool(has_open_flags),
     )
     return Page.of(await views.list_views(session, ctx, rows), params=page, total=total)
+
+
+@router.get(
+    "/summary",
+    response_model=DeliverySummaryRead,
+    dependencies=[require(queries.PERM_VIEW)],
+    summary="The delivery dashboard: totals and trends for a period (default: today)",
+    description=(
+        "Days are the company's, not the server's. Loads rejected or cancelled are counted as "
+        "such but add nothing to a quantity or value. Values need `rates.view`."
+    ),
+)
+async def delivery_summary(
+    ctx: Access,
+    session: SessionDep,
+    from_date: date | None = None,
+    to_date: date | None = None,
+) -> DeliverySummaryRead:
+    zone_name = (await company_service.get_profile(session, ctx.company_id)).timezone
+    zone = ZoneInfo(zone_name)
+    today = datetime.now(zone).date()
+    first = from_date or today
+    last = to_date or first
+    if last < first:
+        raise ValidationError(
+            "The period ends before it starts.",
+            errors=[{"field": "to_date", "code": "invalid", "message": "before from_date"}],
+        )
+    if (last - first).days > 92:
+        raise ValidationError(
+            "A dashboard period is at most 93 days.",
+            errors=[{"field": "to_date", "code": "invalid", "message": "more than 93 days"}],
+        )
+    show_value = ctx.has("rates.view")
+    result = await summary.summarise(
+        session,
+        ctx,
+        start=datetime.combine(first, time.min, tzinfo=zone),
+        end=datetime.combine(last + timedelta(days=1), time.min, tzinfo=zone),
+        from_date=first,
+        to_date=last,
+        timezone=zone_name,
+        show_value=show_value,
+    )
+    view = DeliverySummaryRead.model_validate(asdict(result))
+    view.values_hidden = not show_value
+    return view
 
 
 @router.post(

@@ -1034,14 +1034,35 @@ async def _persist(
                 "delivery_number": delivery.delivery_number,
                 "site_id": str(site.id),
                 "site_code": site.code,
+                "project_id": str(site.project_id) if site.project_id else None,
+                "submitted_by_id": str(ctx.user_id),
                 "flag_count": len(flags),
                 "needs_review": needs_review,
+                "worst_severity": _worst(flags),
+                "top_flag": _top_flag(flags),
                 "link_path": f"/deliveries/{delivery.id}",
             },
             company_id=ctx.company_id,
         ),
     )
     return delivery
+
+
+def _top_flag(flags: list[FlagDraft]) -> str | None:
+    """The message of the most severe flag that needs a person's attention: what
+    a reviewer is told when they are asked to look."""
+    ranked = sorted(
+        (f for f in flags if f.severity.needs_review),
+        key=lambda f: 0 if f.severity == FlagSeverity.CRITICAL else 1,
+    )
+    return ranked[0].message if ranked else None
+
+
+def _worst(flags: list[FlagDraft]) -> str | None:
+    severities = {f.severity for f in flags if f.severity.needs_review}
+    if FlagSeverity.CRITICAL in severities:
+        return FlagSeverity.CRITICAL.value
+    return FlagSeverity.WARNING.value if severities else None
 
 
 async def get_or_404(session: AsyncSession, ctx: AccessContext, delivery_id: UUID) -> Delivery:

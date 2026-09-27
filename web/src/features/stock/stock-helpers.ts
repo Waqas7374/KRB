@@ -6,7 +6,7 @@ import { DECIMAL_RE } from "@/lib/forms";
 import { type Option } from "@/lib/queries";
 import type { WarehouseOption } from "@/types/models";
 
-export type WarehouseAction = "issue" | "adjust" | "transfer_from" | "transfer_to";
+export type WarehouseAction = "issue" | "adjust" | "transfer_from" | "transfer_to" | "receive";
 
 /** The stores a person may act on. Needs no warehouse-management permission. */
 export function useWarehousePicker(action: WarehouseAction) {

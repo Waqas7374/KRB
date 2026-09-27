@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Header, Query
+from fastapi import APIRouter, Header, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import Access, PageDep, SessionDep, UowDep, require
@@ -13,10 +13,12 @@ from app.core.access import AccessContext
 from app.core.pagination import Page
 from app.core.scoping import assert_in_scope
 from app.modules.deliveries.services import receipts
+from app.modules.grn.api.grn_document import render_grn
 from app.modules.grn.domain.enums import GrnStatus
 from app.modules.grn.models import Grn
 from app.modules.grn.schemas import (
     CancelBody,
+    CounterPurchaseCreate,
     GrnFromDelivery,
     GrnItemRead,
     GrnListItem,
@@ -25,9 +27,10 @@ from app.modules.grn.schemas import (
 )
 from app.modules.grn.services import grn_service as service
 from app.modules.masterdata.services import material_lookup, warehouse_lookup
-from app.modules.org.services import document_lookup
+from app.modules.org.services import company_service, document_lookup
 from app.modules.procurement.services import po_lookup
 from app.modules.vendors.services import vendor_lookup
+from app.platform.pdf import html_to_pdf
 
 router = APIRouter(prefix="/grns", tags=["grn"])
 delivery_router = APIRouter(prefix="/deliveries", tags=["grn"])
@@ -95,6 +98,7 @@ async def _detail(session: AsyncSession, ctx: AccessContext, grn: Grn) -> GrnRea
 
     view = GrnRead.model_validate(grn)
     view.items = items
+    view.is_counter_purchase = grn.delivery_id is None
     view.prices_hidden = hidden
     if hidden:
         view.gross_amount = view.net_amount = None
@@ -159,13 +163,49 @@ async def list_grns(
         item.warehouse_code = whs.get(r.warehouse_id, (None, None))[0]
         item.vendor_name = vendors[r.vendor_id].name if r.vendor_id in vendors else None
         item.net_amount = None if hidden else r.net_amount
+        item.is_counter_purchase = r.delivery_id is None
         items.append(item)
     return Page.of(items, params=page, total=total)
+
+
+@router.post(
+    "",
+    response_model=GrnRead,
+    status_code=201,
+    dependencies=[require(service.PERM_CREATE)],
+    summary="Raise a GRN for stock bought over the counter: a bill number and a rate per line",
+)
+async def create_counter_purchase(
+    payload: CounterPurchaseCreate, ctx: Access, uow: UowDep
+) -> GrnRead:
+    grn = await service.create_counter_purchase(uow.session, ctx, payload)
+    return await _detail(uow.session, ctx, grn)
 
 
 @router.get("/{grn_id}", response_model=GrnRead, dependencies=[require(service.PERM_VIEW)])
 async def get_grn(grn_id: UUID, ctx: Access, session: SessionDep) -> GrnRead:
     return await _detail(session, ctx, await service.get(session, ctx, grn_id))
+
+
+@router.get(
+    "/{grn_id}/pdf",
+    response_class=Response,
+    responses={200: {"content": {"application/pdf": {}}}},
+    dependencies=[require(service.PERM_VIEW)],
+    summary="The printable goods received note. Valuation shows only to those who may see it.",
+)
+async def grn_pdf(grn_id: UUID, ctx: Access, session: SessionDep) -> Response:
+    grn = await service.get(session, ctx, grn_id)
+    detail = await _detail(session, ctx, grn)
+    company = await company_service.get_profile(session, ctx.company_id)
+    document = await html_to_pdf(
+        render_grn(detail, company_name=company.legal_name or company.name)
+    )
+    return Response(
+        content=document,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{detail.grn_number}.pdf"'},
+    )
 
 
 @delivery_router.post(

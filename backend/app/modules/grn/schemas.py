@@ -14,6 +14,25 @@ class ApiModel(BaseModel):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 
+class CounterPurchaseLineIn(ApiModel):
+    material_id: UUID
+    quantity: Annotated[Decimal, Field(gt=0, max_digits=18, decimal_places=4)]
+    unit_id: UUID
+    # What the bill says one unit cost: the person at the counter is the only one who knows.
+    rate: Annotated[Decimal, Field(gt=0, max_digits=18, decimal_places=6)]
+    batch_no: Annotated[str | None, Field(max_length=60)] = None
+
+
+class CounterPurchaseCreate(ApiModel):
+    warehouse_id: UUID
+    vendor_id: UUID
+    # The bill or receipt number: what makes a purchase with no delivery checkable.
+    reference: Annotated[str, Field(min_length=2, max_length=60)]
+    received_date: date | None = None
+    remarks: Annotated[str | None, Field(max_length=1000)] = None
+    lines: Annotated[list[CounterPurchaseLineIn], Field(min_length=1, max_length=100)]
+
+
 class GrnFromDelivery(ApiModel):
     # Left out, the site's default receiving warehouse is used.
     warehouse_id: UUID | None = None
@@ -74,6 +93,8 @@ class GrnListItem(ApiModel):
     delivery_id: UUID | None
     delivery_number: str | None = None
     purchase_order_id: UUID | None
+    counter_reference: str | None = None
+    is_counter_purchase: bool = False
     received_date: date
     net_amount: Decimal | None = None
     posted_at: datetime | None
@@ -89,6 +110,8 @@ class GrnRead(ApiModel):
     delivery_number: str | None = None
     purchase_order_id: UUID | None
     purchase_order_number: str | None = None
+    counter_reference: str | None = None
+    is_counter_purchase: bool = False
     vendor_id: UUID
     vendor_name: str | None = None
     project_id: UUID | None

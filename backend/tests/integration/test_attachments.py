@@ -11,6 +11,7 @@ that `/attachments/presign` returns is reachable directly.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Any
 
 import httpx
@@ -18,6 +19,21 @@ import pytest
 from httpx import AsyncClient
 
 pytestmark = pytest.mark.integration
+
+
+@pytest.fixture(autouse=True)
+def _sign_for_the_internal_address(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """These tests upload from *inside* the API container, so they need URLs signed for the
+    Docker-network address. In the running stack, browsers and phones are given the public one
+    (`STORAGE_PUBLIC_BASE_URL`); that is covered in tests/unit/test_storage_urls.py."""
+    from app.core.config import settings
+    from app.platform import storage
+
+    monkeypatch.setattr(settings, "storage_public_base_url", None)
+    monkeypatch.setattr(storage, "_store", None)  # rebuilt with the internal signer
+    yield
+    monkeypatch.setattr(storage, "_store", None)  # and rebuilt again for whoever comes next
+
 
 PROCUREMENT = "procurement@krb.example"
 SITE_STAFF = "staff.gvh1@krb.example"

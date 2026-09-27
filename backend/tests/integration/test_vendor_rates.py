@@ -361,3 +361,72 @@ class TestDatabaseGuarantees:
         await _propose(api, buyer, keys, "100", -60)
         big = await _propose(api, buyer, keys, "150", -5)
         assert big["status"] == "PENDING_APPROVAL"
+
+
+class TestTheGrid:
+    """The head-office rate screen (§19): what is in force, and the road it took."""
+
+    async def _row(
+        self, api: AsyncClient, headers: dict[str, str], keys: dict[str, str]
+    ) -> dict[str, Any]:
+        page = (
+            await api.get(
+                "/vendor-rates/grid",
+                headers=headers,
+                params={"vendor_id": keys["vendor_id"], "material_id": keys["material_id"]},
+            )
+        ).json()
+        [row] = page["items"]
+        return row  # type: ignore[no-any-return]
+
+    async def test_a_row_shows_the_current_rate_and_the_periods_that_led_to_it(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        buyer = await login(PROCUREMENT)
+        keys = await _keys(api, buyer)
+        await _propose(api, buyer, keys, "50", -60)
+        await _propose(api, buyer, keys, "52", -10, reason="Fuel surcharge")
+
+        row = await self._row(api, buyer, keys)
+        assert Decimal(row["rate"]) == Decimal(52) and row["effective_from"] == day(-10)
+        assert Decimal(row["previous_rate"]) == Decimal(50)
+        assert Decimal(row["change_pct"]) == Decimal("4.00")
+        # Oldest first, for a sparkline.
+        assert [(p["effective_from"], Decimal(p["rate"])) for p in row["points"]] == [
+            (day(-60), Decimal(50)),
+            (day(-10), Decimal(52)),
+        ]
+        assert row["scope"] == "Company-wide" and row["has_pending"] is False
+        assert row["vendor_name"] and row["material_sku"] and row["unit_code"]
+
+    async def test_a_change_waiting_for_approval_is_marked_and_not_yet_the_rate(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        buyer = await login(PROCUREMENT)
+        keys = await _keys(api, buyer)
+        await _propose(api, buyer, keys, "100", -60)
+        big = await _propose(api, buyer, keys, "130", -5, reason="Cement price spike")
+        assert big["status"] == "PENDING_APPROVAL"
+
+        row = await self._row(api, buyer, keys)
+        assert Decimal(row["rate"]) == Decimal(100) and row["has_pending"] is True
+        assert [Decimal(p["rate"]) for p in row["points"]] == [Decimal(100)]
+
+    async def test_only_the_current_rate_of_each_scope_is_a_row_and_readers_see_it(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        buyer = await login(PROCUREMENT)
+        keys = await _keys(api, buyer)
+        await _propose(api, buyer, keys, "50", -60)
+        await _propose(api, buyer, keys, "52", -10)
+        mine = (
+            await api.get(
+                "/vendor-rates/grid", headers=buyer, params={"vendor_id": keys["vendor_id"]}
+            )
+        ).json()
+        assert mine["page"]["total"] == 1  # two periods, one row: what is in force
+        auditor = await api.get("/vendor-rates/grid", headers=await login(AUDITOR))
+        assert auditor.status_code == 200
+        # Nobody without the right to see rates gets the grid.
+        staff = await api.get("/vendor-rates/grid", headers=await login("staff.gvh1@krb.example"))
+        assert staff.status_code == 403

@@ -122,6 +122,9 @@ _ACTION_PERMISSION = {
     "issue": issues.PERM_ISSUE,
     "adjust": adjustments.PERM_ADJUST,
     "transfer_from": transfers.PERM_TRANSFER,
+    # Where a GRN (including a counter purchase) may be raised; a literal, so `stock`
+    # does not depend on the `grn` module for one permission code.
+    "receive": "grn.create",
 }
 
 
@@ -131,15 +134,15 @@ _ACTION_PERMISSION = {
     dependencies=[require(issues.PERM_VIEW)],
     summary="The stores a person may act on, for the pickers on stock forms",
     description=(
-        "`issue`, `adjust` and `transfer_from` return only stores at sites the caller may "
-        "act on. `transfer_to` returns every store: sending stock to another site is the "
-        "point of a transfer. Needs no warehouse-management permission."
+        "`issue`, `adjust`, `receive` and `transfer_from` return only stores at sites the "
+        "caller may act on. `transfer_to` returns every store: sending stock to another site "
+        "is the point of a transfer. Needs no warehouse-management permission."
     ),
 )
 async def warehouse_options(
     ctx: Access,
     session: SessionDep,
-    action: Literal["issue", "adjust", "transfer_from", "transfer_to"],
+    action: Literal["issue", "adjust", "transfer_from", "transfer_to", "receive"],
 ) -> list[WarehouseOptionRead]:
     company = ctx.company_id
     if action == "transfer_to":

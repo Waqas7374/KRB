@@ -35,6 +35,7 @@ from app.modules.deliveries.models import Delivery, DeliveryFlag, DeliveryReview
 from app.modules.deliveries.services import ingest
 from app.modules.identity.services import user_lookup
 from app.modules.procurement.services import po_lookup
+from app.platform import outbox
 
 PERM_REVIEW = "deliveries.review"
 PERM_APPROVE = "deliveries.approve"
@@ -110,7 +111,75 @@ async def _record(
     delivery.reviewed_at = review.reviewed_at
     delivery.version += 1
     await session.flush()
+    await _announce(session, ctx, delivery, action, comments)
     return review
+
+
+# What the person who captured a delivery is told when it is decided.
+_DECISIONS = {
+    ReviewAction.ACCEPT: "approved",
+    ReviewAction.REJECT: "rejected",
+    ReviewAction.REQUEST_CORRECTION: "correction_requested",
+}
+
+
+async def _announce(
+    session: AsyncSession,
+    ctx: AccessContext,
+    delivery: Delivery,
+    action: ReviewAction,
+    comments: str | None,
+) -> None:
+    """Queue the notification for a decision or a correction (delivered after
+    commit by the outbox, so nobody is told about a change that rolled back)."""
+    if action in _DECISIONS:
+        event_type = "delivery.decided"
+        extra: dict[str, Any] = {
+            "decision": _DECISIONS[action],
+            "comments": comments,
+            "decided_by_id": str(ctx.user_id),
+        }
+    elif action is ReviewAction.CORRECTION_SUBMITTED:
+        event_type = "delivery.corrected"
+        extra = {
+            "needs_review": delivery.status == DeliveryStatus.UNDER_REVIEW.value,
+            "top_flag": next(
+                (
+                    f.message
+                    for f in delivery.flags
+                    if f.status == FlagStatus.OPEN.value and FlagSeverity(f.severity).needs_review
+                ),
+                None,
+            ),
+            "worst_severity": next(
+                (
+                    f.severity
+                    for f in sorted(delivery.flags, key=lambda f: f.severity != "CRITICAL")
+                    if f.status == FlagStatus.OPEN.value and FlagSeverity(f.severity).needs_review
+                ),
+                None,
+            ),
+        }
+    else:
+        return
+    project_id = delivery.project_id
+    await outbox.emit(
+        session,
+        outbox.DomainEvent(
+            event_type=event_type,
+            aggregate_type="Delivery",
+            aggregate_id=delivery.id,
+            payload={
+                "delivery_number": delivery.delivery_number,
+                "site_id": str(delivery.site_id),
+                "project_id": str(project_id) if project_id else None,
+                "submitted_by_id": str(delivery.submitted_by_id),
+                "link_path": f"/deliveries/{delivery.id}",
+                **extra,
+            },
+            company_id=delivery.company_id,
+        ),
+    )
 
 
 def _open_flags(delivery: Delivery) -> list[DeliveryFlag]:

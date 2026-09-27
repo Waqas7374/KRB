@@ -100,6 +100,9 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
       STORAGE_ENDPOINT_URL: http://minio:9000
+      # What browsers and phones are given to upload to: the published port, not the
+      # container-network name. On a real phone, use this machine's LAN address.
+      STORAGE_PUBLIC_BASE_URL: ${STORAGE_PUBLIC_BASE_URL:-http://localhost:9000}
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
     ports:
@@ -133,6 +136,9 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
       STORAGE_ENDPOINT_URL: http://minio:9000
+      # What browsers and phones are given to upload to: the published port, not the
+      # container-network name. On a real phone, use this machine's LAN address.
+      STORAGE_PUBLIC_BASE_URL: ${STORAGE_PUBLIC_BASE_URL:-http://localhost:9000}
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
     volumes:

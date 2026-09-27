@@ -127,6 +127,11 @@ const BusinessRulesPage = page(
 );
 
 const VendorRatesPage = page(() => import("@/features/rates/VendorRatesPage"), "VendorRatesPage");
+const RateGridPage = page(() => import("@/features/rates/RateGridPage"), "RateGridPage");
+const DeliveryDashboardPage = page(
+  () => import("@/features/deliveries/DeliveryDashboardPage"),
+  "DeliveryDashboardPage",
+);
 
 const dl = () => import("@/features/deliveries/DeliveryPages");
 const DeliveriesListPage = page(dl, "DeliveriesListPage");
@@ -137,6 +142,8 @@ const DeliveryDetailPage = page(dl, "DeliveryDetailPage");
 const grnPages = () => import("@/features/grn/GrnPages");
 const GrnListPage = page(grnPages, "GrnListPage");
 const GrnDetailPage = page(grnPages, "GrnDetailPage");
+const counterPages = () => import("@/features/grn/CounterPurchasePage");
+const CounterPurchasePage = page(counterPages, "CounterPurchasePage");
 const invPages = () => import("@/features/inventory/InventoryPages");
 const StockBalancesPage = page(invPages, "StockBalancesPage");
 const StockLedgerPage = page(invPages, "StockLedgerPage");
@@ -219,15 +226,18 @@ export const router = createBrowserRouter([
       },
 
       { path: "vendor-rates", element: gate("rates.view", <VendorRatesPage />) },
+      { path: "vendor-rates/grid", element: gate("rates.view", <RateGridPage />) },
       { path: "deliveries", element: gate("deliveries.view", <DeliveriesListPage />) },
       { path: "deliveries/new", element: gate("deliveries.create", <DeliveryFormPage />) },
       { path: "deliveries/review", element: gate("deliveries.review", <ReviewQueuePage />) },
+      { path: "deliveries/dashboard", element: gate("deliveries.view", <DeliveryDashboardPage />) },
       { path: "deliveries/:deliveryId", element: gate("deliveries.view", <DeliveryDetailPage />) },
       {
         path: "deliveries/:deliveryId/edit",
         element: gate("deliveries.create", <DeliveryFormPage />),
       },
       { path: "grns", element: gate("grn.view", <GrnListPage />) },
+      { path: "grns/new", element: gate("grn.create", <CounterPurchasePage />) },
       { path: "grns/:grnId", element: gate("grn.view", <GrnDetailPage />) },
       { path: "inventory", element: gate("inventory.view", <StockBalancesPage />) },
       { path: "inventory/ledger", element: gate("inventory.view", <StockLedgerPage />) },

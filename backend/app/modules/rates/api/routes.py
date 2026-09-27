@@ -27,8 +27,10 @@ from app.modules.rates.domain.enums import RateStatus
 from app.modules.rates.models import VendorRate
 from app.modules.rates.schemas import (
     RateCreate,
+    RateGridRow,
     RateHistoryRead,
     RateNotes,
+    RatePoint,
     RateRead,
     ResolvedRateRead,
 )
@@ -128,6 +130,68 @@ async def list_rates(
         current_only=current,
     )
     return Page.of(await _views(session, ctx, rows), params=page, total=total)
+
+
+@router.get(
+    "/grid",
+    response_model=Page[RateGridRow],
+    dependencies=[require(rate_service.PERM_VIEW)],
+    summary="Vendor x material, current rate with its history (head-office rate screen, §19)",
+    description=(
+        "One row per rate now in force, in the scope it applies to, each with the periods that "
+        "have stood (oldest first) for a sparkline. Only rates the caller may see."
+    ),
+)
+async def rate_grid(
+    ctx: Access,
+    session: SessionDep,
+    page: PageDep,
+    vendor_id: UUID | None = None,
+    material_id: UUID | None = None,
+    site_id: UUID | None = None,
+    project_id: UUID | None = None,
+) -> Page[RateGridRow]:
+    rows, total = await rate_service.list_rates(
+        session,
+        ctx,
+        page=page,
+        filters={
+            "vendor_id": vendor_id,
+            "material_id": material_id,
+            "site_id": site_id,
+            "project_id": project_id,
+        },
+        current_only=True,
+    )
+    periods, pending = await rate_service.trends(session, ctx, rows)
+    items: list[RateGridRow] = []
+    for v in await _views(session, ctx, rows):
+        key = (v.vendor_id, v.material_id, v.unit_id, v.project_id, v.site_id)
+        items.append(
+            RateGridRow(
+                rate_id=v.id,
+                vendor_id=v.vendor_id,
+                vendor_code=v.vendor_code,
+                vendor_name=v.vendor_name,
+                material_id=v.material_id,
+                material_sku=v.material_sku,
+                material_name=v.material_name,
+                unit_id=v.unit_id,
+                unit_code=v.unit_code,
+                scope=v.scope,
+                currency_code=v.currency_code,
+                rate=v.rate,
+                effective_from=v.effective_from,
+                previous_rate=v.previous_rate,
+                change_pct=v.change_pct,
+                points=[
+                    RatePoint(effective_from=p.effective_from, rate=p.rate)
+                    for p in periods.get(key, [])
+                ],
+                has_pending=key in pending,
+            )
+        )
+    return Page.of(items, params=page, total=total)
 
 
 @router.post(

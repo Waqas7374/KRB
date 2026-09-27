@@ -40,10 +40,10 @@ class LimitCheck:
     currency: str | None = None
     rule_snapshot: dict[str, object] | None = None
 
-    def message(self, doc_label: str, amount: Decimal) -> str:
+    def message(self, doc_label: str, amount: Decimal, *, noun: str = "approval limit") -> str:
         assert self.limit is not None
         return (
-            f"This {doc_label} is {self.currency or ''} {amount:,.2f}, above your approval limit "
+            f"This {doc_label} is {self.currency or ''} {amount:,.2f}, above your {noun} "
             f"of {self.currency or ''} {self.limit:,.2f}. It needs someone with a higher limit."
         ).replace("  ", " ")
 
@@ -63,6 +63,7 @@ async def check(
     site_id: UUID | None,
     department_id: UUID | None = None,
     on: date | None = None,
+    rule_type: RuleType = RuleType.APPROVAL_LIMIT,
 ) -> LimitCheck:
     if amount is None:
         return UNLIMITED
@@ -89,7 +90,7 @@ async def check(
         rule = await resolver.resolve(
             session,
             company_id=company_id,
-            rule_type=RuleType.APPROVAL_LIMIT,
+            rule_type=rule_type,
             context={
                 "role_id": role.id,
                 "doc_type": doc_type,

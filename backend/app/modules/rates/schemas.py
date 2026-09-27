@@ -79,6 +79,34 @@ class RateRead(ApiModel):
     can_withdraw: bool = False
 
 
+class RatePoint(ApiModel):
+    effective_from: date
+    rate: Decimal
+
+
+class RateGridRow(ApiModel):
+    """One vendor's current price for one material in one scope, with the road it took."""
+
+    rate_id: UUID
+    vendor_id: UUID
+    vendor_code: str | None = None
+    vendor_name: str | None = None
+    material_id: UUID
+    material_sku: str | None = None
+    material_name: str | None = None
+    unit_id: UUID
+    unit_code: str | None = None
+    scope: str
+    currency_code: str
+    rate: Decimal
+    effective_from: date
+    previous_rate: Decimal | None
+    change_pct: Decimal | None
+    # Oldest first: the periods that have stood, for a sparkline.
+    points: list[RatePoint]
+    has_pending: bool = False
+
+
 class RateHistoryRead(ApiModel):
     id: UUID
     vendor_rate_id: UUID
