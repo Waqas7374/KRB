@@ -225,6 +225,27 @@ async def reverse(
     return await ledger.reverse(session, ctx, entry, reason=reason.strip())
 
 
+async def reverse_system(
+    session: AsyncSession, ctx: AccessContext, je_id: UUID, reason: str
+) -> JournalEntry:
+    """Like `reverse`, but for a reversal that is the automatic side effect of
+    cancelling the document that raised the entry (a cancelled GRN) rather
+    than a person's own decision to reverse a posted one — so it is not gated
+    on `finance.gl.reverse`, exactly as `ledger.post_system_entry` posts
+    without gating on `finance.gl.post`. The caller's own document already
+    carried its own permission check."""
+    row = (await session.execute(select(JournalEntry).where(JournalEntry.id == je_id))).scalar_one()
+    if row.company_id != ctx.company_id:
+        raise BusinessRuleError("journal_entry_not_found", "No such journal entry.")
+    if row.status != JournalStatus.POSTED.value:
+        raise BusinessRuleError(
+            "journal_entry_not_posted",
+            f"{row.je_number} is not posted; there is nothing to reverse.",
+        )
+    await session.refresh(row, attribute_names=["lines"])
+    return await ledger.reverse(session, ctx, row, reason=reason.strip())
+
+
 class JournalEntryApprovals:
     spec = registry.DocumentTypeSpec(
         doc_type=DOC_TYPE,

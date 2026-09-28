@@ -721,6 +721,34 @@ async def get_budget(budget_id: UUID, ctx: Access, session: SessionDep) -> s.Bud
     return await _budget_detail(session, ctx, await budgets.get(session, ctx, budget_id))
 
 
+@router.get(
+    "/budgets/{budget_id}/vs-actual",
+    response_model=s.BudgetVsActualRead,
+    dependencies=[require(budgets.PERM_VIEW)],
+)
+async def get_budget_vs_actual(
+    budget_id: UUID, ctx: Access, session: SessionDep
+) -> s.BudgetVsActualRead:
+    budget = await budgets.get(session, ctx, budget_id)
+    project_codes = await document_lookup.codes(
+        session, company_id=ctx.company_id, project_ids={budget.project_id}
+    )
+    lines = await _budget_line_views(session, ctx.company_id, list(budget.lines))
+    return s.BudgetVsActualRead(
+        id=budget.id,
+        project_id=budget.project_id,
+        project_code=project_codes.get(budget.project_id, (None, None))[0],
+        fiscal_year=budget.fiscal_year,
+        name=budget.name,
+        status=budget.status,
+        lines=lines,
+        total_budgeted=sum((line.budgeted_amount for line in lines), Decimal(0)),
+        total_committed=sum((line.committed_amount for line in lines), Decimal(0)),
+        total_actual=sum((line.actual_amount for line in lines), Decimal(0)),
+        total_remaining=sum((line.remaining_amount for line in lines), Decimal(0)),
+    )
+
+
 @router.put(
     "/budgets/{budget_id}", response_model=s.BudgetRead, dependencies=[require(budgets.PERM_CREATE)]
 )

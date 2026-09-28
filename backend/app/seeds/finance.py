@@ -113,20 +113,36 @@ async def seed_periods(session: AsyncSession, company: Company) -> SeedResult:
     return result
 
 
-# (name, condition, debit code, credit code) for event="RECEIPT". A stockable
-# material's cost sits in inventory until it is issued; a non-stockable one
-# (a contractor's work, say) is a development cost the moment it is received.
-# A receipt with a purchase order behind it accrues (2110) until the vendor's
-# invoice is matched (4c); one with none — a counter purchase, whose bill
-# stands in for the invoice — is already payable (2100).
-_POSTING_RULES: tuple[tuple[str, dict[str, object], str, str], ...] = (
+# (source_type, event, name, condition, debit code, credit code).
+#
+# GRN/RECEIPT: a stockable material's cost sits in inventory until it is
+# issued; a non-stockable one (a contractor's work, say) is a development cost
+# the moment it is received. A receipt with a purchase order behind it accrues
+# (2110) until the vendor's invoice is matched (4c); one with none — a counter
+# purchase, whose bill stands in for the invoice — is already payable (2100).
+#
+# INVENTORY/ISSUE: material leaving a store becomes what it left for — a
+# development cost — straight away, at the store's average cost.
+#
+# INVENTORY/ADJUSTMENT: a correction is charged or credited to site overheads,
+# not to inventory's own value — inventory only ever holds what a receipt or
+# an issue put there or took out; an adjustment is the books catching up with
+# what was actually on the shelf, and the difference is the site's, not the
+# material's.
+_POSTING_RULES: tuple[
+    tuple[JournalSourceType, str, str, dict[str, object] | None, str, str], ...
+] = (
     (
+        JournalSourceType.GRN,
+        "RECEIPT",
         "Stockable material, against a purchase order",
         {"and": [{"==": [{"var": "is_stockable"}, True]}, {"==": [{"var": "is_po_backed"}, True]}]},
         "1400",
         "2110",
     ),
     (
+        JournalSourceType.GRN,
+        "RECEIPT",
         "Stockable material, bought over the counter",
         {
             "and": [
@@ -138,6 +154,8 @@ _POSTING_RULES: tuple[tuple[str, dict[str, object], str, str], ...] = (
         "2100",
     ),
     (
+        JournalSourceType.GRN,
+        "RECEIPT",
         "Non-stockable material, against a purchase order",
         {
             "and": [
@@ -149,6 +167,8 @@ _POSTING_RULES: tuple[tuple[str, dict[str, object], str, str], ...] = (
         "2110",
     ),
     (
+        JournalSourceType.GRN,
+        "RECEIPT",
         "Non-stockable material, bought over the counter",
         {
             "and": [
@@ -158,6 +178,30 @@ _POSTING_RULES: tuple[tuple[str, dict[str, object], str, str], ...] = (
         },
         "6200",
         "2100",
+    ),
+    (
+        JournalSourceType.INVENTORY,
+        "ISSUE",
+        "Material issued to a project",
+        None,
+        "6100",
+        "1400",
+    ),
+    (
+        JournalSourceType.INVENTORY,
+        "ADJUSTMENT",
+        "Count correction or write-off: more found",
+        {"==": [{"var": "direction"}, "increase"]},
+        "1400",
+        "6300",
+    ),
+    (
+        JournalSourceType.INVENTORY,
+        "ADJUSTMENT",
+        "Count correction or write-off: less found",
+        {"==": [{"var": "direction"}, "decrease"]},
+        "6300",
+        "1400",
     ),
 )
 
@@ -171,21 +215,21 @@ async def seed_posting_rules(session: AsyncSession, company: Company) -> SeedRes
             await session.execute(
                 select(Account).where(
                     Account.company_id == company.id,
-                    Account.code.in_({c for _, _, d, cr in _POSTING_RULES for c in (d, cr)}),
+                    Account.code.in_({c for *_, d, cr in _POSTING_RULES for c in (d, cr)}),
                 )
             )
         )
         .scalars()
         .all()
     }
-    for name, condition, debit_code, credit_code in _POSTING_RULES:
+    for source_type, event, name, condition, debit_code, credit_code in _POSTING_RULES:
         existing = await session.scalar(
             select(func.count())
             .select_from(PostingRule)
             .where(
                 PostingRule.company_id == company.id,
-                PostingRule.source_type == JournalSourceType.GRN.value,
-                PostingRule.event == "RECEIPT",
+                PostingRule.source_type == source_type.value,
+                PostingRule.event == event,
                 PostingRule.name == name,
             )
         )
@@ -196,8 +240,8 @@ async def seed_posting_rules(session: AsyncSession, company: Company) -> SeedRes
             session,
             ctx,
             posting_rules_service.PostingRuleInput(
-                source_type=JournalSourceType.GRN,
-                event="RECEIPT",
+                source_type=source_type,
+                event=event,
                 name=name,
                 condition=condition,
                 debit_account_id=codes[debit_code],

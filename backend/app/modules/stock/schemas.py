@@ -91,6 +91,7 @@ class IssueRead(IssueListItem):
     project_id: UUID | None
     warehouse_name: str | None = None
     issued_by_id: UUID | None
+    journal_entry_id: UUID | None = None
     cancelled_at: datetime | None
     cancel_reason: str | None
     remarks: str | None
@@ -221,6 +222,7 @@ class AdjustmentRead(AdjustmentListItem):
     approval_request_id: UUID | None
     submitted_at: datetime | None
     decision_reason: str | None
+    journal_entry_id: UUID | None = None
     cancelled_at: datetime | None
     cancel_reason: str | None
     version: int

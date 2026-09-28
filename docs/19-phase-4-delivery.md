@@ -10,7 +10,7 @@ what remains.
 | # | Slice | Depends on | Status |
 |---|---|---|---|
 | 4a | Chart of accounts, accounting periods, manual journal entries, trial balance, general ledger | Phase 2's approval engine | done |
-| 4b | `posting_rules` configuration; GRN auto-posting to the GL; budgets, budget lines, commitment consumption tied to PO approval and GRN posting | 4a | done |
+| 4b | `posting_rules` configuration; GRN and inventory (issues, adjustments) auto-posting to the GL; budgets, budget lines, commitment consumption tied to PO approval and GRN posting | 4a | done |
 | 4c | Vendor invoices, the 3-way match with tolerance, AP ageing | 4a, 4b | not built |
 | 4d | Payment requests, payments, allocations | 4c | not built |
 | 4e | Minimal AR: customers, customer invoices, receipts | 4a | not built |
@@ -74,21 +74,24 @@ balance at the end.
 
 ---
 
-## 4b — Posting rules, GRN auto-posting, budgets and commitments
+## 4b — Posting rules, GRN and inventory auto-posting, budgets and commitments
 
 **The done-when this slice exists for (docs/10): approving a purchase order commits a budget line;
 posting the GRN against it releases the commitment, books the actual, and posts a balanced journal
 entry — all in the same transaction as the stock movement, through the same `posting_rules` lookup
-for both the GL accounts and the budget line.**
+for both the GL accounts and the budget line.** Every other way stock moves without a receipt behind
+it — an issue, a count correction — posts through the same door.
 
 | Piece | Behaviour | Where |
 |---|---|---|
-| Posting rules | `source_type` + `event` (today: `GRN`/`RECEIPT`; 4c-4d add invoice and payment events) resolve, by the same condition language as approval workflows and business rules, to a debit and a credit account. A GRN receipt's condition sees `is_stockable`, `is_po_backed` and `material_category_id`. Highest active priority wins; a condition is validated against that event's known variables when the rule is saved, the same discipline a workflow's condition already gets. | `finance/services/posting_rules.py` |
-| Seeded receipt rules | Four, covering every combination: stockable/non-stockable × with/without a purchase order behind it. A PO-backed receipt accrues into **2110 Goods Received Not Invoiced** (cleared once 4c matches the vendor's invoice); a counter purchase — already its own bill, with no invoice still to come — credits **2100 Accounts Payable** directly. Stockable debits **1400 Inventory — Materials**; non-stockable (a contractor's work received, say) debits **6200 Contractor and Labour Cost** straight away, since it was never going to sit on a shelf. | `seeds/finance.py` |
-| Budgets | `Budget` (one per project and fiscal year) → `BudgetLine` (phase and/or cost centre, an account, a budgeted amount) → `BudgetCommitment` (append-only; written by an approved PO, released by a posted GRN). Approving a budget is a **single permission check** (`finance.budget.approve`), not a routed workflow — docs/07 gives it its own `POST /finance/budgets/{id}/approve` rather than the shared `/approvals` endpoint, unlike every approval-gated document in 4a. `REVISED` is not a status anyone picks: it is entered the instant a line's `revised_amount` is first set on an approved budget, and a line always reports the original `budgeted_amount` alongside it. `remaining_amount` and `variance_pct` are computed when a budget is read, never stored, so they cannot drift from the columns that back them. | `finance/models.py`, `finance/services/budgets.py` |
+| Posting rules | `source_type` + `event` (`GRN`/`RECEIPT`, `INVENTORY`/`ISSUE`, `INVENTORY`/`ADJUSTMENT` today; 4c-4d add invoice and payment events) resolve, by the same condition language as approval workflows and business rules, to a debit and a credit account. A GRN receipt's condition sees `is_stockable`, `is_po_backed` and `material_category_id`; an adjustment's sees `direction`. Highest active priority wins; a condition is validated against every event's known variables when the rule is saved, the same discipline a workflow's condition already gets. | `finance/services/posting_rules.py` |
+| Seeded rules | **Receipt** (four): stockable/non-stockable × with/without a purchase order behind it. A PO-backed receipt accrues into **2110 Goods Received Not Invoiced** (cleared once 4c matches the vendor's invoice); a counter purchase — already its own bill — credits **2100 Accounts Payable** directly. Stockable debits **1400 Inventory — Materials**; non-stockable debits **6200 Contractor and Labour Cost** straight away. **Issue** (one): material leaving a store debits **6100 Materials Consumed**, credits 1400 — it was development cost the moment it left. **Adjustment** (two, by direction): a correction is charged or credited to **6300 Site Overheads**, never to inventory's own value — inventory only ever holds what a receipt or an issue actually moved; the difference between the books and the shelf is the site's, not the material's. | `seeds/finance.py` |
+| Budgets | `Budget` (one per project and fiscal year) → `BudgetLine` (phase and/or cost centre, an account, a budgeted amount) → `BudgetCommitment` (append-only; written by an approved PO, released by a posted GRN). Approving a budget is a **single permission check** (`finance.budget.approve`), not a routed workflow — docs/07 gives it its own `POST /finance/budgets/{id}/approve` rather than the shared `/approvals` endpoint, unlike every approval-gated document in 4a. `REVISED` is not a status anyone picks: it is entered the instant a line's `revised_amount` is first set on an approved budget, and a line always reports the original `budgeted_amount` alongside it. `remaining_amount` and `variance_pct` are computed when a budget is read, never stored, so they cannot drift from the columns that back them. `GET /finance/budgets/{id}/vs-actual` gives the same lines as a report shape (totals, no edit-permission flags), docs/07's own endpoint for it. | `finance/models.py`, `finance/services/budgets.py` |
 | Committing (PO approval) | The approved order's items resolve through the *same* receipt posting rule (its debit account is where the spend will eventually land) and group by account; each group that matches a line of an approved budget for the PO's project, fiscal year, phase and cost centre gets a new `OPEN` commitment, and the line's `committed_amount` rises by it. A PO with nothing to match — no budget for that project yet, or no line for that phase/account — approves exactly as before; a budget is something to measure spending against, never a gate on it. | `procurement/services/purchase_orders.py` (`on_approved`), `finance/services/budgets.py::commit_purchase_order` |
-| Releasing (GRN posting) | Every accepted, priced line resolves its account (per line, since one GRN can mix items against a purchase order with an ad-hoc extra one) and groups the same way. Each group books the actual against the matching budget line regardless of whether anything was committed; when it was, the matching `OPEN`/`PARTIALLY_RELEASED` commitment is released by the same amount, capped at what remains of it, and `committed_amount` falls by exactly that — *committed → actual → remaining* stays true at every step, not just at the end. The same grouped totals become the journal entry's debit and credit lines, posted through `ledger.post_system_entry` in the same transaction as the stock movement and the PO's received-quantity update. | `grn/services/grn_service.py::_post_gl_and_budget` |
-| Screens | Posting rules (list, create/edit drawer with a JSON condition field). Budgets (list, new/edit form with a per-line phase/cost-centre/account picker, detail with a committed/actual/remaining/variance table, approve, revise, close). | `web/src/features/finance/PostingRulesPage.tsx`, `BudgetPages.tsx` |
+| Releasing (GRN posting) | Every accepted, priced line resolves its account (per line, since one GRN can mix items against a purchase order with an ad-hoc extra one) and groups the same way. Each group books the actual against the matching budget line regardless of whether anything was committed; when it was, the matching `OPEN`/`PARTIALLY_RELEASED` commitment is released by the same amount, capped at what remains of it, and `committed_amount` falls by exactly that — *committed → actual → remaining* stays true at every step, not just at the end. The same grouped totals become the journal entry's debit and credit lines, posted through `ledger.post_system_entry` in the same transaction as the stock movement and the PO's received-quantity update; the entry's id is kept on the GRN (`journal_entry_id`, a column carried since Phase 3 for exactly this). | `grn/services/grn_service.py::_post_gl_and_budget` |
+| Cancelling a posted GRN | Reverses the ledger transactions and the PO's received quantities as it already did, **and now also** reverses the journal entry (`journal_entries.reverse_system`, ungated on `finance.gl.reverse` — the caller's own `grn.cancel` permission is what authorised this) and reopens whatever the GRN released (`budgets.reverse_release`, a separate pass from `release_receipt` run backwards, not the same function with a sign flipped). Nothing is left half-undone: stock, the GL and the budget move together or not at all, exactly as posting does. | `grn/services/grn_service.py::cancel` |
+| Stock issues and adjustments | An issue posts its journal entry (Dr Materials Consumed, Cr Inventory) the instant it posts, at the same total the ledger lines were just valued at; cancelling a posted issue reverses it the same way a GRN's cancel does. An adjustment posts its entry (charged to Site Overheads, by direction — an increase and a decrease in the same document become two balanced pairs of lines in one entry) inside the approval handler's own transaction, alongside the ledger movement — there is no "adjustment posted but not yet in the GL" moment, the same guarantee the module's own docstring already made for stock. A posted adjustment has no cancel path (a correction is corrected with another adjustment, docs/02), so it needed no reversal wiring. | `stock/services/issues.py`, `stock/services/adjustments.py` |
+| Screens | Posting rules (list, create/edit drawer with a JSON condition field). Budgets (list, new/edit form with a per-line phase/cost-centre/account picker, detail with a committed/actual/remaining/variance table, approve, revise, close). A GRN, issue or adjustment's detail page links to the journal entry it posted. | `web/src/features/finance/PostingRulesPage.tsx`, `BudgetPages.tsx` |
 | `GET /finance/commitments` | Listed by budget line, source type or source id — the audit trail behind a line's `committed_amount` (docs/07 §2, built alongside the budgets endpoints it was missing from on first pass). | `finance/api/routes.py` |
 
 **Deliberately simplified.** A purchase order carries one phase and one cost centre at its header
@@ -98,10 +101,19 @@ tracking is pre-tax on both sides (a PO item's `line_total`, a GRN item's alread
 `amount`) — tax is a pass-through more than a development cost, and this keeps commitment and actual
 computed the same way. A counter purchase (no PO, no phase on the GRN) can only count against a
 budget line with no phase or cost centre set; there is nowhere on today's counter-purchase form to
-name one.
+name one. A stock transfer posts nothing to the GL at all — it moves location, not value, and
+Inventory — Materials is one company-wide account regardless of warehouse.
 
 ### Found by testing
 
+- **The trial balance and general ledger silently excluded every reversed entry's own lines,
+  contradicting the module's own docstring** ("a reversed entry's own lines are cancelled out by its
+  reversal's lines rather than excluded"). The query filtered `status == POSTED`, and a reversed
+  entry's status is `REVERSED`, not `POSTED` — so only the reversal's lines showed, never cancelled
+  out against anything, leaving a real balance sitting in the trial balance for a movement that had
+  been undone. Present since 4a; nothing in 4a's own tests reversed an entry and then re-read the
+  trial balance, so it went unnoticed until this slice's GRN-cancel test did exactly that. Fixed by
+  including both `POSTED` and `REVERSED` in the report's status filter.
 - **A released commitment never reduced `committed_amount`.** `release_receipt` credited the line's
   `actual_amount` and the commitment's `released_amount` correctly, but the corresponding decrease to
   `committed_amount` was simply missing from the first version — *committed → actual → remaining*
@@ -117,15 +129,21 @@ name one.
   fiscal year fails the second time it runs against the same shared dev database. Fixed by giving the
   budget lifecycle test its own fiscal year far in the future, never a real one, so reruns never see
   what an earlier run left behind.
+- **A cancelled GRN left its journal entry and its budget effect standing.** The first version of
+  `cancel` reversed the stock ledger and the PO's received quantities, as it already did before this
+  slice, but nothing reversed the GL entry or gave the budget commitment back — a document that never
+  happened, by the ledger's own account, would still show as spent against the budget. Caught by
+  extending the existing cancel test to check the trial balance and the budget line afterward, not
+  just the stock and the PO.
 
 ## Testing (state after slice 4b)
 
 | Suite | Result |
 |---|---|
-| Backend | Full suite passed, coverage 92 % (gate 80 %); ruff, mypy, import contracts 4/4, `alembic check` clean; new migration round-trips |
-| New this slice | 19 tests (`test_budgets.py`): the four seeded receipt rules are listed, only `finance.coa.manage` may write one, an unknown condition variable is refused, a rule can be created/edited/deactivated; a budget needs at least one line, two lines for the same phase/cost-centre/account are refused, only `finance.budget.create` may raise one, draft→edit→approve→revise→close end to end with permission checks at each step; approving a PO commits the matching budget line and posting its GRN releases the commitment, books the actual and posts a balanced entry (asserted via the trial balance), and a counter purchase posts straight to Accounts Payable. Every pre-existing GRN, counter-purchase, PO and sourcing test (71 of them) still passes unchanged with posting rules now mandatory for a receipt to post. |
+| Backend | Full suite passed, coverage 92 % (gate 80 %); ruff, mypy, import contracts 4/4, `alembic check` clean; both migrations round-trip |
+| New this slice | 21 tests (`test_budgets.py`): the seeded receipt rules are listed, only `finance.coa.manage` may write one, an unknown condition variable is refused, a rule can be created/edited/deactivated; a budget needs at least one line, two lines for the same phase/cost-centre/account are refused, only `finance.budget.create` may raise one, draft→edit→approve→revise→close end to end with permission checks at each step, `vs-actual` totals the lines; approving a PO commits the matching budget line and posting its GRN releases the commitment, books the actual and posts a balanced entry (asserted via the trial balance), cancelling that GRN reopens the commitment and reverses the entry (asserted the same way), and a counter purchase posts straight to Accounts Payable. Plus new assertions in the existing GRN-cancel test (the reversal really nets to nothing in the trial balance) and stock-movement tests (an issue's posting and cancel-reversal, an adjustment's charge to Site Overheads). Every pre-existing GRN, counter-purchase, PO, sourcing and stock-movement test still passes unchanged with posting rules now mandatory for a receipt, an issue or an adjustment to post. |
 | Web | Typecheck, eslint (no warnings), prettier, build clean |
-| Browser E2E | `budgets.spec.ts`: a budget drafted, approved, revised (the original figure kept alongside the new one) and closed, through the real browser. The PO-commitment/GRN-release wiring itself is exercised at the API/database level by `test_budgets.py` and, for the GRN-posts-a-balanced-entry side, indirectly by the existing `grn.spec.ts` and `counter-purchase.spec.ts` — both already post a real GRN through the browser, which now also builds and posts the journal entry this slice adds |
+| Browser E2E | `budgets.spec.ts`: a budget drafted, approved, revised (the original figure kept alongside the new one) and closed, through the real browser. The GL/budget wiring for GRNs, issues and adjustments is exercised at the API/database level (`test_budgets.py`, `test_stock_movements.py`, `test_grn_inventory.py`) and, indirectly, by the existing `grn.spec.ts`, `counter-purchase.spec.ts` and `stock-movements.spec.ts` — all already post a real document through the browser, which now also builds and posts the journal entry this slice adds |
 
 ## What is not built in Phase 4 yet
 
@@ -136,5 +154,5 @@ name one.
 | Minimal AR (customers, invoices, receipts) | not built (4e) |
 | Chart-of-accounts CSV import (docs/12 Q2) | not built |
 | Opening-balance entry flow, cut-over / parallel-run plan (docs/12 Q2) | not built; cut-over date still needed from the business |
-| Posting rules for non-GRN events (invoice, payment) | arrives with 4c/4d, same `posting_rules` table |
+| Posting rules for non-GRN, non-inventory events (invoice, payment) | arrives with 4c/4d, same `posting_rules` table |
 | A per-line phase/cost centre on a purchase order or counter purchase | not built; both are header-level today (docs/02 §5), which is what 4b's commitment/release grouping assumes |

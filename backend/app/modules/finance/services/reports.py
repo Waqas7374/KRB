@@ -35,13 +35,18 @@ class TrialBalanceRow:
     credit: Decimal
 
 
+_POSTED_STATUSES = (JournalStatus.POSTED.value, JournalStatus.REVERSED.value)
+
+
 def _posted_lines(company_id: UUID, as_of: date | None) -> Select[Any]:
+    # A reversed entry's own lines stay in: they are cancelled out by the
+    # reversal's opposite lines, not erased, which is the whole point of a
+    # reversal over an edit — the module docstring above says so, and this is
+    # the one place that promise is actually kept or broken.
     stmt = (
         select(JournalEntryLine)
         .join(JournalEntry, JournalEntry.id == JournalEntryLine.je_id)
-        .where(
-            JournalEntry.company_id == company_id, JournalEntry.status == JournalStatus.POSTED.value
-        )
+        .where(JournalEntry.company_id == company_id, JournalEntry.status.in_(_POSTED_STATUSES))
     )
     if as_of is not None:
         stmt = stmt.where(JournalEntry.entry_date <= as_of)

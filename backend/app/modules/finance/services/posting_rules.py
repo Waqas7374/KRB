@@ -34,10 +34,15 @@ from app.modules.masterdata.services import material_lookup
 PERM_VIEW = "finance.coa.view"
 PERM_MANAGE = "finance.coa.manage"
 
-# The context variables a GRN receipt rule's condition may use — validated the
-# same way an approval workflow's condition is, so a typo in a rule is caught
-# at save time rather than silently never matching.
-RECEIPT_VARIABLES = frozenset({"is_stockable", "is_po_backed", "material_category_id"})
+# The context variables any posting rule's condition may use, across every
+# event — validated the same way an approval workflow's condition is, so a
+# typo is caught at save time rather than silently never matching. One shared
+# set rather than one per event: simpler, and a condition that uses the wrong
+# event's variable will still just never match rather than error, which the
+# event mismatch on the rule's own `event` field already prevents.
+CONDITION_VARIABLES = frozenset(
+    {"is_stockable", "is_po_backed", "material_category_id", "direction"}
+)
 
 
 def repository(session: AsyncSession) -> ScopedRepository[PostingRule]:
@@ -53,7 +58,7 @@ def repository(session: AsyncSession) -> ScopedRepository[PostingRule]:
 
 def _validate_condition(condition: Any) -> None:
     try:
-        conditions.validate(condition, variables=RECEIPT_VARIABLES)
+        conditions.validate(condition, variables=CONDITION_VARIABLES)
     except conditions.ConditionError as exc:
         raise ValidationError(
             str(exc), errors=[{"field": "condition", "code": "invalid", "message": str(exc)}]
@@ -215,5 +220,28 @@ async def resolve_receipt_account(
             "posting_rule_missing",
             f"No posting rule is set up for {kind} materials {backing}. Ask finance to add one "
             "under Posting Rules before this can post.",
+        )
+    return rule
+
+
+async def resolve_or_fail(
+    session: AsyncSession,
+    ctx: AccessContext,
+    *,
+    source_type: JournalSourceType,
+    event: str,
+    context: dict[str, Any],
+    what: str,
+) -> PostingRule:
+    """`resolve()`, but posting is what this is for — a stock issue or an
+    adjustment has nothing else to fall back on the way a GRN receipt's
+    budget matching does, so a missing rule is a clear 422 here rather than
+    something a caller has to remember to check for."""
+    rule = await resolve(session, ctx, source_type=source_type, event=event, context=context)
+    if rule is None:
+        raise BusinessRuleError(
+            "posting_rule_missing",
+            f"No posting rule is set up for {what}. Ask finance to add one under Posting Rules "
+            "before this can post.",
         )
     return rule

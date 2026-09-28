@@ -334,6 +334,24 @@ class BudgetRead(BudgetListItem):
     can_close: bool = False
 
 
+class BudgetVsActualRead(ApiModel):
+    """The report docs/07 §2 documents separately from the editable budget
+    itself: the same lines, plus the totals a chart or a summary row wants
+    without re-adding them client-side."""
+
+    id: UUID
+    project_id: UUID
+    project_code: str | None = None
+    fiscal_year: int
+    name: str
+    status: str
+    lines: list[BudgetLineRead]
+    total_budgeted: Decimal
+    total_committed: Decimal
+    total_actual: Decimal
+    total_remaining: Decimal
+
+
 class BudgetCommitmentRead(ApiModel):
     id: UUID
     budget_line_id: UUID

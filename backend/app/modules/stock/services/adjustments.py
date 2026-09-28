@@ -33,6 +33,9 @@ from app.core.scoping import assert_in_scope
 from app.core.types import today_utc, utcnow
 from app.modules.approvals.services import engine as approvals
 from app.modules.approvals.services import registry
+from app.modules.finance.domain.enums import JournalSourceType
+from app.modules.finance.services import ledger as gl
+from app.modules.finance.services import posting_rules
 from app.modules.inventory.domain.enums import TxnType
 from app.modules.inventory.services import ledger
 from app.modules.masterdata.services import warehouse_lookup
@@ -453,6 +456,55 @@ async def _post_lines(
         # cost of the moment it was posted.
         item.unit_cost = txn.unit_cost
         item.value_delta = txn.value_in if delta > 0 else -txn.value_out
+
+    await _post_adjustment_to_gl(session, ctx, adjustment)
+
+
+async def _post_adjustment_to_gl(
+    session: AsyncSession, ctx: AccessContext, adjustment: StockAdjustment
+) -> None:
+    """The books catching up with what was actually on the shelf is charged
+    or credited to site overheads, not to inventory's own value (docs/10:
+    inventory auto-posting) — increases and decreases use different accounts,
+    so each direction present becomes its own balanced pair of lines in one
+    entry."""
+    increased = sum(
+        (i.value_delta for i in adjustment.items if i.value_delta and i.value_delta > 0), Decimal(0)
+    )
+    decreased = -sum(
+        (i.value_delta for i in adjustment.items if i.value_delta and i.value_delta < 0), Decimal(0)
+    )
+    dims = {"project_id": adjustment.project_id, "site_id": adjustment.site_id}
+    lines = []
+    for amount, direction, what in (
+        (increased, "increase", "a stock adjustment that finds more than the books said"),
+        (decreased, "decrease", "a stock adjustment that finds less than the books said"),
+    ):
+        if amount <= 0:
+            continue
+        rule = await posting_rules.resolve_or_fail(
+            session,
+            ctx,
+            source_type=JournalSourceType.INVENTORY,
+            event="ADJUSTMENT",
+            context={"direction": direction},
+            what=what,
+        )
+        lines.append(gl.debit(rule.debit_account_id, amount, **dims))
+        lines.append(gl.credit(rule.credit_account_id, amount, **dims))
+    if not lines:
+        return
+    entry = await gl.post_system_entry(
+        session,
+        ctx,
+        source_type=JournalSourceType.INVENTORY,
+        source_id=adjustment.id,
+        entry_date=adjustment.adjustment_date,
+        description=f"Stock adjustment: {adjustment.adjustment_number} ({adjustment.reason_code})",
+        reference=None,
+        lines=lines,
+    )
+    adjustment.journal_entry_id = entry.id
 
 
 class StockAdjustmentApprovals:

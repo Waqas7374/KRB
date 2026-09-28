@@ -35,7 +35,7 @@ from app.core.scoping import assert_in_scope
 from app.core.types import utcnow
 from app.modules.deliveries.services import receipts
 from app.modules.finance.domain.enums import CommitmentSourceType, JournalSourceType
-from app.modules.finance.services import budgets, posting_rules
+from app.modules.finance.services import budgets, journal_entries, posting_rules
 from app.modules.finance.services import ledger as gl
 from app.modules.grn.domain.enums import GrnStatus, InspectionResult
 from app.modules.grn.models import Grn, GrnItem
@@ -601,14 +601,8 @@ async def post(
         if item.po_item_id is not None:
             await _apply_receipt(session, converter, grn, item, sign=1)
 
-    po_info = (
-        await po_lookup.order(
-            session, company_id=ctx.company_id, purchase_order_id=grn.purchase_order_id
-        )
-        if grn.purchase_order_id
-        else None
-    )
-    await _post_gl_and_budget(session, ctx, grn, po_info)
+    po_info = await _po_info(session, ctx, grn)
+    grn.journal_entry_id = await _post_gl_and_budget(session, ctx, grn, po_info)
 
     grn.status = GrnStatus.POSTED.value
     grn.posted_at = utcnow()
@@ -620,33 +614,51 @@ async def post(
     return grn
 
 
+async def _po_info(
+    session: AsyncSession, ctx: AccessContext, grn: Grn
+) -> po_lookup.OrderInfo | None:
+    if grn.purchase_order_id is None:
+        return None
+    return await po_lookup.order(
+        session, company_id=ctx.company_id, purchase_order_id=grn.purchase_order_id
+    )
+
+
+def _commitment_lines(grn: Grn) -> list[budgets.CommitmentLine]:
+    """Every accepted, priced line, as the budget side sees it — the same
+    list `post` groups for the release and `cancel` groups again, unchanged,
+    for the reversal."""
+    return [
+        budgets.CommitmentLine(
+            material_id=item.material_id,
+            amount=item.amount,
+            is_po_backed=item.po_item_id is not None,
+        )
+        for item in grn.items
+        if item.accepted_quantity > 0 and item.amount is not None
+    ]
+
+
 async def _post_gl_and_budget(
     session: AsyncSession, ctx: AccessContext, grn: Grn, po_info: po_lookup.OrderInfo | None
-) -> None:
+) -> UUID | None:
     """The GL side of a receipt, and the budget it counts against (docs/07
     §3): every accepted, priced line resolves — through the same posting rule,
     whether it is destined for the ledger or for a budget line — to a debit
     and a credit account. A GRN with no priced, accepted lines (nothing
-    happened) posts nothing."""
+    happened) posts nothing, and returns no journal entry to remember."""
     debit_totals: dict[UUID, Decimal] = defaultdict(Decimal)
     credit_totals: dict[UUID, Decimal] = defaultdict(Decimal)
-    commitment_lines: list[budgets.CommitmentLine] = []
     for item in grn.items:
         if item.accepted_quantity == 0 or item.amount is None:
             continue
-        is_po_backed = item.po_item_id is not None
         rule = await posting_rules.resolve_receipt_account(
-            session, ctx, material_id=item.material_id, is_po_backed=is_po_backed
+            session, ctx, material_id=item.material_id, is_po_backed=item.po_item_id is not None
         )
         debit_totals[rule.debit_account_id] += item.amount
         credit_totals[rule.credit_account_id] += item.amount
-        commitment_lines.append(
-            budgets.CommitmentLine(
-                material_id=item.material_id, amount=item.amount, is_po_backed=is_po_backed
-            )
-        )
     if not debit_totals:
-        return
+        return None
 
     phase_id = po_info.phase_id if po_info else None
     cost_center_id = po_info.cost_center_id if po_info else None
@@ -658,7 +670,7 @@ async def _post_gl_and_budget(
     }
     lines = [gl.debit(account_id, amount, **dims) for account_id, amount in debit_totals.items()]
     lines += [gl.credit(account_id, amount, **dims) for account_id, amount in credit_totals.items()]
-    await gl.post_system_entry(
+    entry = await gl.post_system_entry(
         session,
         ctx,
         source_type=JournalSourceType.GRN,
@@ -668,19 +680,19 @@ async def _post_gl_and_budget(
         reference=grn.counter_reference,
         lines=lines,
     )
-    if grn.project_id is None:
-        return  # nothing to measure the spend against
-    await budgets.release_receipt(
-        session,
-        ctx,
-        source_type=CommitmentSourceType.PO,
-        source_id=grn.purchase_order_id,
-        project_id=grn.project_id,
-        phase_id=phase_id,
-        cost_center_id=cost_center_id,
-        on=grn.received_date,
-        lines=commitment_lines,
-    )
+    if grn.project_id is not None:
+        await budgets.release_receipt(
+            session,
+            ctx,
+            source_type=CommitmentSourceType.PO,
+            source_id=grn.purchase_order_id,
+            project_id=grn.project_id,
+            phase_id=phase_id,
+            cost_center_id=cost_center_id,
+            on=grn.received_date,
+            lines=_commitment_lines(grn),
+        )
+    return entry.id
 
 
 async def _apply_receipt(
@@ -748,6 +760,26 @@ async def cancel(session: AsyncSession, ctx: AccessContext, grn_id: UUID, reason
                 )
             if item.po_item_id is not None and item.accepted_quantity + item.rejected_quantity > 0:
                 await _apply_receipt(session, converter, grn, item, sign=-1)
+
+        # ...and what it posted to the GL and committed against a budget,
+        # the same way the stock movement above is undone rather than erased.
+        if grn.journal_entry_id is not None:
+            await journal_entries.reverse_system(
+                session, ctx, grn.journal_entry_id, reason=f"{grn.grn_number} cancelled: {reason}"
+            )
+        if grn.project_id is not None:
+            po_info = await _po_info(session, ctx, grn)
+            await budgets.reverse_release(
+                session,
+                ctx,
+                source_type=CommitmentSourceType.PO,
+                source_id=grn.purchase_order_id,
+                project_id=grn.project_id,
+                phase_id=po_info.phase_id if po_info else None,
+                cost_center_id=po_info.cost_center_id if po_info else None,
+                on=grn.received_date,
+                lines=_commitment_lines(grn),
+            )
 
     grn.status = GrnStatus.CANCELLED.value
     grn.cancelled_at = utcnow()

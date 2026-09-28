@@ -506,3 +506,58 @@ async def release_receipt(
                     else CommitmentStatus.PARTIALLY_RELEASED.value
                 )
     await session.flush()
+
+
+async def reverse_release(
+    session: AsyncSession,
+    ctx: AccessContext,
+    *,
+    source_type: CommitmentSourceType,
+    source_id: UUID | None,
+    project_id: UUID,
+    phase_id: UUID | None,
+    cost_center_id: UUID | None,
+    on: date,
+    lines: list[CommitmentLine],
+) -> None:
+    """Undoes exactly what `release_receipt` did for the same lines — called
+    when a posted GRN is cancelled. The actual comes off the line, and
+    whatever this receipt released is reopened on the commitment it came from
+    (a separate pass from `release_receipt`, not the same one run backwards
+    with a sign flipped, since a mistake made only one way would slip past a
+    test that only ever exercises the normal direction)."""
+    grouped = await _group_by_account(session, ctx, lines)
+    for (account_id, is_po_backed), amount in grouped.items():
+        line = await _find_budget_line(
+            session,
+            ctx,
+            project_id=project_id,
+            on=on,
+            phase_id=phase_id,
+            cost_center_id=cost_center_id,
+            account_id=account_id,
+        )
+        if line is None:
+            continue
+        line.actual_amount -= amount
+        if is_po_backed and source_id is not None:
+            commitment = await session.scalar(
+                select(BudgetCommitment).where(
+                    BudgetCommitment.budget_line_id == line.id,
+                    BudgetCommitment.source_type == source_type.value,
+                    BudgetCommitment.source_id == source_id,
+                    BudgetCommitment.status.in_(
+                        (CommitmentStatus.PARTIALLY_RELEASED.value, CommitmentStatus.RELEASED.value)
+                    ),
+                )
+            )
+            if commitment is not None:
+                reopened = min(amount, commitment.released_amount)
+                commitment.released_amount -= reopened
+                line.committed_amount += reopened
+                commitment.status = (
+                    CommitmentStatus.OPEN.value
+                    if commitment.released_amount <= 0
+                    else CommitmentStatus.PARTIALLY_RELEASED.value
+                )
+    await session.flush()

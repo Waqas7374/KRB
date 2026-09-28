@@ -3107,6 +3107,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/finance/budgets/{budget_id}/vs-actual": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Budget Vs Actual */
+    get: operations["get_budget_vs_actual_api_v1_finance_budgets__budget_id__vs_actual_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/finance/budgets/{budget_id}/approve": {
     parameters: {
       query?: never;
@@ -3462,6 +3479,8 @@ export interface components {
       submitted_at: string | null;
       /** Decision Reason */
       decision_reason: string | null;
+      /** Journal Entry Id */
+      journal_entry_id?: string | null;
       /** Cancelled At */
       cancelled_at: string | null;
       /** Cancel Reason */
@@ -3827,6 +3846,42 @@ export interface components {
       revisions: {
         [key: string]: number | string;
       };
+    };
+    /**
+     * BudgetVsActualRead
+     * @description The report docs/07 §2 documents separately from the editable budget
+     *     itself: the same lines, plus the totals a chart or a summary row wants
+     *     without re-adding them client-side.
+     */
+    BudgetVsActualRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Project Id
+       * Format: uuid
+       */
+      project_id: string;
+      /** Project Code */
+      project_code?: string | null;
+      /** Fiscal Year */
+      fiscal_year: number;
+      /** Name */
+      name: string;
+      /** Status */
+      status: string;
+      /** Lines */
+      lines: components["schemas"]["BudgetLineRead"][];
+      /** Total Budgeted */
+      total_budgeted: string;
+      /** Total Committed */
+      total_committed: string;
+      /** Total Actual */
+      total_actual: string;
+      /** Total Remaining */
+      total_remaining: string;
     };
     /**
      * CalibrationConfirm
@@ -5238,6 +5293,8 @@ export interface components {
       posted_at: string | null;
       /** Posted By Id */
       posted_by_id: string | null;
+      /** Journal Entry Id */
+      journal_entry_id?: string | null;
       /** Cancelled At */
       cancelled_at: string | null;
       /** Cancel Reason */
@@ -5506,6 +5563,8 @@ export interface components {
       warehouse_name?: string | null;
       /** Issued By Id */
       issued_by_id: string | null;
+      /** Journal Entry Id */
+      journal_entry_id?: string | null;
       /** Cancelled At */
       cancelled_at: string | null;
       /** Cancel Reason */
@@ -18246,6 +18305,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["BudgetRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_budget_vs_actual_api_v1_finance_budgets__budget_id__vs_actual_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        budget_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BudgetVsActualRead"];
         };
       };
       /** @description Validation Error */

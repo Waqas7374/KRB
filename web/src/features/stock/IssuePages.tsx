@@ -370,6 +370,17 @@ export function IssueDetailPage() {
               { label: "Purpose", value: i.purpose },
               { label: "Date", value: formatDate(i.issue_date) },
               { label: "Posted", value: i.issued_at ? formatDateTime(i.issued_at) : null },
+              {
+                label: "Journal entry",
+                value: i.journal_entry_id ? (
+                  <Link
+                    to={`/finance/journal-entries/${i.journal_entry_id}`}
+                    className="font-mono text-primary hover:underline"
+                  >
+                    View posting
+                  </Link>
+                ) : null,
+              },
               { label: "Remarks", value: i.remarks, wide: true },
             ]}
           />

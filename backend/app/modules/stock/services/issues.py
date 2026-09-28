@@ -21,6 +21,9 @@ from app.core.errors import BusinessRuleError, VersionConflictError
 from app.core.pagination import PageParams
 from app.core.scoping import assert_in_scope
 from app.core.types import today_utc, utcnow
+from app.modules.finance.domain.enums import JournalSourceType
+from app.modules.finance.services import journal_entries, posting_rules
+from app.modules.finance.services import ledger as gl
 from app.modules.inventory.domain.enums import TxnType
 from app.modules.inventory.services import ledger
 from app.modules.masterdata.services.conversion import UnitConverter
@@ -162,8 +165,41 @@ async def post(
     issue.issued_by_id = ctx.user_id
     issue.version += 1
     issue.updated_by_id = ctx.user_id
+    await _post_to_gl(session, ctx, issue)
     await session.flush()
     return issue
+
+
+async def _post_to_gl(session: AsyncSession, ctx: AccessContext, issue: StockIssue) -> None:
+    """What left the store becomes a development cost the moment it does
+    (docs/10: inventory auto-posting), at the same total value the ledger
+    lines above were just posted at."""
+    total = sum((item.value for item in issue.items if item.value), Decimal(0))
+    if total == 0:
+        return
+    rule = await posting_rules.resolve_or_fail(
+        session,
+        ctx,
+        source_type=JournalSourceType.INVENTORY,
+        event="ISSUE",
+        context={},
+        what="a stock issue",
+    )
+    dims = {"project_id": issue.project_id, "site_id": issue.site_id}
+    entry = await gl.post_system_entry(
+        session,
+        ctx,
+        source_type=JournalSourceType.INVENTORY,
+        source_id=issue.id,
+        entry_date=issue.issue_date,
+        description=f"Material issued: {issue.issue_number}",
+        reference=None,
+        lines=[
+            gl.debit(rule.debit_account_id, total, **dims),
+            gl.credit(rule.credit_account_id, total, **dims),
+        ],
+    )
+    issue.journal_entry_id = entry.id
 
 
 async def cancel(
@@ -187,6 +223,13 @@ async def cancel(
                     source_id=issue.id,
                     remarks=f"{issue.issue_number} cancelled",
                 )
+        if issue.journal_entry_id is not None:
+            await journal_entries.reverse_system(
+                session,
+                ctx,
+                issue.journal_entry_id,
+                reason=f"{issue.issue_number} cancelled: {reason}",
+            )
     issue.status = IssueStatus.CANCELLED.value
     issue.cancelled_at = utcnow()
     issue.cancel_reason = reason.strip()

@@ -126,6 +126,7 @@ class GrnRead(ApiModel):
     prices_hidden: bool = False
     posted_at: datetime | None
     posted_by_id: UUID | None
+    journal_entry_id: UUID | None = None
     cancelled_at: datetime | None
     cancel_reason: str | None
     remarks: str | None

@@ -191,3 +191,4 @@ export type BudgetLineRead = S["BudgetLineRead"];
 export type BudgetListItem = S["BudgetListItem"];
 export type BudgetRead = S["BudgetRead"];
 export type BudgetCommitmentRead = S["BudgetCommitmentRead"];
+export type BudgetVsActualRead = S["BudgetVsActualRead"];

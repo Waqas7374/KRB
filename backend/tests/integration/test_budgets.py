@@ -238,6 +238,28 @@ class TestBudgets:
         assert closed.status_code == 200, closed.text
         assert closed.json()["status"] == "CLOSED"
 
+    async def test_vs_actual_totals_the_lines(self, api: AsyncClient, login: Any) -> None:
+        finance = await login(FINANCE)
+        codes = await _codes(api, finance)
+        keys = await _keys(api, await login(ADMIN))
+        made = await api.post(
+            "/finance/budgets",
+            headers=finance,
+            json=_budget_body(
+                keys["project"], _line(codes["1400"], "1000"), _line(codes["6100"], "2000")
+            ),
+        )
+        budget = made.json()
+
+        report = (
+            await api.get(f"/finance/budgets/{budget['id']}/vs-actual", headers=finance)
+        ).json()
+        assert len(report["lines"]) == 2
+        assert Decimal(report["total_budgeted"]) == Decimal(3000)
+        assert Decimal(report["total_committed"]) == Decimal(0)
+        assert Decimal(report["total_actual"]) == Decimal(0)
+        assert Decimal(report["total_remaining"]) == Decimal(3000)
+
 
 class TestCommitmentWiring:
     async def test_approving_a_po_commits_and_posting_its_grn_releases_and_posts_the_ledger(
@@ -308,6 +330,62 @@ class TestCommitmentWiring:
         assert Decimal(after_1400["debit"]) == before_1400 + Decimal(5000)
         after_2110 = next(r for r in after_tb["rows"] if r["account_id"] == codes["2110"])
         assert Decimal(after_2110["credit"]) >= Decimal(5000)
+
+    async def test_cancelling_the_grn_reopens_the_commitment_and_reverses_the_entry(
+        self, api: AsyncClient, login: Any
+    ) -> None:
+        finance = await login(FINANCE)
+        codes = await _codes(api, finance)
+        keys = await _keys(api, await login(ADMIN))
+
+        made = await api.post(
+            "/finance/budgets",
+            headers=finance,
+            json=_budget_body(keys["project"], _line(codes["1400"], "1000000")),
+        )
+        budget = made.json()
+        await api.post(
+            f"/finance/budgets/{budget['id']}/approve",
+            headers={**finance, "If-Match": str(budget["version"])},
+        )
+
+        await _rate(api, await login(PROCUREMENT), keys, "100")
+        po = await _approved_order(api, login, keys, "50", rate="100")
+        delivery = await _approved_delivery(api, login, keys, "50", po=po)
+        grn = await _grn(api, login, delivery)
+        posted = await _post(api, login, grn)
+        assert Decimal(
+            (await api.get(f"/finance/budgets/{budget['id']}", headers=finance)).json()["lines"][0][
+                "actual_amount"
+            ]
+        ) == Decimal(5000)
+
+        admin = await login(ADMIN)
+        cancelled = await api.post(
+            f"/grns/{posted['id']}/cancel",
+            headers=admin,
+            json={"reason": "Wrong load booked against this order"},
+        )
+        assert cancelled.status_code == 200, cancelled.text
+
+        line = (await api.get(f"/finance/budgets/{budget['id']}", headers=finance)).json()["lines"][
+            0
+        ]
+        assert Decimal(line["actual_amount"]) == Decimal(0)
+        assert Decimal(line["committed_amount"]) == Decimal(5000)
+
+        commitments = (
+            await api.get(
+                "/finance/commitments",
+                headers=finance,
+                params={"budget_line_id": line["id"]},
+            )
+        ).json()["items"]
+        assert commitments[0]["status"] == "OPEN"
+        assert Decimal(commitments[0]["released_amount"]) == Decimal(0)
+
+        tb = (await api.get("/finance/trial-balance", headers=finance)).json()
+        assert not any(r["account_id"] == codes["1400"] for r in tb["rows"])
 
     async def test_a_counter_purchase_posts_straight_to_accounts_payable(
         self, api: AsyncClient, login: Any

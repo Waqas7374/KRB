@@ -25,6 +25,7 @@ from app.core.access import system_access_context
 from app.modules.inventory.domain.enums import TxnType
 from app.modules.inventory.services import ledger, reconcile
 from tests.integration.test_deliveries import ADMIN, _keys
+from tests.integration.test_finance import _codes
 
 pytestmark = pytest.mark.integration
 
@@ -143,6 +144,41 @@ class TestIssues:
         as_pm = (await api.get(f"/inventory/issues/{draft['id']}", headers=await login(PM))).json()
         assert Decimal(as_pm["items"][0]["unit_cost"]) == Decimal(110)
         assert Decimal(as_pm["total_value"]) == Decimal(440)
+
+    async def test_posting_charges_materials_consumed_and_cancelling_reverses_it(
+        self, api: AsyncClient, login: Any, db: AsyncSession
+    ) -> None:
+        s = await _setup(api, login, db)
+        await s.stock(db, "GVH-S1-YARD", "10", "100")
+        finance = await login(FINANCE)
+        codes = await _codes(api, finance)
+
+        before = (await api.get("/finance/trial-balance", headers=finance)).json()
+        before_6100 = next(
+            (Decimal(r["debit"]) for r in before["rows"] if r["account_id"] == codes["6100"]),
+            Decimal(0),
+        )
+
+        posted = await _issue_post(api, login, await _issue(api, login, s, "4"))
+        assert posted["journal_entry_id"] is not None
+        entry = (
+            await api.get(f"/finance/journal-entries/{posted['journal_entry_id']}", headers=finance)
+        ).json()
+        assert entry["status"] == "POSTED"
+        assert Decimal(entry["total_debit"]) == Decimal(400)  # 4 tons at the average of 100
+
+        after = (await api.get("/finance/trial-balance", headers=finance)).json()
+        after_6100 = next(r for r in after["rows"] if r["account_id"] == codes["6100"])
+        assert Decimal(after_6100["debit"]) == before_6100 + Decimal(400)
+
+        cancelled = await api.post(
+            f"/inventory/issues/{posted['id']}/cancel",
+            headers=await login(MANAGER),
+            json={"reason": "Wrong job charged"},
+        )
+        assert cancelled.status_code == 200, cancelled.text
+        reversed_tb = (await api.get("/finance/trial-balance", headers=finance)).json()
+        assert not any(r["account_id"] == codes["6100"] for r in reversed_tb["rows"])
 
     async def test_the_site_manager_is_not_shown_what_the_stock_cost(
         self, api: AsyncClient, login: Any, db: AsyncSession
@@ -635,6 +671,21 @@ class TestAdjustments:
         assert ledger_rows[-1]["txn_type"] == "ADJUST_OUT"
         assert ledger_rows[-1]["source_id"] == posted["id"]
         assert posted["can_edit"] is False and posted["can_cancel"] is False
+
+        # A shortfall is charged to site overheads, not to inventory's own
+        # value — inventory only ever holds what a receipt or an issue moved.
+        assert posted["journal_entry_id"] is not None
+        finance = await login(FINANCE)
+        codes = await _codes(api, finance)
+        entry = (
+            await api.get(f"/finance/journal-entries/{posted['journal_entry_id']}", headers=finance)
+        ).json()
+        assert entry["status"] == "POSTED"
+        debit_account = next(
+            line["account_id"] for line in entry["lines"] if Decimal(line["debit"]) > 0
+        )
+        assert debit_account == codes["6300"]
+        assert Decimal(entry["total_debit"]) == Decimal(200)
 
     async def test_an_increase_is_valued_at_the_average_or_at_the_cost_given(
         self, api: AsyncClient, login: Any, db: AsyncSession

@@ -65,6 +65,10 @@ class StockIssue(CompanyModel, VersionMixin):
     issue_date: Mapped[date] = mapped_column(Date, nullable=False)
     issued_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     issued_by_id: Mapped[UUID | None] = mapped_column(PgUUID(as_uuid=True))
+    # Set when finance posts to the ledger (Phase 4); no foreign key, the same
+    # as grns.journal_entry_id — the table this points into belongs to a
+    # module stock does not otherwise depend on.
+    journal_entry_id: Mapped[UUID | None] = mapped_column(PgUUID(as_uuid=True))
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     cancel_reason: Mapped[str | None] = mapped_column(String(500))
     remarks: Mapped[str | None] = mapped_column(String(1000))
@@ -258,6 +262,7 @@ class StockAdjustment(CompanyModel, VersionMixin):
     decision_reason: Mapped[str | None] = mapped_column(String(2000))
     posted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     posted_by_id: Mapped[UUID | None] = mapped_column(PgUUID(as_uuid=True))
+    journal_entry_id: Mapped[UUID | None] = mapped_column(PgUUID(as_uuid=True))
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     cancel_reason: Mapped[str | None] = mapped_column(String(500))
 

@@ -365,6 +365,17 @@ export function GrnDetailPage() {
               { label: "Warehouse", value: `${g.warehouse_code} — ${g.warehouse_name}` },
               { label: "Received", value: formatDate(g.received_date) },
               { label: "Posted", value: g.posted_at ? formatDateTime(g.posted_at) : null },
+              {
+                label: "Journal entry",
+                value: g.journal_entry_id ? (
+                  <Link
+                    to={`/finance/journal-entries/${g.journal_entry_id}`}
+                    className="font-mono text-primary hover:underline"
+                  >
+                    View posting
+                  </Link>
+                ) : null,
+              },
               { label: "Remarks", value: g.remarks, wide: true },
             ]}
           />

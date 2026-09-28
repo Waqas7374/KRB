@@ -613,6 +613,17 @@ export function AdjustmentDetailPage() {
               { label: "Date", value: formatDate(a.adjustment_date) },
               { label: "Submitted", value: a.submitted_at ? formatDateTime(a.submitted_at) : null },
               { label: "Posted", value: a.posted_at ? formatDateTime(a.posted_at) : null },
+              {
+                label: "Journal entry",
+                value: a.journal_entry_id ? (
+                  <Link
+                    to={`/finance/journal-entries/${a.journal_entry_id}`}
+                    className="font-mono text-primary hover:underline"
+                  >
+                    View posting
+                  </Link>
+                ) : null,
+              },
               { label: "What happened", value: a.reason_note, wide: true },
             ]}
           />

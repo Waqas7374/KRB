@@ -402,6 +402,16 @@ class TestCancel:
         assert cancelled.status_code == 200, cancelled.text
         assert cancelled.json()["status"] == "CANCELLED"
 
+        # ...and neither is the journal entry it posted: a reversal stands
+        # beside it, both real rows, and the trial balance nets to nothing.
+        je_id = cancelled.json()["journal_entry_id"]
+        assert je_id is not None
+        original = (await api.get(f"/finance/journal-entries/{je_id}", headers=admin)).json()
+        assert original["status"] == "REVERSED"
+        moved_accounts = {line["account_id"] for line in original["lines"]}
+        tb = (await api.get("/finance/trial-balance", headers=admin)).json()
+        assert not any(r["account_id"] in moved_accounts for r in tb["rows"])
+
         # Nothing was deleted: the ledger shows the receipt and its reversal.
         rows = await _ledger(api, login, keys)
         assert [r["txn_type"] for r in rows] == ["GRN_IN", "REVERSAL_OUT"]
