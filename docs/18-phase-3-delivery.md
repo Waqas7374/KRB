@@ -346,7 +346,8 @@ history filters, language, push notifications.
 |---|---|
 | Returns to stock; part-receipt of a transfer; issues to a phase / cost centre | not built (see 3h) |
 | **Mobile sync API** | **built** (3f). What is not: the app that calls it. |
-| **The Expo mobile app** | built (3j) and tested from a computer; **never run on a device**, so Detox / airplane-mode and the 72-hour soak remain. Photos from the phone, the mobile review queue, history filters and language are not built. |
+| **The Expo mobile app** | built (3j) and tested from a computer; **never run on a device**, so Detox / airplane-mode and the 72-hour soak remain. Photos from the phone, the mobile review queue, history filters and language are not built. Now run on a real device (2026-09-28) — see the 16 KB page-size note below. |
+| Mobile app not 16 KB page-size compatible | Expo SDK 51 / React Native 0.74.5 predates solid support for Android's 16 KB memory-page alignment (landed around Expo SDK 52-53 / RN 0.76+, newer NDK); `expo-camera`'s bundled Google ML Kit barcode scanner (`libbarhopper_v3.so`) is a known offender on this version. Android currently runs the app in a compatibility mode — not a crash, and not required for the app to work today — but this blocks a future Play Store submission targeting Android 15+ and is worth fixing before then. Fix is an Expo SDK 51 → 52/53 migration (React Native, NDK toolchain, `expo-camera` all move together); deliberately deferred, not started. |
 
 ## Found by testing
 
