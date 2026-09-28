@@ -12,6 +12,7 @@ import type {
   ProjectPhaseRead,
   RoleRead,
   SiteListItem,
+  TaxCodeRead,
   TruckTypeRead,
   UnitRead,
   UserAdminRead,
@@ -182,6 +183,15 @@ export const useVendorOptions = () =>
     value: v.id,
     label: `${v.code} — ${v.display_name}`,
   }));
+
+export const useTaxCodeOptions = () =>
+  useLookup<TaxCodeRead>(
+    "tax-codes",
+    "/finance/tax-codes",
+    "finance.coa.view",
+    (t) => ({ value: t.id, label: `${t.code} — ${t.name} (${Number(t.rate_pct)}%)` }),
+    { is_active: "true" },
+  );
 
 export const useTruckTypeOptions = () =>
   useLookup<TruckTypeRead>("truck-types", "/truck-types", "materials.view", (t) => ({

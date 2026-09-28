@@ -37,7 +37,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.constraints import enum_check, non_negative
+from app.core.constraints import enum_check, non_negative, percentage
 from app.core.db import BaseModel, CompanyModel, MasterDataModel, VersionMixin
 from app.modules.finance.domain.enums import (
     AccountType,
@@ -46,8 +46,12 @@ from app.modules.finance.domain.enums import (
     CommitmentStatus,
     JournalSourceType,
     JournalStatus,
+    MatchType,
     NormalBalance,
     PeriodStatus,
+    TaxAppliesTo,
+    TaxType,
+    VendorInvoiceStatus,
 )
 
 
@@ -389,3 +393,174 @@ class BudgetCommitment(BaseModel):
         non_negative("released_amount"),
         CheckConstraint("released_amount <= amount", name="released_not_over_committed"),
     )
+
+
+class TaxCode(CompanyModel, VersionMixin):
+    """One rate, of one kind, on one thing (docs/12 Q1): FBR sales tax on
+    goods, a provincial services tax, or an income-tax withholding section on
+    a payment. A single tax component per document line — the GST three-way
+    split some jurisdictions need is not built; that is a new table, not a
+    rework of this one, if the company ever operates somewhere it applies."""
+
+    __tablename__ = "tax_codes"
+    __audited__ = True
+    __scope_company_wide__ = True
+
+    code: Mapped[str] = mapped_column(String(20), nullable=False)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    tax_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    rate_pct: Mapped[Decimal] = mapped_column(Numeric(7, 4), nullable=False)
+    # Which section of the income tax ordinance a withholding rate is under —
+    # meaningless, and left null, for a sales-tax row.
+    section_code: Mapped[str | None] = mapped_column(String(20))
+    applies_to: Mapped[str] = mapped_column(String(10), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    __table_args__ = (
+        UniqueConstraint("company_id", "code", name="uq_tax_codes_code"),
+        enum_check("tax_type", TaxType),
+        enum_check("applies_to", TaxAppliesTo),
+        percentage("rate_pct"),
+    )
+
+
+class VendorInvoice(CompanyModel, VersionMixin):
+    """A vendor's own bill, entered and matched against what was ordered and
+    received before it is trusted enough to pay (docs/02 §8 §6). Approving one
+    never re-books what a GRN already booked as a cost — it only turns an
+    accrual (2110) into a real payable (2100); the GL side is exactly the
+    clearing half of the GRN's own entry, at the difference tax adds."""
+
+    __tablename__ = "vendor_invoices"
+    __audited__ = True
+
+    invoice_number: Mapped[str] = mapped_column(String(40), nullable=False)
+    vendor_id: Mapped[UUID] = mapped_column(
+        ForeignKey("vendors.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    # The vendor's own number on the bill — what makes entering the same bill
+    # twice checkable, the same discipline a counter purchase's bill number
+    # already has (grns.counter_reference).
+    vendor_invoice_ref: Mapped[str] = mapped_column(String(60), nullable=False)
+    purchase_order_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("purchase_orders.id", ondelete="RESTRICT"), index=True
+    )
+    invoice_date: Mapped[date] = mapped_column(Date, nullable=False)
+    due_date: Mapped[date] = mapped_column(Date, nullable=False)
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+    tax_amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+    # What Phase 4d's payment will withhold when it pays this invoice — kept
+    # here too (docs/12 Q1) so AP can show what is really going to be paid
+    # out without waiting for a payment to exist. Never posted by this
+    # module: the invoice owes its gross total; withholding is the payment's
+    # own entry to make.
+    withholding_amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+    total_amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+    paid_amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default=VendorInvoiceStatus.DRAFT.value
+    )
+    matched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    decision_reason: Mapped[str | None] = mapped_column(String(2000))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    approved_by_id: Mapped[UUID | None] = mapped_column(PgUUID(as_uuid=True))
+    journal_entry_id: Mapped[UUID | None] = mapped_column(PgUUID(as_uuid=True))
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    items: Mapped[list[VendorInvoiceItem]] = relationship(
+        back_populates="invoice",
+        order_by="VendorInvoiceItem.line_no",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+    )
+
+    __table_args__ = (
+        UniqueConstraint("company_id", "invoice_number", name="uq_vendor_invoices_number"),
+        UniqueConstraint(
+            "company_id", "vendor_id", "vendor_invoice_ref", name="uq_vendor_invoices_ref"
+        ),
+        enum_check("status", VendorInvoiceStatus),
+        non_negative("subtotal"),
+        non_negative("tax_amount"),
+        non_negative("withholding_amount"),
+        non_negative("total_amount"),
+        non_negative("paid_amount"),
+    )
+
+
+class VendorInvoiceItem(BaseModel):
+    __tablename__ = "vendor_invoice_items"
+    __audited__ = True
+
+    invoice_id: Mapped[UUID] = mapped_column(
+        ForeignKey("vendor_invoices.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    line_no: Mapped[int] = mapped_column(Integer, nullable=False)
+    # Both null for a direct expense line with no order or receipt behind it
+    # (a service billed straight in) — priced and accounted for by hand.
+    po_item_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("purchase_order_items.id", ondelete="RESTRICT")
+    )
+    grn_item_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("grn_items.id", ondelete="RESTRICT")
+    )
+    material_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("materials.id", ondelete="RESTRICT")
+    )
+    description: Mapped[str | None] = mapped_column(String(300))
+    quantity: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
+    unit_id: Mapped[UUID | None] = mapped_column(ForeignKey("units.id", ondelete="RESTRICT"))
+    rate: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
+    tax_code_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("tax_codes.id", ondelete="RESTRICT")
+    )
+    tax_pct: Mapped[Decimal] = mapped_column(Numeric(7, 4), nullable=False, default=0)
+    tax_amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+    # rate * quantity, before tax.
+    amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+    # Resolved once, at creation, from posting_rules for a PO/GRN-backed line,
+    # or given by hand for a direct one — stored rather than re-resolved at
+    # approval, so what a person saw when they entered the line is what posts.
+    account_id: Mapped[UUID | None] = mapped_column(ForeignKey("accounts.id", ondelete="RESTRICT"))
+
+    invoice: Mapped[VendorInvoice] = relationship(back_populates="items", lazy="noload")
+
+    __table_args__ = (
+        UniqueConstraint("invoice_id", "line_no", name="uq_vendor_invoice_items_line"),
+        non_negative("quantity"),
+        non_negative("rate"),
+        non_negative("tax_amount"),
+        non_negative("amount"),
+        percentage("tax_pct"),
+    )
+
+
+class VendorInvoiceMatch(BaseModel):
+    """The 3-way match itself (docs/02 §8, §6): one row per invoice line,
+    recording what it was checked against and by how much it differed. Kept
+    even for a line within tolerance — this is the audit trail an auditor
+    asks for, not just a gate."""
+
+    __tablename__ = "vendor_invoice_matches"
+    __audited__ = True
+
+    invoice_item_id: Mapped[UUID] = mapped_column(
+        ForeignKey("vendor_invoice_items.id", ondelete="CASCADE"), nullable=False, unique=True
+    )
+    po_item_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("purchase_order_items.id", ondelete="RESTRICT")
+    )
+    grn_item_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("grn_items.id", ondelete="RESTRICT")
+    )
+    match_type: Mapped[str] = mapped_column(String(10), nullable=False)
+    qty_variance: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
+    rate_variance: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
+    amount_variance: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
+    within_tolerance: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # A snapshot of which business rule decided it, the same discipline a
+    # delivery's own flags keep (docs/05) — tightening the tolerance next
+    # month must never rewrite why last month's line passed or failed.
+    tolerance_rule_id: Mapped[UUID | None] = mapped_column(PgUUID(as_uuid=True))
+
+    __table_args__ = (enum_check("match_type", MatchType),)

@@ -192,3 +192,14 @@ export type BudgetListItem = S["BudgetListItem"];
 export type BudgetRead = S["BudgetRead"];
 export type BudgetCommitmentRead = S["BudgetCommitmentRead"];
 export type BudgetVsActualRead = S["BudgetVsActualRead"];
+
+export type TaxCodeCreate = S["TaxCodeCreate"];
+export type TaxCodeEdit = S["TaxCodeEdit"];
+export type TaxCodeRead = S["TaxCodeRead"];
+export type InvoiceItemIn = S["InvoiceItemIn"];
+export type InvoiceItemRead = S["InvoiceItemRead"];
+export type VendorInvoiceCreate = S["VendorInvoiceCreate"];
+export type VendorInvoiceListItem = S["VendorInvoiceListItem"];
+export type VendorInvoiceRead = S["VendorInvoiceRead"];
+export type AgeingBucketRead = S["AgeingBucketRead"];
+export type PayablesAgingRead = S["PayablesAgingRead"];

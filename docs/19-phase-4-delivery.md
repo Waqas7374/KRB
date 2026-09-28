@@ -11,7 +11,7 @@ what remains.
 |---|---|---|---|
 | 4a | Chart of accounts, accounting periods, manual journal entries, trial balance, general ledger | Phase 2's approval engine | done |
 | 4b | `posting_rules` configuration; GRN and inventory (issues, adjustments) auto-posting to the GL; budgets, budget lines, commitment consumption tied to PO approval and GRN posting | 4a | done |
-| 4c | Vendor invoices, the 3-way match with tolerance, AP ageing | 4a, 4b | not built |
+| 4c | Vendor invoices, the 3-way match with tolerance, AP ageing | 4a, 4b | done |
 | 4d | Payment requests, payments, allocations | 4c | not built |
 | 4e | Minimal AR: customers, customer invoices, receipts | 4a | not built |
 
@@ -145,14 +145,96 @@ Inventory — Materials is one company-wide account regardless of warehouse.
 | Web | Typecheck, eslint (no warnings), prettier, build clean |
 | Browser E2E | `budgets.spec.ts`: a budget drafted, approved, revised (the original figure kept alongside the new one) and closed, through the real browser. The GL/budget wiring for GRNs, issues and adjustments is exercised at the API/database level (`test_budgets.py`, `test_stock_movements.py`, `test_grn_inventory.py`) and, indirectly, by the existing `grn.spec.ts`, `counter-purchase.spec.ts` and `stock-movements.spec.ts` — all already post a real document through the browser, which now also builds and posts the journal entry this slice adds |
 
+## 4c — Vendor invoices, the 3-way match, AP ageing
+
+**The done-when this slice exists for (docs/02 §8): a vendor's bill is entered, checked against what
+was ordered and what actually arrived within tolerance, and only once it matches does approving it
+touch the GL — and even then, never by re-booking what the GRN already booked.** A GRN line posts its
+own cost at receipt (4b); a 3-way-matched invoice line's own entry only clears the accrual (2110) that
+posting left behind into a real payable (2100), through the *same* posting rule the GRN used, so the
+two can never disagree about which account that is. A GRN with no PO behind it (a counter purchase,
+already posted straight to 2100) degrades the match to 2-way and the matching invoice line posts
+nothing at all — the GRN already booked it in full. A line with neither an order nor a GRN behind it is
+unmatched: a direct cost, priced and accounted for by hand, and the one kind of line that is new to the
+ledger here.
+
+| Piece | Behaviour | Where |
+|---|---|---|
+| Tax codes | One rate, of one kind (`SALES_TAX` / `WITHHOLDING`), on one thing (`GOODS` / `SERVICES` / `PAYMENT`), with a `section_code` for a withholding row (docs/12 Q1). Plain CRUD, the same shape as posting rules, gated by the existing `finance.coa.view` / `finance.coa.manage` (a tax code is chart-of-accounts configuration, not its own permission). | `finance/services/tax_codes.py` |
+| Vendor invoices | `VendorInvoice` → `VendorInvoiceItem` (one row per billed line, each resolving its own `account_id` — never one account for the whole invoice, since a single bill can mix a PO-backed line, a counter-purchase line and a direct line) → `VendorInvoiceMatch` (one row per item once matched: `match_type`, the three variances, `within_tolerance`, and a `tolerance_rule_id` snapshot so tightening a rule later never rewrites why an old line passed). `DRAFT` / `DISPUTED` are the only editable statuses; editing replaces every item wholesale and resets the invoice to `DRAFT`. | `finance/models.py`, `finance/services/vendor_invoices.py` |
+| Account resolution | A line naming a GRN item asks `posting_rules.resolve_receipt_account(..., is_po_backed=True)` — the *exact* call the GRN itself made — for its account when the GRN item has a `po_item_id` (3-way); a GRN item with none gets `account_id = None` (2-way, nothing to post); a line naming neither gets whatever account the person named by hand (unmatched). | `vendor_invoices.py::_build_item` |
+| The 3-way match | An item naming a GRN line is checked against it: quantity against what was actually *accepted*, rate against the order's own rate when the GRN line came from one (against the GRN's own recorded rate otherwise, so a 2-way line matches when it repeats what the GRN already said). Reuses the *same* `QTY_TOLERANCE` / `PRICE_TOLERANCE` business rules a delivery's own check already resolves through — a company that tightens delivery tolerance and invoice tolerance moves the same number. A rule with nothing configured always passes, the same permissive-fallback philosophy `resolver.py` already states. Matching is idempotent and re-runnable: it deletes and rebuilds every match row for the invoice each time, so editing a disputed invoice and matching it again always reflects only the current lines. | `vendor_invoices.py::_check_item`, `match()` |
+| Approval and posting | Only a `MATCHED` invoice may be approved. Every item with a real `account_id` is grouped and debited (its amount plus its own tax); every item with `account_id = None` (a 2-way line) is skipped entirely; the posting rule for `INVOICE`/`PAYABLE` supplies the one credit account (2100) for the lot. A fully 2-way-matched invoice — nothing to post — approves with `journal_entry_id` left `None` and no posting-rule lookup at all, rather than failing over a rule it never needed. A 3-way-matched line's approval also writes the order's own `invoiced_quantity` (`receiving.apply_invoice`, the third running total alongside `received_quantity`/`accepted_quantity` that makes the whole match possible without recomputing history). | `vendor_invoices.py::approve` |
+| Dispute | A matched invoice can be sent back to `DISPUTED` by hand, with a required reason — distinct from an automatic dispute (any line outside tolerance disputes the whole invoice the moment it is matched, no separate step). Either way, a disputed invoice is editable and rematchable, the same as a draft. | `vendor_invoices.py::dispute` |
+| AP ageing | Every vendor with something still owed on an `APPROVED`/`PARTIALLY_PAID` invoice, `(total_amount - paid_amount)` bucketed by days past `due_date` `as_of` a given date — current / 1-30 / 31-60 / 61-90 / 90+. A draft or disputed invoice is not yet a real obligation and contributes nothing. | `vendor_invoices.py::payables_aging` |
+| Cross-module lookups | `procurement/services/po_lookup.py::item()` (one order line, added this slice) and the new `grn/services/grn_lookup.py::item()` — plain dataclasses, never the ORM models, so finance can read a PO/GRN line's facts without crossing the module-layering contract `tests/unit/test_architecture.py` enforces. | `procurement/services/po_lookup.py`, `grn/services/grn_lookup.py` |
+| Screens | Vendor invoices (list with status/vendor filters; new/edit form with a line either picked from one of the vendor's own posted GRNs — a dialog lists the GRN, then its lines, and fills quantity/rate from what was actually received — or entered direct with its own account; detail with match/dispute/approve actions and, once matched, each line's match type and any variance). Tax codes (list with a create/edit drawer, the same shape as posting rules). Payables ageing (one report, bucketed columns, an "as of" date). | `web/src/features/finance/VendorInvoicePages.tsx`, `TaxCodesPage.tsx`, `PayablesAgingPage.tsx` |
+
+**Deliberately simplified.** Tax is folded into the same debit account as the line's own cost — no
+separate input-tax-recoverable account — since a land-development company's purchase-side sales tax is
+closer to a pass-through cost than a distinct asset here. `withholding_amount` on the invoice is
+informational only: docs/12 Q1 frames withholding as something that happens "on supplier payments," so
+its actual GL posting arrives with 4d, not here. A purchase order named on the invoice header
+(`purchase_order_id`) is metadata only — matching is entirely driven by what each *line* names (a
+`grn_item_id`, which itself carries the PO line behind it), so the form does not ask for one. Approving
+a vendor invoice is a single direct permission check (`finance.ap.approve`), not routed through the
+shared `/approvals` engine — the same precedent 4b's budget approval set, and what docs/07's literal
+API spec gives it (`POST /finance/vendor-invoices/{id}/approve`, no `/submit` or `/approvals/requests/
+...` reference).
+
+### Found by testing
+
+- **`VendorInvoiceRead.outstanding_amount` (and, before a fix, every other route-computed field
+  without a schema default) made `model_validate()` itself fail** with "Field required" — a route
+  cannot set a field after `model_validate()` runs if the schema has no default for it, since Pydantic
+  populates every required field from the ORM row's own attributes up front, and this one is computed,
+  not a column. See [[finance-module-gotchas]] #8.
+- **`vars()` on `AgeingBucket` (a frozen, slotted dataclass) crashed with `TypeError: vars() argument
+  must have __dict__ attribute`** the first time `/finance/payables/aging` was actually called — slots
+  leave no `__dict__` for `vars()` to read. Fixed by using `AgeingBucketRead.model_validate(row)`
+  instead, the same construction every other read schema in this codebase already uses. See
+  [[finance-module-gotchas]] #9.
+- **A duplicate `vendor_invoice_ref` for the same vendor returned 422, not 409.** The first draft
+  raised `BusinessRuleError`, which is always 422; a genuine natural-key collision should raise
+  `DuplicateError` (409), matching what `ScopedRepository.assert_code_available` already does for a
+  duplicate account or tax code. See [[finance-module-gotchas]] #10.
+- **Editing a tax code raised `MissingGreenlet` on `updated_at`.** The route validated the row returned
+  from `update()` straight into `TaxCodeRead` without refreshing it first, the exact expired-column trap
+  `accounts.py`/`posting_rules.py`'s own update routes already carry a fix (and a comment) for — missed
+  on tax codes' first pass since it is new this slice. See [[finance-module-gotchas]] #11.
+- **Picking a GRN line's rate into an invoice line failed a 4-decimal-place validation**, caught only
+  once the browser E2E spec exercised the real picker: a GRN item's `rate`/`unit_cost` columns carry six
+  decimal places, coarser than a vendor-invoice line's `Numeric(18,4)`. Fixed by rounding to four places
+  at the point of copying. See [[finance-module-gotchas]] #12.
+- **The E2E spec's own SQL assertions first failed on a wrong column name** (`journal_entry_id` instead
+  of `je_id` on `journal_entry_lines`) and then on raising a purchase order against a freshly-created,
+  not-yet-approved vendor (`vendor_not_active`) — neither a product bug, both recorded as
+  [[finance-module-gotchas]] #13-14 so a future E2E spec does not repeat either guess.
+- **`npm run build`'s `tsc -b` step turned out to already be broken on `main`, unrelated to this
+  slice** — confirmed by stashing every 4c change and rebuilding clean against the pre-4c tree
+  (`RateGridPage.tsx`'s `Sparkline`, `RfqPages.tsx`'s `variant="default"`). `npm run typecheck` and
+  `npm run lint` both stay green regardless, which is why it went unnoticed until this slice actually
+  ran the full build script. Not fixed — out of scope for Finance — but now flagged rather than silently
+  carried forward. See [[finance-module-gotchas]] #15.
+
+## Testing (state after slice 4c)
+
+| Suite | Result |
+|---|---|
+| Backend | Full suite passed, coverage 93 % (gate 80 %); ruff, mypy, import contracts 4/4, `alembic check` clean; the new migration round-trips |
+| New this slice | 26 tests (`test_vendor_invoices.py`): tax codes (seeded codes listed, only `finance.coa.manage` may write one, a duplicate code is refused, edit by hand); a line with no order or GRN needs an account, a GRN-backed line resolves its own account from the posting rule, a duplicate `vendor_invoice_ref` for the same vendor is refused (409), only `finance.ap.create` may raise an invoice, a draft can be edited and deleted; a 3-way line within tolerance matches clean, a 3-way line with a rate outside tolerance disputes itself, a 3-way line with qty inside the configured tolerance still matches, a 2-way counter-purchase line degrades gracefully, an unmatched direct line always passes its own check, a disputed invoice can be corrected and rematched, a matched invoice can be disputed by hand, only `finance.ap.approve` may dispute; approve requires `MATCHED` first, approving a 3-way match clears the GRN accrual into payable (asserted via the general ledger, since the account nets to zero on the trial balance) and writes the PO's `invoiced_quantity`, approving a 2-way match posts nothing new, an unmatched direct line posts from its own named account, only `finance.ap.approve` may approve; AP ageing buckets an approved invoice correctly and a draft never appears in it, permission check. |
+| Web | Typecheck, eslint (no warnings), prettier clean. `npm run build`'s `tsc -b` step fails, but on pre-existing, unrelated errors (see "Found by testing") — confirmed present on `main` before this slice too |
+| Browser E2E | `vendor-invoices.spec.ts`: a vendor invoice created against a real GRN line (the PO → delivery → GRN pipeline behind it built directly through the API, the same way `budgets.spec.ts` treats its own prerequisites), matched, and approved — asserted against PostgreSQL: the invoice's status, its journal entry's debit to 2110 and credit to 2100, and the purchase order's `invoiced_quantity`. Full suite (26 specs) passes, including `smoke.spec.ts`, which now also renders the vendor-invoice, tax-code and payables-ageing screens without crashing |
+
 ## What is not built in Phase 4 yet
 
 | Item | State |
 |---|---|
-| Vendor invoices, 3-way match, AP ageing | not built (4c) |
 | Payment requests, payments, allocations | not built (4d) |
 | Minimal AR (customers, invoices, receipts) | not built (4e) |
+| Withholding tax actually posted to the GL | not built; `vendor_invoices.withholding_amount` is informational only until 4d posts it at payment time |
 | Chart-of-accounts CSV import (docs/12 Q2) | not built |
 | Opening-balance entry flow, cut-over / parallel-run plan (docs/12 Q2) | not built; cut-over date still needed from the business |
-| Posting rules for non-GRN, non-inventory events (invoice, payment) | arrives with 4c/4d, same `posting_rules` table |
+| Posting rules for payment events | arrives with 4d, same `posting_rules` table (`INVOICE`/`PAYABLE` arrived with 4c) |
 | A per-line phase/cost centre on a purchase order or counter purchase | not built; both are header-level today (docs/02 §5), which is what 4b's commitment/release grouping assumes |
+| `npm run build`'s `tsc -b` step | broken on `main`, pre-existing and unrelated to Finance (`RateGridPage.tsx`, `RfqPages.tsx`) — `typecheck`/`lint` stay green; see 4c's "Found by testing" |

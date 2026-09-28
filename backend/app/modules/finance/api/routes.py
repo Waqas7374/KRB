@@ -19,8 +19,21 @@ from app.core.pagination import Page
 from app.core.scoping import assert_in_scope
 from app.core.types import today_utc
 from app.modules.finance import schemas as s
-from app.modules.finance.domain.enums import BudgetStatus, JournalSourceType, JournalStatus
-from app.modules.finance.models import Account, Budget, BudgetLine, JournalEntry, PostingRule
+from app.modules.finance.domain.enums import (
+    BudgetStatus,
+    JournalSourceType,
+    JournalStatus,
+    VendorInvoiceStatus,
+)
+from app.modules.finance.models import (
+    Account,
+    Budget,
+    BudgetLine,
+    JournalEntry,
+    PostingRule,
+    VendorInvoice,
+    VendorInvoiceMatch,
+)
 from app.modules.finance.services import (
     accounts,
     budgets,
@@ -29,9 +42,12 @@ from app.modules.finance.services import (
     periods,
     posting_rules,
     reports,
+    tax_codes,
+    vendor_invoices,
 )
 from app.modules.masterdata.services import material_lookup
 from app.modules.org.services import document_lookup
+from app.modules.procurement.services import po_lookup
 from app.modules.vendors.services import vendor_lookup
 
 router = APIRouter(prefix="/finance", tags=["finance"])
@@ -844,4 +860,383 @@ async def list_commitments(
     )
     return Page.of(
         [s.BudgetCommitmentRead.model_validate(r) for r in rows], params=page, total=total
+    )
+
+
+# -----------------------------------------------------------------------------
+# Tax codes
+# -----------------------------------------------------------------------------
+
+
+@router.get(
+    "/tax-codes",
+    response_model=Page[s.TaxCodeRead],
+    dependencies=[require(tax_codes.PERM_VIEW)],
+)
+async def list_tax_codes(
+    ctx: Access,
+    session: SessionDep,
+    page: PageDep,
+    q: str | None = None,
+    is_active: bool | None = None,
+) -> Page[s.TaxCodeRead]:
+    rows, total = await tax_codes.list_tax_codes(
+        session, ctx, page=page, search=q, filters={"is_active": is_active}
+    )
+    return Page.of([s.TaxCodeRead.model_validate(r) for r in rows], params=page, total=total)
+
+
+@router.post(
+    "/tax-codes",
+    response_model=s.TaxCodeRead,
+    status_code=201,
+    dependencies=[require(tax_codes.PERM_MANAGE)],
+)
+async def create_tax_code(payload: s.TaxCodeCreate, ctx: Access, uow: UowDep) -> s.TaxCodeRead:
+    row = await tax_codes.create(
+        uow.session,
+        ctx,
+        tax_codes.TaxCodeInput(
+            code=payload.code,
+            name=payload.name,
+            tax_type=payload.tax_type,
+            rate_pct=payload.rate_pct,
+            applies_to=payload.applies_to,
+            section_code=payload.section_code,
+            is_active=payload.is_active,
+        ),
+    )
+    return s.TaxCodeRead.model_validate(row)
+
+
+@router.patch(
+    "/tax-codes/{tax_code_id}",
+    response_model=s.TaxCodeRead,
+    dependencies=[require(tax_codes.PERM_MANAGE)],
+)
+async def update_tax_code(
+    tax_code_id: UUID, payload: s.TaxCodeEdit, ctx: Access, uow: UowDep, if_match: IfMatch = None
+) -> s.TaxCodeRead:
+    row = await tax_codes.update(
+        uow.session,
+        ctx,
+        tax_code_id,
+        tax_codes.TaxCodeEdit(
+            name=payload.name,
+            rate_pct=payload.rate_pct,
+            section_code=payload.section_code,
+            is_active=payload.is_active,
+        ),
+        expected_version=if_match,
+    )
+    # The update just flushed, which expires server-computed columns
+    # (updated_at); refresh before reading them back synchronously below.
+    await uow.session.refresh(row)
+    return s.TaxCodeRead.model_validate(row)
+
+
+# -----------------------------------------------------------------------------
+# Vendor invoices
+# -----------------------------------------------------------------------------
+
+
+def _invoice_items_input(payload: s.VendorInvoiceCreate) -> list[vendor_invoices.InvoiceItemInput]:
+    return [
+        vendor_invoices.InvoiceItemInput(
+            quantity=line.quantity,
+            rate=line.rate,
+            po_item_id=line.po_item_id,
+            grn_item_id=line.grn_item_id,
+            material_id=line.material_id,
+            description=line.description,
+            unit_id=line.unit_id,
+            tax_code_id=line.tax_code_id,
+            tax_pct=line.tax_pct,
+            account_id=line.account_id,
+        )
+        for line in payload.items
+    ]
+
+
+def _invoice_may(ctx: AccessContext, permission: str, invoice: VendorInvoice) -> bool:
+    try:
+        assert_in_scope(ctx, permission, company_id=invoice.company_id, entity="Vendor invoice")
+    except Exception:  # noqa: BLE001 - any refusal simply means "no"
+        return False
+    return True
+
+
+async def _invoice_detail(
+    session: AsyncSession, ctx: AccessContext, invoice: VendorInvoice
+) -> s.VendorInvoiceRead:
+    # Freshly submit/match/approve leaves server-computed columns expired.
+    await session.refresh(invoice)
+    await session.refresh(invoice, attribute_names=["items"])
+
+    vendors = await vendor_lookup.vendors(
+        session, company_id=ctx.company_id, vendor_ids={invoice.vendor_id}
+    )
+    account_ids = {i.account_id for i in invoice.items if i.account_id is not None}
+    accounts_by_id = {
+        a.id: a
+        for a in (await session.execute(select(Account).where(Account.id.in_(account_ids))))
+        .scalars()
+        .all()
+    }
+    materials = await material_lookup.materials(
+        session,
+        company_id=ctx.company_id,
+        material_ids={i.material_id for i in invoice.items if i.material_id},
+    )
+    units = await material_lookup.unit_codes(
+        session,
+        company_id=ctx.company_id,
+        unit_ids={i.unit_id for i in invoice.items if i.unit_id},
+    )
+    matches = (
+        (
+            await session.execute(
+                select(VendorInvoiceMatch).where(
+                    VendorInvoiceMatch.invoice_item_id.in_([i.id for i in invoice.items])
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    matches_by_item = {m.invoice_item_id: m for m in matches}
+
+    po_number = None
+    if invoice.purchase_order_id is not None:
+        order = await po_lookup.order(
+            session, company_id=ctx.company_id, purchase_order_id=invoice.purchase_order_id
+        )
+        po_number = order.po_number if order else None
+
+    items = []
+    for item in invoice.items:
+        account = accounts_by_id.get(item.account_id) if item.account_id else None
+        m = matches_by_item.get(item.id)
+        items.append(
+            s.InvoiceItemRead(
+                id=item.id,
+                line_no=item.line_no,
+                po_item_id=item.po_item_id,
+                grn_item_id=item.grn_item_id,
+                material_id=item.material_id,
+                material_name=materials[item.material_id].name
+                if item.material_id in materials
+                else None,
+                description=item.description,
+                quantity=item.quantity,
+                unit_id=item.unit_id,
+                unit_code=units.get(item.unit_id) if item.unit_id else None,
+                rate=item.rate,
+                tax_code_id=item.tax_code_id,
+                tax_pct=item.tax_pct,
+                tax_amount=item.tax_amount,
+                amount=item.amount,
+                account_id=item.account_id,
+                account_code=account.code if account else None,
+                match_type=m.match_type if m else None,
+                qty_variance=m.qty_variance if m else None,
+                rate_variance=m.rate_variance if m else None,
+                amount_variance=m.amount_variance if m else None,
+                within_tolerance=m.within_tolerance if m else None,
+            )
+        )
+
+    view = s.VendorInvoiceRead.model_validate(invoice)
+    view.vendor_name = vendors[invoice.vendor_id].name if invoice.vendor_id in vendors else None
+    view.purchase_order_number = po_number
+    view.outstanding_amount = invoice.total_amount - invoice.paid_amount
+    view.items = items
+    status = VendorInvoiceStatus(invoice.status)
+    can_edit = status.is_editable and _invoice_may(ctx, vendor_invoices.PERM_CREATE, invoice)
+    view.can_edit = can_edit
+    view.can_delete = status is VendorInvoiceStatus.DRAFT and can_edit
+    view.can_match = can_edit and _invoice_may(ctx, vendor_invoices.PERM_MATCH, invoice)
+    view.can_dispute = status is VendorInvoiceStatus.MATCHED and _invoice_may(
+        ctx, vendor_invoices.PERM_APPROVE, invoice
+    )
+    view.can_approve = status is VendorInvoiceStatus.MATCHED and _invoice_may(
+        ctx, vendor_invoices.PERM_APPROVE, invoice
+    )
+    return view
+
+
+def _invoice_list_view(invoice: VendorInvoice, vendor_name: str | None) -> s.VendorInvoiceListItem:
+    item = s.VendorInvoiceListItem.model_validate(invoice)
+    item.vendor_name = vendor_name
+    item.outstanding_amount = invoice.total_amount - invoice.paid_amount
+    return item
+
+
+@router.get(
+    "/vendor-invoices",
+    response_model=Page[s.VendorInvoiceListItem],
+    dependencies=[require(vendor_invoices.PERM_VIEW)],
+)
+async def list_vendor_invoices(
+    ctx: Access,
+    session: SessionDep,
+    page: PageDep,
+    q: str | None = None,
+    status: Annotated[list[str] | None, Query()] = None,
+    vendor_id: UUID | None = None,
+) -> Page[s.VendorInvoiceListItem]:
+    rows, total = await vendor_invoices.list_invoices(
+        session,
+        ctx,
+        page=page,
+        search=q,
+        filters={"status": status, "vendor_id": vendor_id},
+    )
+    vendors = await vendor_lookup.vendors(
+        session, company_id=ctx.company_id, vendor_ids={r.vendor_id for r in rows}
+    )
+    items = [
+        _invoice_list_view(r, vendors[r.vendor_id].name if r.vendor_id in vendors else None)
+        for r in rows
+    ]
+    return Page.of(items, params=page, total=total)
+
+
+@router.post(
+    "/vendor-invoices",
+    response_model=s.VendorInvoiceRead,
+    status_code=201,
+    dependencies=[require(vendor_invoices.PERM_CREATE)],
+    summary="Enter a vendor's bill. It posts nothing until it is matched and approved.",
+)
+async def create_vendor_invoice(
+    payload: s.VendorInvoiceCreate, ctx: Access, uow: UowDep
+) -> s.VendorInvoiceRead:
+    invoice = await vendor_invoices.create(
+        uow.session,
+        ctx,
+        vendor_invoices.VendorInvoiceInput(
+            vendor_id=payload.vendor_id,
+            vendor_invoice_ref=payload.vendor_invoice_ref,
+            invoice_date=payload.invoice_date,
+            purchase_order_id=payload.purchase_order_id,
+            due_date=payload.due_date,
+            withholding_amount=payload.withholding_amount,
+            items=_invoice_items_input(payload),
+        ),
+    )
+    return await _invoice_detail(uow.session, ctx, invoice)
+
+
+@router.get(
+    "/vendor-invoices/{invoice_id}",
+    response_model=s.VendorInvoiceRead,
+    dependencies=[require(vendor_invoices.PERM_VIEW)],
+)
+async def get_vendor_invoice(
+    invoice_id: UUID, ctx: Access, session: SessionDep
+) -> s.VendorInvoiceRead:
+    return await _invoice_detail(session, ctx, await vendor_invoices.get(session, ctx, invoice_id))
+
+
+@router.put(
+    "/vendor-invoices/{invoice_id}",
+    response_model=s.VendorInvoiceRead,
+    dependencies=[require(vendor_invoices.PERM_CREATE)],
+    summary="Edit a draft (or a disputed invoice, which can be corrected and rematched)",
+)
+async def update_vendor_invoice(
+    invoice_id: UUID,
+    payload: s.VendorInvoiceCreate,
+    ctx: Access,
+    uow: UowDep,
+    if_match: IfMatch = None,
+) -> s.VendorInvoiceRead:
+    invoice = await vendor_invoices.update(
+        uow.session,
+        ctx,
+        invoice_id,
+        vendor_invoices.VendorInvoiceInput(
+            vendor_id=payload.vendor_id,
+            vendor_invoice_ref=payload.vendor_invoice_ref,
+            invoice_date=payload.invoice_date,
+            purchase_order_id=payload.purchase_order_id,
+            due_date=payload.due_date,
+            withholding_amount=payload.withholding_amount,
+            items=_invoice_items_input(payload),
+        ),
+        expected_version=if_match,
+    )
+    return await _invoice_detail(uow.session, ctx, invoice)
+
+
+@router.delete(
+    "/vendor-invoices/{invoice_id}",
+    status_code=204,
+    dependencies=[require(vendor_invoices.PERM_CREATE)],
+    summary="Delete a draft that never happened",
+)
+async def delete_vendor_invoice(invoice_id: UUID, ctx: Access, uow: UowDep) -> None:
+    await vendor_invoices.delete_draft(uow.session, ctx, invoice_id)
+
+
+@router.post(
+    "/vendor-invoices/{invoice_id}/match",
+    response_model=s.VendorInvoiceRead,
+    dependencies=[require(vendor_invoices.PERM_MATCH)],
+    summary="Check every line against its PO/GRN within tolerance (docs/02 §8)",
+)
+async def match_vendor_invoice(
+    invoice_id: UUID, ctx: Access, uow: UowDep, if_match: IfMatch = None
+) -> s.VendorInvoiceRead:
+    invoice = await vendor_invoices.match(uow.session, ctx, invoice_id, expected_version=if_match)
+    return await _invoice_detail(uow.session, ctx, invoice)
+
+
+@router.post(
+    "/vendor-invoices/{invoice_id}/dispute",
+    response_model=s.VendorInvoiceRead,
+    dependencies=[require(vendor_invoices.PERM_APPROVE)],
+    summary="Override a matched invoice back to disputed by hand",
+)
+async def dispute_vendor_invoice(
+    invoice_id: UUID, payload: s.CancelBody, ctx: Access, uow: UowDep, if_match: IfMatch = None
+) -> s.VendorInvoiceRead:
+    invoice = await vendor_invoices.dispute(
+        uow.session, ctx, invoice_id, payload.reason, expected_version=if_match
+    )
+    return await _invoice_detail(uow.session, ctx, invoice)
+
+
+@router.post(
+    "/vendor-invoices/{invoice_id}/approve",
+    response_model=s.VendorInvoiceRead,
+    dependencies=[require(vendor_invoices.PERM_APPROVE)],
+    summary="Post the invoice: clears each matched line's GRN accrual into payable",
+)
+async def approve_vendor_invoice(
+    invoice_id: UUID, ctx: Access, uow: UowDep, if_match: IfMatch = None
+) -> s.VendorInvoiceRead:
+    invoice = await vendor_invoices.approve(uow.session, ctx, invoice_id, expected_version=if_match)
+    return await _invoice_detail(uow.session, ctx, invoice)
+
+
+# -----------------------------------------------------------------------------
+# Payables aging
+# -----------------------------------------------------------------------------
+
+
+@router.get(
+    "/payables/aging",
+    response_model=s.PayablesAgingRead,
+    dependencies=[require(vendor_invoices.PERM_VIEW)],
+)
+async def get_payables_aging(
+    ctx: Access, session: SessionDep, as_of: date | None = None
+) -> s.PayablesAgingRead:
+    cutoff = as_of or today_utc()
+    rows = await vendor_invoices.payables_aging(session, ctx, as_of=cutoff)
+    buckets = [s.AgeingBucketRead.model_validate(r) for r in rows]
+    return s.PayablesAgingRead(
+        as_of=cutoff, rows=buckets, total=sum((b.total for b in buckets), Decimal(0))
     )

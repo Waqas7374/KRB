@@ -177,6 +177,15 @@ const budgetPages = () => import("@/features/finance/BudgetPages");
 const BudgetListPage = page(budgetPages, "BudgetListPage");
 const BudgetFormPage = page(budgetPages, "BudgetFormPage");
 const BudgetDetailPage = page(budgetPages, "BudgetDetailPage");
+const TaxCodesPage = page(() => import("@/features/finance/TaxCodesPage"), "TaxCodesPage");
+const viPages = () => import("@/features/finance/VendorInvoicePages");
+const VendorInvoiceListPage = page(viPages, "VendorInvoiceListPage");
+const VendorInvoiceFormPage = page(viPages, "VendorInvoiceFormPage");
+const VendorInvoiceDetailPage = page(viPages, "VendorInvoiceDetailPage");
+const PayablesAgingPage = page(
+  () => import("@/features/finance/PayablesAgingPage"),
+  "PayablesAgingPage",
+);
 
 const gate = (permission: string, element: ReactNode) => (
   <RequirePermission permission={permission}>{element}</RequirePermission>
@@ -318,6 +327,27 @@ export const router = createBrowserRouter([
       {
         path: "finance/budgets/:budgetId/edit",
         element: gate("finance.budget.create", <BudgetFormPage />),
+      },
+      { path: "finance/tax-codes", element: gate("finance.coa.view", <TaxCodesPage />) },
+      {
+        path: "finance/vendor-invoices",
+        element: gate("finance.ap.view", <VendorInvoiceListPage />),
+      },
+      {
+        path: "finance/vendor-invoices/new",
+        element: gate("finance.ap.create", <VendorInvoiceFormPage />),
+      },
+      {
+        path: "finance/vendor-invoices/:invoiceId",
+        element: gate("finance.ap.view", <VendorInvoiceDetailPage />),
+      },
+      {
+        path: "finance/vendor-invoices/:invoiceId/edit",
+        element: gate("finance.ap.create", <VendorInvoiceFormPage />),
+      },
+      {
+        path: "finance/payables/aging",
+        element: gate("finance.ap.view", <PayablesAgingPage />),
       },
       { path: "rfqs", element: gate("procurement.rfq.view", <RfqsListPage />) },
       { path: "rfqs/new", element: gate("procurement.rfq.create", <RfqFormPage />) },

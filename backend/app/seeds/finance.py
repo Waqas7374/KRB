@@ -11,6 +11,7 @@ journal entries have been posted against it.
 
 from __future__ import annotations
 
+from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -18,11 +19,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.access import system_access_context
 from app.core.types import utcnow
-from app.modules.finance.domain.enums import AccountType, JournalSourceType
-from app.modules.finance.models import Account, AccountingPeriod, PostingRule
+from app.modules.finance.domain.enums import AccountType, JournalSourceType, TaxAppliesTo, TaxType
+from app.modules.finance.models import Account, AccountingPeriod, PostingRule, TaxCode
 from app.modules.finance.services import accounts as accounts_service
 from app.modules.finance.services import periods as periods_service
 from app.modules.finance.services import posting_rules as posting_rules_service
+from app.modules.finance.services import tax_codes as tax_codes_service
 from app.modules.org.models import Company
 from app.seeds.registry import SeedResult
 
@@ -203,6 +205,20 @@ _POSTING_RULES: tuple[
         "6300",
         "1400",
     ),
+    # INVOICE/PAYABLE (4c): a matched invoice line clears its own debit
+    # account (2110 for a 3-way match, nothing for a 2-way one — resolved per
+    # line, not by this rule) into a real payable. Only credit_account_id is
+    # ever read by vendor_invoices.approve(); debit_account_id is set to the
+    # same account (2100) purely to satisfy the column's NOT NULL constraint
+    # and is never itself posted to.
+    (
+        JournalSourceType.INVOICE,
+        "PAYABLE",
+        "Vendor invoice clears to Accounts Payable",
+        None,
+        "2100",
+        "2100",
+    ),
 )
 
 
@@ -246,6 +262,65 @@ async def seed_posting_rules(session: AsyncSession, company: Company) -> SeedRes
                 condition=condition,
                 debit_account_id=codes[debit_code],
                 credit_account_id=codes[credit_code],
+            ),
+        )
+        row.created_by_id = None
+        result.created += 1
+    return result
+
+
+# code, name, tax type, rate %, applies to, section code (withholding only).
+# Illustrative Pakistani defaults (docs/12 Q1) — starting points, not a
+# prescription: an administrator sets the actual rates that apply to KRB.
+_TAX_CODES: tuple[tuple[str, str, TaxType, Decimal, TaxAppliesTo, str | None], ...] = (
+    ("GST", "General Sales Tax", TaxType.SALES_TAX, Decimal("17.0000"), TaxAppliesTo.GOODS, None),
+    (
+        "SST",
+        "Sales Tax on Services",
+        TaxType.SALES_TAX,
+        Decimal("15.0000"),
+        TaxAppliesTo.SERVICES,
+        None,
+    ),
+    (
+        "WHT-GOODS",
+        "Withholding Tax - Supply of Goods",
+        TaxType.WITHHOLDING,
+        Decimal("4.0000"),
+        TaxAppliesTo.PAYMENT,
+        "153(1)(a)",
+    ),
+    (
+        "WHT-SERVICES",
+        "Withholding Tax - Services",
+        TaxType.WITHHOLDING,
+        Decimal("8.0000"),
+        TaxAppliesTo.PAYMENT,
+        "153(1)(b)",
+    ),
+)
+
+
+async def seed_tax_codes(session: AsyncSession, company: Company) -> SeedResult:
+    result = SeedResult("tax codes")
+    ctx = system_access_context(company.id, UUID(int=0))
+    for code, name, tax_type, rate_pct, applies_to, section_code in _TAX_CODES:
+        existing = await session.scalar(
+            select(TaxCode).where(TaxCode.company_id == company.id, TaxCode.code == code)
+        )
+        if existing is not None:
+            result.skipped += 1
+            continue
+        row = await tax_codes_service.create(
+            session,
+            ctx,
+            tax_codes_service.TaxCodeInput(
+                code=code,
+                name=name,
+                tax_type=tax_type,
+                rate_pct=rate_pct,
+                applies_to=applies_to,
+                section_code=section_code,
             ),
         )
         row.created_by_id = None

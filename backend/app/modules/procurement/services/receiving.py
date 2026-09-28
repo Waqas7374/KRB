@@ -73,3 +73,26 @@ async def apply_receipt(
         order.status = target.value
         order.version += 1
     await session.flush()
+
+
+async def apply_invoice(session: AsyncSession, *, po_item_id: UUID, invoiced: Decimal) -> None:
+    """Add to an order line's invoiced quantity, the third of the three
+    running totals that make 3-way matching possible without recomputing
+    history (docs/02) — written once a vendor invoice against this line is
+    approved (Phase 4c), the same way `apply_receipt` is written by a GRN.
+    Never moves the order's own status: that is `received_quantity`'s alone."""
+    item = (
+        await session.execute(
+            select(PurchaseOrderItem).where(PurchaseOrderItem.id == po_item_id).with_for_update()
+        )
+    ).scalar_one_or_none()
+    if item is None:
+        return
+    new_invoiced = item.invoiced_quantity + invoiced
+    if new_invoiced < 0:
+        raise BusinessRuleError(
+            "purchase_order_invoice_negative",
+            "That would take more back from the order than was ever invoiced against it.",
+        )
+    item.invoiced_quantity = new_invoiced
+    await session.flush()

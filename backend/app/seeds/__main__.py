@@ -73,6 +73,7 @@ async def run(groups: tuple[str, ...]) -> list[SeedResult]:
             results.append(await finance.seed_accounts(session, company))
             results.append(await finance.seed_periods(session, company))
             results.append(await finance.seed_posting_rules(session, company))
+            results.append(await finance.seed_tax_codes(session, company))
 
         if "approvals" in groups:
             results.append(await approvals.seed_workflows(session, company))

@@ -92,3 +92,47 @@ class CommitmentStatus(StrEnum):
     PARTIALLY_RELEASED = "PARTIALLY_RELEASED"
     RELEASED = "RELEASED"
     CANCELLED = "CANCELLED"
+
+
+class TaxType(StrEnum):
+    SALES_TAX = "SALES_TAX"
+    # Deducted from what a vendor is *paid*, not from what they are owed — a
+    # tax_codes row of this type carries a section_code (docs/12 Q1) and only
+    # ever affects payments.withholding_amount (Phase 4d), never the invoice's
+    # own posting.
+    WITHHOLDING = "WITHHOLDING"
+
+
+class TaxAppliesTo(StrEnum):
+    GOODS = "GOODS"
+    SERVICES = "SERVICES"
+    PAYMENT = "PAYMENT"
+
+
+class VendorInvoiceStatus(StrEnum):
+    # Editable: fresh, or sent back by a failed match to be corrected.
+    DRAFT = "DRAFT"
+    PENDING_MATCH = "PENDING_MATCH"
+    MATCHED = "MATCHED"
+    DISPUTED = "DISPUTED"
+    APPROVED = "APPROVED"
+    PARTIALLY_PAID = "PARTIALLY_PAID"
+    PAID = "PAID"
+    CANCELLED = "CANCELLED"
+
+    @property
+    def is_editable(self) -> bool:
+        return self in (VendorInvoiceStatus.DRAFT, VendorInvoiceStatus.DISPUTED)
+
+
+class MatchType(StrEnum):
+    """Whether a line matched against a purchase order as well as a GRN, or
+    only a GRN — a PO-less counter purchase degrades 3-way matching to 2-way
+    (docs/12 Q3): there is no ordered rate or quantity to check the line
+    against, only what was actually received."""
+
+    THREE_WAY = "THREE_WAY"
+    TWO_WAY = "TWO_WAY"
+    # Neither a PO nor a GRN behind it — a service or a direct expense line,
+    # entered and priced by hand. Nothing to match; always within tolerance.
+    UNMATCHED = "UNMATCHED"

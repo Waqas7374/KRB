@@ -31,6 +31,9 @@ class OrderItemInfo:
     material_id: UUID
     unit_id: UUID
     quantity: Decimal
+    rate: Decimal
+    po_id: UUID
+    vendor_id: UUID
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,9 +82,41 @@ async def order(
                 material_id=i.material_id,
                 unit_id=i.unit_id,
                 quantity=i.quantity,
+                rate=i.rate,
+                po_id=row.id,
+                vendor_id=row.vendor_id,
             )
             for i in row.items
         ),
+    )
+
+
+async def item(
+    session: AsyncSession, *, company_id: UUID, po_item_id: UUID
+) -> OrderItemInfo | None:
+    """One order line, for matching a vendor invoice item against it without
+    loading the whole order (docs/02 §8: the 3-way match)."""
+    from app.modules.procurement.models import PurchaseOrderItem
+
+    row = (
+        await session.execute(
+            select(PurchaseOrderItem, PurchaseOrder.id, PurchaseOrder.vendor_id)
+            .join(PurchaseOrder, PurchaseOrder.id == PurchaseOrderItem.po_id)
+            .where(PurchaseOrderItem.id == po_item_id, PurchaseOrder.company_id == company_id)
+        )
+    ).one_or_none()
+    if row is None:
+        return None
+    po_item, po_id, vendor_id = row
+    return OrderItemInfo(
+        id=po_item.id,
+        line_no=po_item.line_no,
+        material_id=po_item.material_id,
+        unit_id=po_item.unit_id,
+        quantity=po_item.quantity,
+        rate=po_item.rate,
+        po_id=po_id,
+        vendor_id=vendor_id,
     )
 
 

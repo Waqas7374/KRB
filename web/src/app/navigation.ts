@@ -39,6 +39,9 @@ import {
   NotebookText,
   GitBranch,
   PiggyBank,
+  FileSpreadsheet,
+  Percent,
+  Hourglass,
 } from "lucide-react";
 
 export interface NavItem {
@@ -193,6 +196,24 @@ export const NAVIGATION: NavSection[] = [
         label: "Posting rules",
         to: "/finance/posting-rules",
         icon: GitBranch,
+        permission: "finance.coa.view",
+      },
+      {
+        label: "Vendor invoices",
+        to: "/finance/vendor-invoices",
+        icon: FileSpreadsheet,
+        permission: "finance.ap.view",
+      },
+      {
+        label: "Payables ageing",
+        to: "/finance/payables/aging",
+        icon: Hourglass,
+        permission: "finance.ap.view",
+      },
+      {
+        label: "Tax codes",
+        to: "/finance/tax-codes",
+        icon: Percent,
         permission: "finance.coa.view",
       },
     ],

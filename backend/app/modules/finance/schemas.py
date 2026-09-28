@@ -9,7 +9,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.modules.finance.domain.enums import AccountType, JournalSourceType
+from app.modules.finance.domain.enums import AccountType, JournalSourceType, TaxAppliesTo, TaxType
 
 
 class ApiModel(BaseModel):
@@ -361,3 +361,148 @@ class BudgetCommitmentRead(ApiModel):
     released_amount: Decimal
     status: str
     created_at: datetime
+
+
+# -----------------------------------------------------------------------------
+# Tax codes
+# -----------------------------------------------------------------------------
+
+
+class TaxCodeCreate(ApiModel):
+    code: Annotated[str, Field(min_length=1, max_length=20)]
+    name: Annotated[str, Field(min_length=2, max_length=160)]
+    tax_type: TaxType
+    rate_pct: Annotated[Decimal, Field(ge=0, le=100)]
+    applies_to: TaxAppliesTo
+    section_code: Annotated[str | None, Field(max_length=20)] = None
+    is_active: bool = True
+
+
+class TaxCodeEdit(ApiModel):
+    name: Annotated[str | None, Field(min_length=2, max_length=160)] = None
+    rate_pct: Annotated[Decimal | None, Field(ge=0, le=100)] = None
+    section_code: Annotated[str | None, Field(max_length=20)] = None
+    is_active: bool | None = None
+
+
+class TaxCodeRead(ApiModel):
+    id: UUID
+    code: str
+    name: str
+    tax_type: str
+    rate_pct: Decimal
+    section_code: str | None
+    applies_to: str
+    is_active: bool
+    version: int
+    created_at: datetime
+    updated_at: datetime
+
+
+# -----------------------------------------------------------------------------
+# Vendor invoices
+# -----------------------------------------------------------------------------
+
+
+class InvoiceItemIn(ApiModel):
+    quantity: Annotated[Decimal, Field(gt=0, max_digits=18, decimal_places=4)]
+    rate: Annotated[Decimal, Field(ge=0, max_digits=18, decimal_places=4)]
+    po_item_id: UUID | None = None
+    grn_item_id: UUID | None = None
+    material_id: UUID | None = None
+    description: Annotated[str | None, Field(max_length=300)] = None
+    unit_id: UUID | None = None
+    tax_code_id: UUID | None = None
+    tax_pct: Annotated[Decimal, Field(ge=0, le=100)] = Decimal(0)
+    account_id: UUID | None = None
+
+
+class VendorInvoiceCreate(ApiModel):
+    vendor_id: UUID
+    vendor_invoice_ref: Annotated[str, Field(min_length=1, max_length=60)]
+    invoice_date: date
+    purchase_order_id: UUID | None = None
+    due_date: date | None = None
+    withholding_amount: Annotated[Decimal, Field(ge=0, max_digits=18, decimal_places=4)] = Decimal(
+        0
+    )
+    items: Annotated[list[InvoiceItemIn], Field(min_length=1, max_length=200)]
+
+
+class InvoiceItemRead(ApiModel):
+    id: UUID
+    line_no: int
+    po_item_id: UUID | None
+    grn_item_id: UUID | None
+    material_id: UUID | None
+    material_name: str | None = None
+    description: str | None
+    quantity: Decimal
+    unit_id: UUID | None
+    unit_code: str | None = None
+    rate: Decimal
+    tax_code_id: UUID | None
+    tax_pct: Decimal
+    tax_amount: Decimal
+    amount: Decimal
+    account_id: UUID | None
+    account_code: str | None = None
+    # From the match, once it has run — None until then.
+    match_type: str | None = None
+    qty_variance: Decimal | None = None
+    rate_variance: Decimal | None = None
+    amount_variance: Decimal | None = None
+    within_tolerance: bool | None = None
+
+
+class VendorInvoiceListItem(ApiModel):
+    id: UUID
+    invoice_number: str
+    vendor_id: UUID
+    vendor_name: str | None = None
+    vendor_invoice_ref: str
+    invoice_date: date
+    due_date: date
+    status: str
+    total_amount: Decimal
+    outstanding_amount: Decimal = Decimal(0)
+    updated_at: datetime
+
+
+class VendorInvoiceRead(VendorInvoiceListItem):
+    purchase_order_id: UUID | None
+    purchase_order_number: str | None = None
+    subtotal: Decimal
+    tax_amount: Decimal
+    withholding_amount: Decimal
+    paid_amount: Decimal
+    matched_at: datetime | None
+    decision_reason: str | None
+    approved_at: datetime | None
+    journal_entry_id: UUID | None
+    cancelled_at: datetime | None
+    version: int
+    created_at: datetime
+    items: list[InvoiceItemRead]
+    can_edit: bool = False
+    can_match: bool = False
+    can_approve: bool = False
+    can_dispute: bool = False
+    can_delete: bool = False
+
+
+class AgeingBucketRead(ApiModel):
+    vendor_id: UUID
+    vendor_name: str
+    current: Decimal
+    days_1_30: Decimal
+    days_31_60: Decimal
+    days_61_90: Decimal
+    days_over_90: Decimal
+    total: Decimal
+
+
+class PayablesAgingRead(ApiModel):
+    as_of: date
+    rows: list[AgeingBucketRead]
+    total: Decimal
