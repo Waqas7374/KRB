@@ -214,8 +214,8 @@ API spec gives it (`POST /finance/vendor-invoices/{id}/approve`, no `/submit` or
   slice** — confirmed by stashing every 4c change and rebuilding clean against the pre-4c tree
   (`RateGridPage.tsx`'s `Sparkline`, `RfqPages.tsx`'s `variant="default"`). `npm run typecheck` and
   `npm run lint` both stay green regardless, which is why it went unnoticed until this slice actually
-  ran the full build script. Not fixed — out of scope for Finance — but now flagged rather than silently
-  carried forward. See [[finance-module-gotchas]] #15.
+  ran the full build script. Flagged at the end of this slice rather than fixed inline (unrelated to
+  Finance); fixed the next day in its own commit (`544cc71`) — see [[finance-module-gotchas]] #15.
 
 ## Testing (state after slice 4c)
 
@@ -223,7 +223,7 @@ API spec gives it (`POST /finance/vendor-invoices/{id}/approve`, no `/submit` or
 |---|---|
 | Backend | Full suite passed, coverage 93 % (gate 80 %); ruff, mypy, import contracts 4/4, `alembic check` clean; the new migration round-trips |
 | New this slice | 26 tests (`test_vendor_invoices.py`): tax codes (seeded codes listed, only `finance.coa.manage` may write one, a duplicate code is refused, edit by hand); a line with no order or GRN needs an account, a GRN-backed line resolves its own account from the posting rule, a duplicate `vendor_invoice_ref` for the same vendor is refused (409), only `finance.ap.create` may raise an invoice, a draft can be edited and deleted; a 3-way line within tolerance matches clean, a 3-way line with a rate outside tolerance disputes itself, a 3-way line with qty inside the configured tolerance still matches, a 2-way counter-purchase line degrades gracefully, an unmatched direct line always passes its own check, a disputed invoice can be corrected and rematched, a matched invoice can be disputed by hand, only `finance.ap.approve` may dispute; approve requires `MATCHED` first, approving a 3-way match clears the GRN accrual into payable (asserted via the general ledger, since the account nets to zero on the trial balance) and writes the PO's `invoiced_quantity`, approving a 2-way match posts nothing new, an unmatched direct line posts from its own named account, only `finance.ap.approve` may approve; AP ageing buckets an approved invoice correctly and a draft never appears in it, permission check. |
-| Web | Typecheck, eslint (no warnings), prettier clean. `npm run build`'s `tsc -b` step fails, but on pre-existing, unrelated errors (see "Found by testing") — confirmed present on `main` before this slice too |
+| Web | Typecheck, eslint (no warnings), prettier clean. `npm run build`'s `tsc -b` step failed at the time, on pre-existing, unrelated errors (see "Found by testing") — confirmed present on `main` before this slice too, and fixed the next day in commit `544cc71` |
 | Browser E2E | `vendor-invoices.spec.ts`: a vendor invoice created against a real GRN line (the PO → delivery → GRN pipeline behind it built directly through the API, the same way `budgets.spec.ts` treats its own prerequisites), matched, and approved — asserted against PostgreSQL: the invoice's status, its journal entry's debit to 2110 and credit to 2100, and the purchase order's `invoiced_quantity`. Full suite (26 specs) passes, including `smoke.spec.ts`, which now also renders the vendor-invoice, tax-code and payables-ageing screens without crashing |
 
 ## What is not built in Phase 4 yet
@@ -237,4 +237,3 @@ API spec gives it (`POST /finance/vendor-invoices/{id}/approve`, no `/submit` or
 | Opening-balance entry flow, cut-over / parallel-run plan (docs/12 Q2) | not built; cut-over date still needed from the business |
 | Posting rules for payment events | arrives with 4d, same `posting_rules` table (`INVOICE`/`PAYABLE` arrived with 4c) |
 | A per-line phase/cost centre on a purchase order or counter purchase | not built; both are header-level today (docs/02 §5), which is what 4b's commitment/release grouping assumes |
-| `npm run build`'s `tsc -b` step | broken on `main`, pre-existing and unrelated to Finance (`RateGridPage.tsx`, `RfqPages.tsx`) — `typecheck`/`lint` stay green; see 4c's "Found by testing" |
