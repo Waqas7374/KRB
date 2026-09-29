@@ -20,8 +20,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.access import system_access_context
 from app.core.types import utcnow
 from app.modules.finance.domain.enums import AccountType, JournalSourceType, TaxAppliesTo, TaxType
-from app.modules.finance.models import Account, AccountingPeriod, PostingRule, TaxCode
+from app.modules.finance.models import Account, AccountingPeriod, BankAccount, PostingRule, TaxCode
 from app.modules.finance.services import accounts as accounts_service
+from app.modules.finance.services import bank_accounts as bank_accounts_service
 from app.modules.finance.services import periods as periods_service
 from app.modules.finance.services import posting_rules as posting_rules_service
 from app.modules.finance.services import tax_codes as tax_codes_service
@@ -219,6 +220,20 @@ _POSTING_RULES: tuple[
         "2100",
         "2100",
     ),
+    # PAYMENT/EXECUTE (4d): a payment debits the same payable an invoice's own
+    # approval credited (2100) and, if anything was retained, credits it to
+    # Withholding Tax Payable (2200) — the debit and credit here are a real
+    # pair this time, unlike INVOICE/PAYABLE's placeholder above. The third
+    # leg (what actually left the bank) is the paying `bank_account`'s own
+    # `gl_account_id`, resolved directly, never through this rule.
+    (
+        JournalSourceType.PAYMENT,
+        "EXECUTE",
+        "Payment clears Accounts Payable, withholds to Withholding Tax Payable",
+        None,
+        "2100",
+        "2200",
+    ),
 )
 
 
@@ -299,6 +314,55 @@ _TAX_CODES: tuple[tuple[str, str, TaxType, Decimal, TaxAppliesTo, str | None], .
         "153(1)(b)",
     ),
 )
+
+
+# title, account_no, bank_name, GL account code. The cash till is kept as a
+# "bank account" row too, so a CASH payment credits a real account the same
+# way every other method does, rather than a special case.
+_BANK_ACCOUNTS: tuple[tuple[str, str, str, str], ...] = (
+    ("Main Operating Account", "0001-0000001", "Sample Bank Ltd", "1120"),
+    ("Cash Till", "CASH-01", "—", "1110"),
+)
+
+
+async def seed_bank_accounts(session: AsyncSession, company: Company) -> SeedResult:
+    result = SeedResult("bank accounts")
+    ctx = system_access_context(company.id, UUID(int=0))
+    codes = {
+        a.code: a.id
+        for a in (
+            await session.execute(
+                select(Account).where(
+                    Account.company_id == company.id,
+                    Account.code.in_({c for *_, c in _BANK_ACCOUNTS}),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    }
+    for title, account_no, bank_name, gl_code in _BANK_ACCOUNTS:
+        existing = await session.scalar(
+            select(func.count())
+            .select_from(BankAccount)
+            .where(BankAccount.company_id == company.id, BankAccount.account_no == account_no)
+        )
+        if existing:
+            result.skipped += 1
+            continue
+        row = await bank_accounts_service.create(
+            session,
+            ctx,
+            bank_accounts_service.BankAccountInput(
+                account_title=title,
+                account_no=account_no,
+                bank_name=bank_name,
+                gl_account_id=codes[gl_code],
+            ),
+        )
+        row.created_by_id = None
+        result.created += 1
+    return result
 
 
 async def seed_tax_codes(session: AsyncSession, company: Company) -> SeedResult:

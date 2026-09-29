@@ -19,7 +19,8 @@ from app.modules.approvals.models import ApprovalWorkflow
 from app.modules.approvals.services import workflow_service
 
 # Importing the service registers the journal-entry approval handler.
-from app.modules.finance.services import journal_entries
+# Importing the service registers the payment-request approval handler.
+from app.modules.finance.services import journal_entries, payment_requests
 from app.modules.org.models import Company
 
 # Importing the service registers the purchase-request approval handler.
@@ -201,6 +202,30 @@ JOURNAL_ENTRY_WORKFLOW: dict[str, Any] = {
     ]
 }
 
+# Money leaving the company's own bank account is signed by finance,
+# and by the executive too from 200,000 up — the same two-tier shape as a
+# manual journal entry, since a payment is exactly that kind of risk. When
+# finance itself raised the request, its own step has nobody eligible (a
+# person cannot approve their own step) and escalates to the executive.
+_PAYMENT_FINANCE = {**_FINANCE, "escalate_to_type": "ROLE", "escalate_to_ref": "EXECUTIVE"}
+
+PAYMENT_REQUEST_WORKFLOW: dict[str, Any] = {
+    "rules": [
+        {
+            "sequence": 10,
+            "name": "Below 200,000",
+            "condition": {"<": [{"var": "amount"}, 200000]},
+            "steps": _steps(_PAYMENT_FINANCE),
+        },
+        {
+            "sequence": 99,
+            "name": "200,000 or more",
+            "condition": True,
+            "steps": _steps(_PAYMENT_FINANCE, _EXECUTIVE),
+        },
+    ]
+}
+
 _DEFAULTS = (
     (
         purchase_requests.DOC_TYPE,
@@ -231,6 +256,12 @@ _DEFAULTS = (
         "Stock adjustment approval",
         "Every adjustment is signed: the project manager, plus finance from 25,000 up.",
         STOCK_ADJUSTMENT_WORKFLOW,
+    ),
+    (
+        payment_requests.DOC_TYPE,
+        "Payment request approval",
+        "Every request is signed by finance; 200,000 and above also needs the executive.",
+        PAYMENT_REQUEST_WORKFLOW,
     ),
 )
 

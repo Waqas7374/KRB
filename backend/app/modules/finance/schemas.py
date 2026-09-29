@@ -9,7 +9,14 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.modules.finance.domain.enums import AccountType, JournalSourceType, TaxAppliesTo, TaxType
+from app.modules.finance.domain.enums import (
+    AccountType,
+    JournalSourceType,
+    PaymentMethod,
+    PaymentPriority,
+    TaxAppliesTo,
+    TaxType,
+)
 
 
 class ApiModel(BaseModel):
@@ -506,3 +513,151 @@ class PayablesAgingRead(ApiModel):
     as_of: date
     rows: list[AgeingBucketRead]
     total: Decimal
+
+
+# -----------------------------------------------------------------------------
+# Bank accounts
+# -----------------------------------------------------------------------------
+
+
+class BankAccountCreate(ApiModel):
+    account_title: Annotated[str, Field(min_length=2, max_length=160)]
+    account_no: Annotated[str, Field(min_length=1, max_length=40)]
+    bank_name: Annotated[str, Field(min_length=2, max_length=160)]
+    gl_account_id: UUID
+    iban: Annotated[str | None, Field(max_length=40)] = None
+    currency_code: Annotated[str, Field(min_length=3, max_length=3)] = "PKR"
+    opening_balance: Annotated[Decimal, Field(ge=0)] = Decimal(0)
+    is_active: bool = True
+
+
+class BankAccountEdit(ApiModel):
+    account_title: Annotated[str | None, Field(min_length=2, max_length=160)] = None
+    iban: Annotated[str | None, Field(max_length=40)] = None
+    bank_name: Annotated[str | None, Field(min_length=2, max_length=160)] = None
+    is_active: bool | None = None
+
+
+class BankAccountRead(ApiModel):
+    id: UUID
+    account_title: str
+    account_no: str
+    iban: str | None
+    bank_name: str
+    currency_code: str
+    gl_account_id: UUID
+    gl_account_code: str | None = None
+    opening_balance: Decimal
+    is_active: bool
+    version: int
+    created_at: datetime
+    updated_at: datetime
+
+
+# -----------------------------------------------------------------------------
+# Payment requests
+# -----------------------------------------------------------------------------
+
+
+class PaymentRequestCreate(ApiModel):
+    vendor_id: UUID
+    amount: Annotated[Decimal, Field(gt=0, max_digits=18, decimal_places=4)]
+    reason: Annotated[str, Field(min_length=2, max_length=2000)]
+    priority: PaymentPriority = PaymentPriority.NORMAL
+    is_advance: bool = False
+    currency_code: Annotated[str, Field(min_length=3, max_length=3)] = "PKR"
+
+
+class PaymentRequestListItem(ApiModel):
+    id: UUID
+    request_number: str
+    vendor_id: UUID
+    vendor_name: str | None = None
+    amount: Decimal
+    priority: str
+    is_advance: bool
+    status: str
+    submitted_at: datetime | None
+    created_at: datetime
+
+
+class PaymentRequestRead(PaymentRequestListItem):
+    currency_code: str
+    reason: str
+    decision_reason: str | None
+    approval_request_id: UUID | None
+    approved_at: datetime | None
+    cancelled_at: datetime | None
+    cancel_reason: str | None
+    version: int
+    updated_at: datetime
+    can_edit: bool = False
+    can_delete: bool = False
+    can_submit: bool = False
+    can_cancel: bool = False
+
+
+# -----------------------------------------------------------------------------
+# Payments
+# -----------------------------------------------------------------------------
+
+
+class PaymentCreate(ApiModel):
+    payment_request_id: UUID
+    payment_date: date
+    method: PaymentMethod
+    bank_account_id: UUID
+    instrument_no: Annotated[str | None, Field(max_length=60)] = None
+    withholding_amount: Annotated[Decimal, Field(ge=0, max_digits=18, decimal_places=4)] = Decimal(
+        0
+    )
+
+
+class AllocationIn(ApiModel):
+    invoice_id: UUID
+    allocated_amount: Annotated[Decimal, Field(gt=0, max_digits=18, decimal_places=4)]
+
+
+class AllocateBody(ApiModel):
+    items: Annotated[list[AllocationIn], Field(min_length=1, max_length=50)]
+
+
+class PaymentAllocationRead(ApiModel):
+    id: UUID
+    invoice_id: UUID
+    invoice_number: str | None = None
+    allocated_amount: Decimal
+    created_at: datetime
+
+
+class PaymentListItem(ApiModel):
+    id: UUID
+    payment_number: str
+    payment_date: date
+    vendor_id: UUID | None
+    vendor_name: str | None = None
+    method: str
+    gross_amount: Decimal
+    withholding_amount: Decimal
+    net_amount: Decimal
+    allocated_amount: Decimal
+    status: str
+    created_at: datetime
+
+
+class PaymentRead(PaymentListItem):
+    payment_request_id: UUID | None
+    payment_request_number: str | None = None
+    bank_account_id: UUID | None
+    bank_account_title: str | None = None
+    instrument_no: str | None
+    journal_entry_id: UUID | None
+    cleared_at: datetime | None
+    cancelled_at: datetime | None
+    cancel_reason: str | None
+    version: int
+    updated_at: datetime
+    allocations: list[PaymentAllocationRead] = []
+    can_allocate: bool = False
+    can_mark_cleared: bool = False
+    can_cancel: bool = False

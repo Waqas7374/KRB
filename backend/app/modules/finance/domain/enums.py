@@ -136,3 +136,62 @@ class MatchType(StrEnum):
     # Neither a PO nor a GRN behind it — a service or a direct expense line,
     # entered and priced by hand. Nothing to match; always within tolerance.
     UNMATCHED = "UNMATCHED"
+
+
+class PaymentPriority(StrEnum):
+    NORMAL = "NORMAL"
+    URGENT = "URGENT"
+
+
+class PaymentRequestStatus(StrEnum):
+    # Editable: fresh, or sent back by a decision (rejected / changes
+    # requested) to be corrected. There is no separate REJECTED-is-final —
+    # like a purchase request, a rejected payment request is a draft again.
+    DRAFT = "DRAFT"
+    PENDING_APPROVAL = "PENDING_APPROVAL"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    CHANGES_REQUESTED = "CHANGES_REQUESTED"
+    # Set the moment a Payment is created against this request (4d executes a
+    # request in full, in one payment — see vendor_invoices' own "never
+    # re-book what already posted" precedent: a paid request's money has
+    # already moved, so nothing about it is editable again).
+    PAID = "PAID"
+    CANCELLED = "CANCELLED"
+
+    @property
+    def is_editable(self) -> bool:
+        return self in (
+            PaymentRequestStatus.DRAFT,
+            PaymentRequestStatus.REJECTED,
+            PaymentRequestStatus.CHANGES_REQUESTED,
+        )
+
+
+class PaymentMethod(StrEnum):
+    BANK_TRANSFER = "BANK_TRANSFER"
+    CHEQUE = "CHEQUE"
+    # Still names a `bank_account_id` — a cash till is kept as its own row
+    # (linked to 1110 Cash in Hand) so every method credits a real account
+    # rather than special-casing the one that isn't a bank.
+    CASH = "CASH"
+    ONLINE = "ONLINE"
+
+
+class PaymentDirection(StrEnum):
+    # Only OUT (a vendor payment) is built in 4d; IN is docs/02's own AR
+    # mirror, reserved for whichever slice actually wires a customer receipt
+    # through this table rather than `receipts` (docs/02 §8 keeps the two
+    # separate: customer_invoices are settled_by receipts, not payments).
+    OUT = "OUT"
+    IN = "IN"
+
+
+class PaymentStatus(StrEnum):
+    # A payment posts the moment it is issued (the same "post immediately"
+    # philosophy as a GRN or a stock movement) — ISSUED is not a draft, it is
+    # money that has already left the door and hit the GL; CLEARED is purely
+    # the bank's own later confirmation, recorded but never re-posted.
+    ISSUED = "ISSUED"
+    CLEARED = "CLEARED"
+    CANCELLED = "CANCELLED"

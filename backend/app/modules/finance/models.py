@@ -48,6 +48,11 @@ from app.modules.finance.domain.enums import (
     JournalStatus,
     MatchType,
     NormalBalance,
+    PaymentDirection,
+    PaymentMethod,
+    PaymentPriority,
+    PaymentRequestStatus,
+    PaymentStatus,
     PeriodStatus,
     TaxAppliesTo,
     TaxType,
@@ -564,3 +569,165 @@ class VendorInvoiceMatch(BaseModel):
     tolerance_rule_id: Mapped[UUID | None] = mapped_column(PgUUID(as_uuid=True))
 
     __table_args__ = (enum_check("match_type", MatchType),)
+
+
+class BankAccount(CompanyModel, VersionMixin):
+    """The company's own bank account (docs/02 §8) — never a vendor's; those
+    are `vendors.services.vendor_service`'s `VendorBankAccount`, a different
+    table for a different risk (payment diversion). `gl_account_id` is what a
+    payment drawn from this account credits."""
+
+    __tablename__ = "bank_accounts"
+    __audited__ = True
+    __scope_company_wide__ = True
+
+    account_title: Mapped[str] = mapped_column(String(160), nullable=False)
+    account_no: Mapped[str] = mapped_column(String(40), nullable=False)
+    iban: Mapped[str | None] = mapped_column(String(40))
+    bank_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    currency_code: Mapped[str] = mapped_column(String(3), nullable=False, default="PKR")
+    gl_account_id: Mapped[UUID] = mapped_column(
+        ForeignKey("accounts.id", ondelete="RESTRICT"), nullable=False
+    )
+    opening_balance: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    __table_args__ = (
+        UniqueConstraint("company_id", "account_no", name="uq_bank_accounts_account_no"),
+    )
+
+
+class PaymentRequest(CompanyModel, VersionMixin):
+    """A request to pay a vendor a given amount (docs/02 §8) — deliberately
+    blind to *which* invoice(s) it will settle: that is decided later, when a
+    `Payment` created against this request is allocated. This is what makes
+    an advance (`is_advance`, paid before any invoice exists) simply a
+    request with nothing behind it yet, rather than a special case.
+
+    Routed through the shared approval engine (`PaymentRequestApprovals`
+    below) exactly like a purchase request — unlike a vendor invoice's or a
+    budget's single direct permission check, money leaving the company's own
+    bank account gets the full chain."""
+
+    __tablename__ = "payment_requests"
+    __audited__ = True
+
+    request_number: Mapped[str] = mapped_column(String(40), nullable=False)
+    vendor_id: Mapped[UUID] = mapped_column(
+        ForeignKey("vendors.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
+    currency_code: Mapped[str] = mapped_column(String(3), nullable=False, default="PKR")
+    priority: Mapped[str] = mapped_column(
+        String(10), nullable=False, default=PaymentPriority.NORMAL.value
+    )
+    reason: Mapped[str] = mapped_column(String(2000), nullable=False)
+    # An approval-context variable in its own right (docs/04 §1) — a request
+    # against no invoice at all is inherently an advance; this just names it
+    # rather than making a reader infer it.
+    is_advance: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default=PaymentRequestStatus.DRAFT.value
+    )
+    requested_by_id: Mapped[UUID | None] = mapped_column(PgUUID(as_uuid=True))
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    decision_reason: Mapped[str | None] = mapped_column(String(2000))
+    approval_request_id: Mapped[UUID | None] = mapped_column(PgUUID(as_uuid=True))
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cancel_reason: Mapped[str | None] = mapped_column(String(500))
+
+    __table_args__ = (
+        UniqueConstraint("company_id", "request_number", name="uq_payment_requests_number"),
+        Index("ix_payment_requests_status", "company_id", "status"),
+        enum_check("status", PaymentRequestStatus),
+        enum_check("priority", PaymentPriority),
+        non_negative("amount"),
+    )
+
+
+class Payment(CompanyModel, VersionMixin):
+    """Money actually leaving the door (docs/02 §8) — created only against an
+    `APPROVED` payment request (`finance.payment.execute`, distinct from
+    `.request`/`.approve`: raising and approving a request is one thing,
+    actually cutting the cheque is another). Posts to the GL the moment it is
+    issued, the same "post immediately, reversal instead of a state machine"
+    treatment as a GRN: debits the payable it is clearing (the exact account
+    a vendor invoice's own approval credited), credits the withholding
+    payable if any was retained, and credits the paying bank account's own
+    `gl_account_id` for what actually left it."""
+
+    __tablename__ = "payments"
+    __audited__ = True
+
+    payment_number: Mapped[str] = mapped_column(String(40), nullable=False)
+    payment_date: Mapped[date] = mapped_column(Date, nullable=False)
+    payment_request_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("payment_requests.id", ondelete="RESTRICT"), index=True
+    )
+    vendor_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("vendors.id", ondelete="RESTRICT"), index=True
+    )
+    customer_id: Mapped[UUID | None] = mapped_column(PgUUID(as_uuid=True))
+    # Only OUT is built in 4d — see PaymentDirection.
+    direction: Mapped[str] = mapped_column(
+        String(3), nullable=False, default=PaymentDirection.OUT.value
+    )
+    method: Mapped[str] = mapped_column(String(20), nullable=False)
+    bank_account_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("bank_accounts.id", ondelete="RESTRICT")
+    )
+    instrument_no: Mapped[str | None] = mapped_column(String(60))
+    gross_amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
+    withholding_amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+    # gross - withholding: what actually leaves the bank account. Stored, not
+    # generated, since it is computed once at creation and never revisited.
+    net_amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
+    allocated_amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default=PaymentStatus.ISSUED.value
+    )
+    journal_entry_id: Mapped[UUID | None] = mapped_column(PgUUID(as_uuid=True))
+    cleared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cancel_reason: Mapped[str | None] = mapped_column(String(500))
+
+    allocations: Mapped[list[PaymentAllocation]] = relationship(
+        back_populates="payment", lazy="selectin", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        UniqueConstraint("company_id", "payment_number", name="uq_payments_number"),
+        Index("ix_payments_status", "company_id", "status"),
+        enum_check("status", PaymentStatus),
+        enum_check("direction", PaymentDirection),
+        enum_check("method", PaymentMethod),
+        non_negative("gross_amount"),
+        non_negative("withholding_amount"),
+        non_negative("net_amount"),
+        non_negative("allocated_amount"),
+    )
+
+
+class PaymentAllocation(BaseModel):
+    """What a payment actually settled (docs/02 §8) — explicit, never
+    inferred: a payment may cover several invoices, and an invoice may be
+    covered by several payments across time."""
+
+    __tablename__ = "payment_allocations"
+    __audited__ = True
+
+    payment_id: Mapped[UUID] = mapped_column(
+        ForeignKey("payments.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    invoice_id: Mapped[UUID] = mapped_column(
+        ForeignKey("vendor_invoices.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    allocated_amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
+
+    payment: Mapped[Payment] = relationship(back_populates="allocations", lazy="noload")
+
+    __table_args__ = (
+        UniqueConstraint("payment_id", "invoice_id", name="uq_payment_allocations_pair"),
+        non_negative("allocated_amount"),
+    )

@@ -23,22 +23,30 @@ from app.modules.finance.domain.enums import (
     BudgetStatus,
     JournalSourceType,
     JournalStatus,
+    PaymentRequestStatus,
+    PaymentStatus,
     VendorInvoiceStatus,
 )
 from app.modules.finance.models import (
     Account,
+    BankAccount,
     Budget,
     BudgetLine,
     JournalEntry,
+    Payment,
+    PaymentRequest,
     PostingRule,
     VendorInvoice,
     VendorInvoiceMatch,
 )
 from app.modules.finance.services import (
     accounts,
+    bank_accounts,
     budgets,
     journal_entries,
     ledger,
+    payment_requests,
+    payments,
     periods,
     posting_rules,
     reports,
@@ -1240,3 +1248,412 @@ async def get_payables_aging(
     return s.PayablesAgingRead(
         as_of=cutoff, rows=buckets, total=sum((b.total for b in buckets), Decimal(0))
     )
+
+
+# -----------------------------------------------------------------------------
+# Bank accounts
+# -----------------------------------------------------------------------------
+
+
+def _bank_account_view(row: BankAccount, account_code: str | None) -> s.BankAccountRead:
+    view = s.BankAccountRead.model_validate(row)
+    view.gl_account_code = account_code
+    return view
+
+
+async def _bank_account_views(
+    session: AsyncSession, rows: list[BankAccount]
+) -> list[s.BankAccountRead]:
+    account_ids = {r.gl_account_id for r in rows}
+    codes = {
+        a.id: a.code
+        for a in (await session.execute(select(Account).where(Account.id.in_(account_ids))))
+        .scalars()
+        .all()
+    }
+    return [_bank_account_view(r, codes.get(r.gl_account_id)) for r in rows]
+
+
+@router.get(
+    "/bank-accounts",
+    response_model=Page[s.BankAccountRead],
+    dependencies=[require(bank_accounts.PERM_VIEW)],
+)
+async def list_bank_accounts(
+    ctx: Access, session: SessionDep, page: PageDep, q: str | None = None
+) -> Page[s.BankAccountRead]:
+    rows, total = await bank_accounts.list_accounts(session, ctx, page=page, search=q, filters={})
+    return Page.of(await _bank_account_views(session, rows), params=page, total=total)
+
+
+@router.post(
+    "/bank-accounts",
+    response_model=s.BankAccountRead,
+    status_code=201,
+    dependencies=[require(bank_accounts.PERM_MANAGE)],
+)
+async def create_bank_account(
+    payload: s.BankAccountCreate, ctx: Access, uow: UowDep
+) -> s.BankAccountRead:
+    row = await bank_accounts.create(
+        uow.session,
+        ctx,
+        bank_accounts.BankAccountInput(
+            account_title=payload.account_title,
+            account_no=payload.account_no,
+            bank_name=payload.bank_name,
+            gl_account_id=payload.gl_account_id,
+            iban=payload.iban,
+            currency_code=payload.currency_code,
+            opening_balance=payload.opening_balance,
+            is_active=payload.is_active,
+        ),
+    )
+    return (await _bank_account_views(uow.session, [row]))[0]
+
+
+@router.patch(
+    "/bank-accounts/{bank_account_id}",
+    response_model=s.BankAccountRead,
+    dependencies=[require(bank_accounts.PERM_MANAGE)],
+)
+async def update_bank_account(
+    bank_account_id: UUID,
+    payload: s.BankAccountEdit,
+    ctx: Access,
+    uow: UowDep,
+    if_match: IfMatch = None,
+) -> s.BankAccountRead:
+    row = await bank_accounts.update(
+        uow.session,
+        ctx,
+        bank_account_id,
+        bank_accounts.BankAccountEdit(
+            account_title=payload.account_title,
+            iban=payload.iban,
+            bank_name=payload.bank_name,
+            is_active=payload.is_active,
+        ),
+        expected_version=if_match,
+    )
+    await uow.session.refresh(row)
+    return (await _bank_account_views(uow.session, [row]))[0]
+
+
+# -----------------------------------------------------------------------------
+# Payment requests
+# -----------------------------------------------------------------------------
+
+
+def _payment_request_input(payload: s.PaymentRequestCreate) -> payment_requests.RequestInput:
+    return payment_requests.RequestInput(
+        vendor_id=payload.vendor_id,
+        amount=payload.amount,
+        reason=payload.reason,
+        priority=payload.priority.value,
+        is_advance=payload.is_advance,
+        currency_code=payload.currency_code,
+    )
+
+
+def _payment_request_may(ctx: AccessContext, permission: str, request: PaymentRequest) -> bool:
+    try:
+        assert_in_scope(ctx, permission, company_id=request.company_id, entity="Payment request")
+    except Exception:  # noqa: BLE001 - any refusal simply means "no"
+        return False
+    return True
+
+
+async def _payment_request_detail(
+    session: AsyncSession, ctx: AccessContext, request: PaymentRequest
+) -> s.PaymentRequestRead:
+    await session.refresh(request)
+    vendors = await vendor_lookup.vendors(
+        session, company_id=ctx.company_id, vendor_ids={request.vendor_id}
+    )
+    view = s.PaymentRequestRead.model_validate(request)
+    view.vendor_name = vendors[request.vendor_id].name if request.vendor_id in vendors else None
+    editable = PaymentRequestStatus(request.status).is_editable
+    view.can_edit = editable and _payment_request_may(ctx, payment_requests.PERM_CREATE, request)
+    view.can_delete = request.status == PaymentRequestStatus.DRAFT.value and _payment_request_may(
+        ctx, payment_requests.PERM_CREATE, request
+    )
+    view.can_submit = editable and _payment_request_may(ctx, payment_requests.PERM_CREATE, request)
+    view.can_cancel = request.status in {
+        PaymentRequestStatus.DRAFT.value,
+        PaymentRequestStatus.REJECTED.value,
+        PaymentRequestStatus.CHANGES_REQUESTED.value,
+        PaymentRequestStatus.APPROVED.value,
+    } and _payment_request_may(ctx, payment_requests.PERM_CREATE, request)
+    return view
+
+
+@router.get(
+    "/payment-requests",
+    response_model=Page[s.PaymentRequestListItem],
+    dependencies=[require(payment_requests.PERM_VIEW)],
+)
+async def list_payment_requests(
+    ctx: Access,
+    session: SessionDep,
+    page: PageDep,
+    q: str | None = None,
+    status: Annotated[list[str] | None, Query()] = None,
+    vendor_id: UUID | None = None,
+) -> Page[s.PaymentRequestListItem]:
+    rows, total = await payment_requests.list_requests(
+        session, ctx, page=page, search=q, filters={"status": status, "vendor_id": vendor_id}
+    )
+    vendors = await vendor_lookup.vendors(
+        session, company_id=ctx.company_id, vendor_ids={r.vendor_id for r in rows}
+    )
+    items = []
+    for r in rows:
+        item = s.PaymentRequestListItem.model_validate(r)
+        item.vendor_name = vendors[r.vendor_id].name if r.vendor_id in vendors else None
+        items.append(item)
+    return Page.of(items, params=page, total=total)
+
+
+@router.post(
+    "/payment-requests",
+    response_model=s.PaymentRequestRead,
+    status_code=201,
+    dependencies=[require(payment_requests.PERM_CREATE)],
+    summary="Raise a request to pay a vendor (starts as a draft)",
+)
+async def create_payment_request(
+    payload: s.PaymentRequestCreate, ctx: Access, uow: UowDep
+) -> s.PaymentRequestRead:
+    request = await payment_requests.create(uow.session, ctx, _payment_request_input(payload))
+    return await _payment_request_detail(uow.session, ctx, request)
+
+
+@router.get(
+    "/payment-requests/{request_id}",
+    response_model=s.PaymentRequestRead,
+    dependencies=[require(payment_requests.PERM_VIEW)],
+)
+async def get_payment_request(
+    request_id: UUID, ctx: Access, session: SessionDep
+) -> s.PaymentRequestRead:
+    return await _payment_request_detail(
+        session, ctx, await payment_requests.get(session, ctx, request_id)
+    )
+
+
+@router.put(
+    "/payment-requests/{request_id}",
+    response_model=s.PaymentRequestRead,
+    dependencies=[require(payment_requests.PERM_CREATE)],
+    summary="Replace a draft, rejected or returned request's content",
+)
+async def update_payment_request(
+    request_id: UUID,
+    payload: s.PaymentRequestCreate,
+    ctx: Access,
+    uow: UowDep,
+    if_match: IfMatch = None,
+) -> s.PaymentRequestRead:
+    request = await payment_requests.update(
+        uow.session,
+        ctx,
+        request_id,
+        _payment_request_input(payload),
+        expected_version=if_match,
+    )
+    return await _payment_request_detail(uow.session, ctx, request)
+
+
+@router.delete(
+    "/payment-requests/{request_id}",
+    status_code=204,
+    dependencies=[require(payment_requests.PERM_CREATE)],
+    summary="Delete a draft that never happened",
+)
+async def delete_payment_request(request_id: UUID, ctx: Access, uow: UowDep) -> None:
+    await payment_requests.delete_draft(uow.session, ctx, request_id)
+
+
+@router.post(
+    "/payment-requests/{request_id}/submit",
+    response_model=s.PaymentRequestRead,
+    dependencies=[require(payment_requests.PERM_CREATE)],
+    summary="Submit for approval — routed by the active payment-request workflow",
+)
+async def submit_payment_request(
+    request_id: UUID, ctx: Access, uow: UowDep, if_match: IfMatch = None
+) -> s.PaymentRequestRead:
+    request = await payment_requests.submit(uow.session, ctx, request_id, expected_version=if_match)
+    return await _payment_request_detail(uow.session, ctx, request)
+
+
+@router.post(
+    "/payment-requests/{request_id}/cancel",
+    response_model=s.PaymentRequestRead,
+    dependencies=[require(payment_requests.PERM_CREATE)],
+)
+async def cancel_payment_request(
+    request_id: UUID, payload: s.CancelBody, ctx: Access, uow: UowDep
+) -> s.PaymentRequestRead:
+    request = await payment_requests.cancel(uow.session, ctx, request_id, payload.reason)
+    return await _payment_request_detail(uow.session, ctx, request)
+
+
+# -----------------------------------------------------------------------------
+# Payments
+# -----------------------------------------------------------------------------
+
+
+async def _payment_detail(
+    session: AsyncSession, ctx: AccessContext, payment: Payment
+) -> s.PaymentRead:
+    await session.refresh(payment)
+    await session.refresh(payment, attribute_names=["allocations"])
+    vendors = await vendor_lookup.vendors(
+        session,
+        company_id=ctx.company_id,
+        vendor_ids={payment.vendor_id} if payment.vendor_id else set(),
+    )
+    request_number = None
+    if payment.payment_request_id is not None:
+        request_number = await session.scalar(
+            select(PaymentRequest.request_number).where(
+                PaymentRequest.id == payment.payment_request_id
+            )
+        )
+    bank_title = None
+    if payment.bank_account_id is not None:
+        bank = await bank_accounts.get(session, ctx, payment.bank_account_id)
+        bank_title = bank.account_title
+    invoice_numbers = {}
+    if payment.allocations:
+        rows = await session.execute(
+            select(VendorInvoice.id, VendorInvoice.invoice_number).where(
+                VendorInvoice.id.in_({a.invoice_id for a in payment.allocations})
+            )
+        )
+        invoice_numbers = dict(rows.tuples().all())
+
+    view = s.PaymentRead.model_validate(payment)
+    view.vendor_name = vendors[payment.vendor_id].name if payment.vendor_id in vendors else None
+    view.payment_request_number = request_number
+    view.bank_account_title = bank_title
+    view.allocations = [
+        s.PaymentAllocationRead(
+            id=a.id,
+            invoice_id=a.invoice_id,
+            invoice_number=invoice_numbers.get(a.invoice_id),
+            allocated_amount=a.allocated_amount,
+            created_at=a.created_at,
+        )
+        for a in payment.allocations
+    ]
+    issued = payment.status == PaymentStatus.ISSUED.value
+    can_execute = ctx.has(payments.PERM_EXECUTE)
+    view.can_allocate = issued and can_execute
+    view.can_mark_cleared = issued and can_execute
+    view.can_cancel = issued and can_execute
+    return view
+
+
+@router.get(
+    "/payments", response_model=Page[s.PaymentListItem], dependencies=[require(payments.PERM_VIEW)]
+)
+async def list_payments(
+    ctx: Access,
+    session: SessionDep,
+    page: PageDep,
+    q: str | None = None,
+    status: Annotated[list[str] | None, Query()] = None,
+    vendor_id: UUID | None = None,
+) -> Page[s.PaymentListItem]:
+    rows, total = await payments.list_payments(
+        session, ctx, page=page, search=q, filters={"status": status, "vendor_id": vendor_id}
+    )
+    vendors = await vendor_lookup.vendors(
+        session, company_id=ctx.company_id, vendor_ids={r.vendor_id for r in rows if r.vendor_id}
+    )
+    items = []
+    for r in rows:
+        item = s.PaymentListItem.model_validate(r)
+        item.vendor_name = vendors[r.vendor_id].name if r.vendor_id in vendors else None
+        items.append(item)
+    return Page.of(items, params=page, total=total)
+
+
+@router.post(
+    "/payments",
+    response_model=s.PaymentRead,
+    status_code=201,
+    dependencies=[require(payments.PERM_EXECUTE)],
+    summary="Execute an approved payment request — posts to the GL immediately",
+)
+async def create_payment(payload: s.PaymentCreate, ctx: Access, uow: UowDep) -> s.PaymentRead:
+    payment = await payments.create(
+        uow.session,
+        ctx,
+        payments.PaymentInput(
+            payment_request_id=payload.payment_request_id,
+            payment_date=payload.payment_date,
+            method=payload.method.value,
+            bank_account_id=payload.bank_account_id,
+            instrument_no=payload.instrument_no,
+            withholding_amount=payload.withholding_amount,
+        ),
+    )
+    return await _payment_detail(uow.session, ctx, payment)
+
+
+@router.get(
+    "/payments/{payment_id}",
+    response_model=s.PaymentRead,
+    dependencies=[require(payments.PERM_VIEW)],
+)
+async def get_payment(payment_id: UUID, ctx: Access, session: SessionDep) -> s.PaymentRead:
+    return await _payment_detail(session, ctx, await payments.get(session, ctx, payment_id))
+
+
+@router.post(
+    "/payments/{payment_id}/allocate",
+    response_model=s.PaymentRead,
+    dependencies=[require(payments.PERM_EXECUTE)],
+    summary="Settle one or more invoices against this payment",
+)
+async def allocate_payment(
+    payment_id: UUID, payload: s.AllocateBody, ctx: Access, uow: UowDep
+) -> s.PaymentRead:
+    payment = await payments.allocate(
+        uow.session,
+        ctx,
+        payment_id,
+        [
+            payments.AllocationInput(invoice_id=i.invoice_id, allocated_amount=i.allocated_amount)
+            for i in payload.items
+        ],
+    )
+    return await _payment_detail(uow.session, ctx, payment)
+
+
+@router.post(
+    "/payments/{payment_id}/mark-cleared",
+    response_model=s.PaymentRead,
+    dependencies=[require(payments.PERM_EXECUTE)],
+    summary="Record the bank's own confirmation — no GL effect",
+)
+async def mark_payment_cleared(payment_id: UUID, ctx: Access, uow: UowDep) -> s.PaymentRead:
+    payment = await payments.mark_cleared(uow.session, ctx, payment_id)
+    return await _payment_detail(uow.session, ctx, payment)
+
+
+@router.post(
+    "/payments/{payment_id}/cancel",
+    response_model=s.PaymentRead,
+    dependencies=[require(payments.PERM_EXECUTE)],
+    summary="Reverse an issued (not yet cleared) payment: its GL entry, allocations and request",
+)
+async def cancel_payment(
+    payment_id: UUID, payload: s.CancelBody, ctx: Access, uow: UowDep
+) -> s.PaymentRead:
+    payment = await payments.cancel(uow.session, ctx, payment_id, payload.reason)
+    return await _payment_detail(uow.session, ctx, payment)

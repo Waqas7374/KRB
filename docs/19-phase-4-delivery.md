@@ -12,7 +12,7 @@ what remains.
 | 4a | Chart of accounts, accounting periods, manual journal entries, trial balance, general ledger | Phase 2's approval engine | done |
 | 4b | `posting_rules` configuration; GRN and inventory (issues, adjustments) auto-posting to the GL; budgets, budget lines, commitment consumption tied to PO approval and GRN posting | 4a | done |
 | 4c | Vendor invoices, the 3-way match with tolerance, AP ageing | 4a, 4b | done |
-| 4d | Payment requests, payments, allocations | 4c | not built |
+| 4d | Payment requests, payments, allocations | 4c | done |
 | 4e | Minimal AR: customers, customer invoices, receipts | 4a | not built |
 
 4a comes first because every later slice posts through it: a GRN's auto-entry, a payment's
@@ -226,14 +226,70 @@ API spec gives it (`POST /finance/vendor-invoices/{id}/approve`, no `/submit` or
 | Web | Typecheck, eslint (no warnings), prettier clean. `npm run build`'s `tsc -b` step failed at the time, on pre-existing, unrelated errors (see "Found by testing") — confirmed present on `main` before this slice too, and fixed the next day in commit `544cc71` |
 | Browser E2E | `vendor-invoices.spec.ts`: a vendor invoice created against a real GRN line (the PO → delivery → GRN pipeline behind it built directly through the API, the same way `budgets.spec.ts` treats its own prerequisites), matched, and approved — asserted against PostgreSQL: the invoice's status, its journal entry's debit to 2110 and credit to 2100, and the purchase order's `invoiced_quantity`. Full suite (26 specs) passes, including `smoke.spec.ts`, which now also renders the vendor-invoice, tax-code and payables-ageing screens without crashing |
 
+## 4d — Payment requests, payments, allocation
+
+**The done-when this slice exists for (docs/02 §8): a request to pay a vendor is signed the same
+way every other document with real money behind it is signed, and only once it is approved can
+money actually move — and even then, moving it never re-books what an invoice already booked.** A
+payment's own entry clears the exact payable an invoice's own approval created (2100, through the
+*same* posting rule), credits Withholding Tax Payable for whatever it retained, and credits the
+paying bank account's own GL account for what actually left it. Which invoice(s) the money actually
+settles is a separate, later, explicit act — allocation — never inferred from the payment itself.
+
+| Piece | Behaviour | Where |
+|---|---|---|
+| Payment requests | Deliberately blind to which invoice(s) it will settle — docs/02 gives `payment_requests` no invoice reference at all, only a vendor and an amount, which is what makes an advance (`is_advance`) simply a request with nothing behind it yet. Routed through the shared approval engine exactly like a purchase request (`PaymentRequestApprovals`), unlike a vendor invoice's or a budget's single direct permission check — `finance.payment.request` raises it, `finance.payment.approve` decides it via `/approvals`, and neither is `finance.payment.execute`. | `finance/models.py`, `finance/services/payment_requests.py` |
+| Seeded workflow | Below 200,000: finance alone. 200,000 and above: finance then the executive — the same two-tier shape as a manual journal entry, since paying money out of the company's own account is exactly that kind of risk. When finance itself raised the request, its own step has nobody eligible and escalates to the executive on its SLA. | `seeds/approvals.py` |
+| Bank accounts | The company's *own* accounts (never a vendor's — those are `VendorBankAccount`, a different table for a different risk). A cash till is kept as its own bank-account row too, linked to 1110 Cash in Hand, so a CASH payment credits a real account the same way every other method does rather than special-casing the one that isn't a bank. Plain CRUD under `finance.coa.view`/`.manage`, the same shape as tax codes and posting rules. | `finance/services/bank_accounts.py` |
+| Executing a payment | Created only against an `APPROVED` request, and only in full — `gross_amount` is never taken from the caller, it is always `payment_request.amount`; a *partial* payment against an invoice happens through allocation, never by under-paying the request. Posts to the GL the instant it is issued (`PaymentStatus.ISSUED`), the same "post immediately, reversal instead of a state machine" treatment as a GRN: debit the payable (2100, via the `PAYMENT`/`EXECUTE` posting rule's `debit_account_id`) for the gross amount, credit Withholding Tax Payable (2200, the rule's `credit_account_id`) for whatever was retained, credit the paying `bank_account`'s own `gl_account_id` for the net — a line is skipped entirely rather than posted at zero when withholding retains the whole gross amount. Also sets the originating request to `PAID`. | `finance/services/payments.py::create` |
+| Allocation | `POST /finance/payments/{id}/allocate` takes a batch of `{invoice_id, allocated_amount}` — same vendor as the payment, invoice `APPROVED`/`PARTIALLY_PAID`, each amount within both the invoice's own outstanding balance and what the payment has left to give, one allocation row per (payment, invoice) pair. Raises the invoice's `paid_amount` and flips its status to `PARTIALLY_PAID`/`PAID` as it crosses the total. | `finance/services/payments.py::allocate` |
+| Clearing | `mark_cleared` records the bank's own later confirmation (`cleared_at`) — purely informational, no GL effect, since the money already posted the moment it was issued. | `finance/services/payments.py::mark_cleared` |
+| Cancelling a payment | Only before it clears. Reverses every allocation (gives back each invoice's `paid_amount`, reopens its status), reverses the GL entry (`journal_entries.reverse_system`, the same GRN/issue-cancel precedent from 4b), and returns the originating request to `APPROVED` so it can be paid again — nothing is left half-undone. | `finance/services/payments.py::cancel` |
+| Screens | Payment requests (list, new/edit form, detail with the shared `ApprovalSection` — the same component a journal entry's own page already uses, so "Approve" simply appears for whoever may decide it, submit/cancel/delete otherwise). Payments (list, new/execute form that picks an approved request and a bank account, detail with an allocate dialog — pick an outstanding invoice, enter an amount, repeat — plus mark-cleared/cancel). Bank accounts (list with a create/edit drawer). | `web/src/features/finance/PaymentRequestPages.tsx`, `PaymentPages.tsx`, `BankAccountsPage.tsx` |
+
+**Deliberately simplified.** A payment request is executed by exactly one payment, in full — no
+partial execution of a request, and no request may name which invoice(s) it is for; both are
+consequences of following docs/02's literal `payment_requests` columns rather than adding scope the
+schema itself never asked for. `payments.direction` is modelled (`OUT`/`IN`) but only `OUT` is ever
+posted this slice — docs/02 keeps AR's own `receipts` table separate from `payments` for the `IN`
+side, so it is reserved, not wired. A payment needs a `bank_account_id` for every method, including
+`CASH`, which is why the cash till is seeded as a bank-account row rather than special-cased in the
+posting logic. Withholding remains a hand-entered amount at payment time, the same treatment
+`vendor_invoices.withholding_amount` already got in 4c — no `tax_code_id` link on a payment computing
+it automatically, which would need `tax_codes.gl_account_id` (docs/02 lists it; this codebase's
+`tax_codes` does not carry it, a 4c simplification this slice did not revisit).
+
+### Found by testing
+
+- **`npm run build`'s `tsc -b` step caught two `Create` payloads missing fields that carry a Python
+  default** (`BankAccountCreate.currency_code`/`opening_balance`/`is_active`, `PaymentRequestCreate.
+  currency_code`) that `tsc --noEmit` alone let through. A Pydantic field's default does not make it
+  optional in the OpenAPI schema's own `required` list — JSON Schema's `default` and `required` are
+  independent keywords — so a generated TypeScript type stays non-optional regardless, and a frontend
+  form that omits such a field compiles under `tsc --noEmit` but fails the composite build. Fixed by
+  supplying the sensible default explicitly in the constructed request body, matching how every other
+  screen with a server-defaulted field (posting rules' `priority`, for one) already does it. Caught
+  only because this slice actually ran `npm run build` after fixing 4c's own pre-existing break —
+  worth running on every future slice from now on, not only when something else prompts checking it.
+- Nothing else new: the account-resolution, posting-rule and cancel/reverse patterns this slice
+  needed were all precedent already proven in 4a-4c, and every test passed on its first real run.
+
+## Testing (state after slice 4d)
+
+| Suite | Result |
+|---|---|
+| Backend | Full suite passed, coverage 93 % (gate 80 %); ruff, mypy, import contracts 4/4, `alembic check` clean; the new migration round-trips |
+| New this slice | 21 tests (`test_payments.py`): bank accounts (seeded accounts listed, only `finance.coa.manage` may create/edit, a duplicate account number is refused); only `finance.payment.request` may raise a request, a small request is signed by finance alone, a large one needs finance then the executive, a rejected request is a draft again and resubmittable, a draft can be deleted, an approved request can be cancelled; execution requires an approved request, only `finance.payment.execute` may execute, executing posts the gross and clears Accounts Payable (asserted via the trial balance), withholding reduces the net and credits Withholding Tax Payable, a cash payment credits the cash till; allocating settles an invoice (asserted via its own status and `paid_amount`), allocating more than the payment's net is refused, allocating against another vendor's invoice is refused; marking cleared, cancelling reverses the entry and reopens what it settled (the request included), only `finance.payment.execute` may cancel. |
+| Web | Typecheck, eslint (no warnings), prettier, `npm run build` all clean |
+| Browser E2E | `payments.spec.ts`: a payment request raised and submitted, signed by finance through the same `ApprovalSection`/`DecisionActions` component a journal entry's own page already uses, executed as a payment against a real bank account, and allocated to settle a real vendor invoice (built directly through the API, the same way `vendor-invoices.spec.ts` treats its own PO/GRN prerequisites) — asserted against PostgreSQL: the request's and payment's status, the journal entry's existence, and the invoice's `paid_amount` and status. Full suite passes. |
+
 ## What is not built in Phase 4 yet
 
 | Item | State |
 |---|---|
-| Payment requests, payments, allocations | not built (4d) |
 | Minimal AR (customers, invoices, receipts) | not built (4e) |
-| Withholding tax actually posted to the GL | not built; `vendor_invoices.withholding_amount` is informational only until 4d posts it at payment time |
+| `payments` direction `IN` (a customer receipt posted through this table) | not built; docs/02 keeps AR's own `receipts` table separate, so this stays reserved |
+| Automatic withholding from a `tax_code`'s own rate at payment time | not built; withholding is a hand-entered amount, the same treatment `vendor_invoices.withholding_amount` got in 4c — would need `tax_codes.gl_account_id` (docs/02 lists it; not carried since 4c) |
 | Chart-of-accounts CSV import (docs/12 Q2) | not built |
 | Opening-balance entry flow, cut-over / parallel-run plan (docs/12 Q2) | not built; cut-over date still needed from the business |
-| Posting rules for payment events | arrives with 4d, same `posting_rules` table (`INVOICE`/`PAYABLE` arrived with 4c) |
 | A per-line phase/cost centre on a purchase order or counter purchase | not built; both are header-level today (docs/02 §5), which is what 4b's commitment/release grouping assumes |

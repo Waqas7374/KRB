@@ -131,6 +131,7 @@ def seeded(migrated_database: None) -> Iterator[None]:
                 await finance.seed_periods(session, company)
                 await finance.seed_posting_rules(session, company)
                 await finance.seed_tax_codes(session, company)
+                await finance.seed_bank_accounts(session, company)
                 await approvals.seed_workflows(session, company)
                 await rules.seed_rules(session, company)
                 await session.commit()

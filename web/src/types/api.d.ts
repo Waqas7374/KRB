@@ -3332,6 +3332,198 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/finance/bank-accounts": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Bank Accounts */
+    get: operations["list_bank_accounts_api_v1_finance_bank_accounts_get"];
+    put?: never;
+    /** Create Bank Account */
+    post: operations["create_bank_account_api_v1_finance_bank_accounts_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/bank-accounts/{bank_account_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Update Bank Account */
+    patch: operations["update_bank_account_api_v1_finance_bank_accounts__bank_account_id__patch"];
+    trace?: never;
+  };
+  "/api/v1/finance/payment-requests": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Payment Requests */
+    get: operations["list_payment_requests_api_v1_finance_payment_requests_get"];
+    put?: never;
+    /** Raise a request to pay a vendor (starts as a draft) */
+    post: operations["create_payment_request_api_v1_finance_payment_requests_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/payment-requests/{request_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Payment Request */
+    get: operations["get_payment_request_api_v1_finance_payment_requests__request_id__get"];
+    /** Replace a draft, rejected or returned request's content */
+    put: operations["update_payment_request_api_v1_finance_payment_requests__request_id__put"];
+    post?: never;
+    /** Delete a draft that never happened */
+    delete: operations["delete_payment_request_api_v1_finance_payment_requests__request_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/payment-requests/{request_id}/submit": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Submit for approval — routed by the active payment-request workflow */
+    post: operations["submit_payment_request_api_v1_finance_payment_requests__request_id__submit_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/payment-requests/{request_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Cancel Payment Request */
+    post: operations["cancel_payment_request_api_v1_finance_payment_requests__request_id__cancel_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/payments": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Payments */
+    get: operations["list_payments_api_v1_finance_payments_get"];
+    put?: never;
+    /** Execute an approved payment request — posts to the GL immediately */
+    post: operations["create_payment_api_v1_finance_payments_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/payments/{payment_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Payment */
+    get: operations["get_payment_api_v1_finance_payments__payment_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/payments/{payment_id}/allocate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Settle one or more invoices against this payment */
+    post: operations["allocate_payment_api_v1_finance_payments__payment_id__allocate_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/payments/{payment_id}/mark-cleared": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Record the bank's own confirmation — no GL effect */
+    post: operations["mark_payment_cleared_api_v1_finance_payments__payment_id__mark_cleared_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/finance/payments/{payment_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Reverse an issued (not yet cleared) payment: its GL entry, allocations and request */
+    post: operations["cancel_payment_api_v1_finance_payments__payment_id__cancel_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3699,6 +3891,21 @@ export interface components {
       /** Total */
       total: string;
     };
+    /** AllocateBody */
+    AllocateBody: {
+      /** Items */
+      items: components["schemas"]["AllocationIn"][];
+    };
+    /** AllocationIn */
+    AllocationIn: {
+      /**
+       * Invoice Id
+       * Format: uuid
+       */
+      invoice_id: string;
+      /** Allocated Amount */
+      allocated_amount: number | string;
+    };
     /** ApproverRead */
     ApproverRead: {
       /**
@@ -3814,6 +4021,89 @@ export interface components {
        * @default false
        */
       is_low: boolean;
+    };
+    /** BankAccountCreate */
+    BankAccountCreate: {
+      /** Account Title */
+      account_title: string;
+      /** Account No */
+      account_no: string;
+      /** Bank Name */
+      bank_name: string;
+      /**
+       * Gl Account Id
+       * Format: uuid
+       */
+      gl_account_id: string;
+      /** Iban */
+      iban?: string | null;
+      /**
+       * Currency Code
+       * @default PKR
+       */
+      currency_code: string;
+      /**
+       * Opening Balance
+       * @default 0
+       */
+      opening_balance: number | string;
+      /**
+       * Is Active
+       * @default true
+       */
+      is_active: boolean;
+    };
+    /** BankAccountEdit */
+    BankAccountEdit: {
+      /** Account Title */
+      account_title?: string | null;
+      /** Iban */
+      iban?: string | null;
+      /** Bank Name */
+      bank_name?: string | null;
+      /** Is Active */
+      is_active?: boolean | null;
+    };
+    /** BankAccountRead */
+    BankAccountRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Account Title */
+      account_title: string;
+      /** Account No */
+      account_no: string;
+      /** Iban */
+      iban: string | null;
+      /** Bank Name */
+      bank_name: string;
+      /** Currency Code */
+      currency_code: string;
+      /**
+       * Gl Account Id
+       * Format: uuid
+       */
+      gl_account_id: string;
+      /** Gl Account Code */
+      gl_account_code?: string | null;
+      /** Opening Balance */
+      opening_balance: string;
+      /** Is Active */
+      is_active: boolean;
+      /** Version */
+      version: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
     };
     /** BudgetCommitmentRead */
     BudgetCommitmentRead: {
@@ -6702,6 +6992,16 @@ export interface components {
         [key: string]: unknown;
       };
     };
+    /** Page[BankAccountRead] */
+    Page_BankAccountRead_: {
+      /** Items */
+      items: components["schemas"]["BankAccountRead"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
     /** Page[BudgetCommitmentRead] */
     Page_BudgetCommitmentRead_: {
       /** Items */
@@ -6816,6 +7116,26 @@ export interface components {
     Page_MaterialListItem_: {
       /** Items */
       items: components["schemas"]["MaterialListItem"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
+    /** Page[PaymentListItem] */
+    Page_PaymentListItem_: {
+      /** Items */
+      items: components["schemas"]["PaymentListItem"][];
+      page: components["schemas"]["PageMeta"];
+      /** Meta */
+      meta?: {
+        [key: string]: unknown;
+      };
+    };
+    /** Page[PaymentRequestListItem] */
+    Page_PaymentRequestListItem_: {
+      /** Items */
+      items: components["schemas"]["PaymentRequestListItem"][];
       page: components["schemas"]["PageMeta"];
       /** Meta */
       meta?: {
@@ -7042,6 +7362,310 @@ export interface components {
       rows: components["schemas"]["AgeingBucketRead"][];
       /** Total */
       total: string;
+    };
+    /** PaymentAllocationRead */
+    PaymentAllocationRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Invoice Id
+       * Format: uuid
+       */
+      invoice_id: string;
+      /** Invoice Number */
+      invoice_number?: string | null;
+      /** Allocated Amount */
+      allocated_amount: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+    };
+    /** PaymentCreate */
+    PaymentCreate: {
+      /**
+       * Payment Request Id
+       * Format: uuid
+       */
+      payment_request_id: string;
+      /**
+       * Payment Date
+       * Format: date
+       */
+      payment_date: string;
+      method: components["schemas"]["PaymentMethod"];
+      /**
+       * Bank Account Id
+       * Format: uuid
+       */
+      bank_account_id: string;
+      /** Instrument No */
+      instrument_no?: string | null;
+      /**
+       * Withholding Amount
+       * @default 0
+       */
+      withholding_amount: number | string;
+    };
+    /** PaymentListItem */
+    PaymentListItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Payment Number */
+      payment_number: string;
+      /**
+       * Payment Date
+       * Format: date
+       */
+      payment_date: string;
+      /** Vendor Id */
+      vendor_id: string | null;
+      /** Vendor Name */
+      vendor_name?: string | null;
+      /** Method */
+      method: string;
+      /** Gross Amount */
+      gross_amount: string;
+      /** Withholding Amount */
+      withholding_amount: string;
+      /** Net Amount */
+      net_amount: string;
+      /** Allocated Amount */
+      allocated_amount: string;
+      /** Status */
+      status: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+    };
+    /**
+     * PaymentMethod
+     * @enum {string}
+     */
+    PaymentMethod: "BANK_TRANSFER" | "CHEQUE" | "CASH" | "ONLINE";
+    /**
+     * PaymentPriority
+     * @enum {string}
+     */
+    PaymentPriority: "NORMAL" | "URGENT";
+    /** PaymentRead */
+    PaymentRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Payment Number */
+      payment_number: string;
+      /**
+       * Payment Date
+       * Format: date
+       */
+      payment_date: string;
+      /** Vendor Id */
+      vendor_id: string | null;
+      /** Vendor Name */
+      vendor_name?: string | null;
+      /** Method */
+      method: string;
+      /** Gross Amount */
+      gross_amount: string;
+      /** Withholding Amount */
+      withholding_amount: string;
+      /** Net Amount */
+      net_amount: string;
+      /** Allocated Amount */
+      allocated_amount: string;
+      /** Status */
+      status: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Payment Request Id */
+      payment_request_id: string | null;
+      /** Payment Request Number */
+      payment_request_number?: string | null;
+      /** Bank Account Id */
+      bank_account_id: string | null;
+      /** Bank Account Title */
+      bank_account_title?: string | null;
+      /** Instrument No */
+      instrument_no: string | null;
+      /** Journal Entry Id */
+      journal_entry_id: string | null;
+      /** Cleared At */
+      cleared_at: string | null;
+      /** Cancelled At */
+      cancelled_at: string | null;
+      /** Cancel Reason */
+      cancel_reason: string | null;
+      /** Version */
+      version: number;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /**
+       * Allocations
+       * @default []
+       */
+      allocations: components["schemas"]["PaymentAllocationRead"][];
+      /**
+       * Can Allocate
+       * @default false
+       */
+      can_allocate: boolean;
+      /**
+       * Can Mark Cleared
+       * @default false
+       */
+      can_mark_cleared: boolean;
+      /**
+       * Can Cancel
+       * @default false
+       */
+      can_cancel: boolean;
+    };
+    /** PaymentRequestCreate */
+    PaymentRequestCreate: {
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Amount */
+      amount: number | string;
+      /** Reason */
+      reason: string;
+      /** @default NORMAL */
+      priority: components["schemas"]["PaymentPriority"];
+      /**
+       * Is Advance
+       * @default false
+       */
+      is_advance: boolean;
+      /**
+       * Currency Code
+       * @default PKR
+       */
+      currency_code: string;
+    };
+    /** PaymentRequestListItem */
+    PaymentRequestListItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Request Number */
+      request_number: string;
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Vendor Name */
+      vendor_name?: string | null;
+      /** Amount */
+      amount: string;
+      /** Priority */
+      priority: string;
+      /** Is Advance */
+      is_advance: boolean;
+      /** Status */
+      status: string;
+      /** Submitted At */
+      submitted_at: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+    };
+    /** PaymentRequestRead */
+    PaymentRequestRead: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Request Number */
+      request_number: string;
+      /**
+       * Vendor Id
+       * Format: uuid
+       */
+      vendor_id: string;
+      /** Vendor Name */
+      vendor_name?: string | null;
+      /** Amount */
+      amount: string;
+      /** Priority */
+      priority: string;
+      /** Is Advance */
+      is_advance: boolean;
+      /** Status */
+      status: string;
+      /** Submitted At */
+      submitted_at: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Currency Code */
+      currency_code: string;
+      /** Reason */
+      reason: string;
+      /** Decision Reason */
+      decision_reason: string | null;
+      /** Approval Request Id */
+      approval_request_id: string | null;
+      /** Approved At */
+      approved_at: string | null;
+      /** Cancelled At */
+      cancelled_at: string | null;
+      /** Cancel Reason */
+      cancel_reason: string | null;
+      /** Version */
+      version: number;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /**
+       * Can Edit
+       * @default false
+       */
+      can_edit: boolean;
+      /**
+       * Can Delete
+       * @default false
+       */
+      can_delete: boolean;
+      /**
+       * Can Submit
+       * @default false
+       */
+      can_submit: boolean;
+      /**
+       * Can Cancel
+       * @default false
+       */
+      can_cancel: boolean;
     };
     /** PeriodRead */
     PeriodRead: {
@@ -19414,6 +20038,563 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["PayablesAgingRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_bank_accounts_api_v1_finance_bank_accounts_get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_BankAccountRead_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_bank_account_api_v1_finance_bank_accounts_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BankAccountCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BankAccountRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_bank_account_api_v1_finance_bank_accounts__bank_account_id__patch: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        bank_account_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BankAccountEdit"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BankAccountRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_payment_requests_api_v1_finance_payment_requests_get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        status?: string[] | null;
+        vendor_id?: string | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_PaymentRequestListItem_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_payment_request_api_v1_finance_payment_requests_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PaymentRequestCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PaymentRequestRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_payment_request_api_v1_finance_payment_requests__request_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PaymentRequestRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_payment_request_api_v1_finance_payment_requests__request_id__put: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PaymentRequestCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PaymentRequestRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_payment_request_api_v1_finance_payment_requests__request_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  submit_payment_request_api_v1_finance_payment_requests__request_id__submit_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description The version you loaded */
+        "If-Match"?: number | null;
+      };
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PaymentRequestRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  cancel_payment_request_api_v1_finance_payment_requests__request_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["app__modules__finance__schemas__CancelBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PaymentRequestRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_payments_api_v1_finance_payments_get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        status?: string[] | null;
+        vendor_id?: string | null;
+        /** @description Rows per page */
+        limit?: number;
+        /** @description Rows to skip */
+        offset?: number;
+        /** @description Opaque forward cursor */
+        cursor?: string | null;
+        /** @description Comma-separated fields; prefix '-' for descending */
+        sort?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_PaymentListItem_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_payment_api_v1_finance_payments_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PaymentCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PaymentRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_payment_api_v1_finance_payments__payment_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        payment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PaymentRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  allocate_payment_api_v1_finance_payments__payment_id__allocate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        payment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AllocateBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PaymentRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  mark_payment_cleared_api_v1_finance_payments__payment_id__mark_cleared_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        payment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PaymentRead"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  cancel_payment_api_v1_finance_payments__payment_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        payment_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["app__modules__finance__schemas__CancelBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PaymentRead"];
         };
       };
       /** @description Validation Error */

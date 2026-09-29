@@ -42,6 +42,9 @@ import {
   FileSpreadsheet,
   Percent,
   Hourglass,
+  Vault,
+  FileCheck2,
+  Banknote,
 } from "lucide-react";
 
 export interface NavItem {
@@ -214,6 +217,24 @@ export const NAVIGATION: NavSection[] = [
         label: "Tax codes",
         to: "/finance/tax-codes",
         icon: Percent,
+        permission: "finance.coa.view",
+      },
+      {
+        label: "Payment requests",
+        to: "/finance/payment-requests",
+        icon: FileCheck2,
+        permission: "finance.payment.view",
+      },
+      {
+        label: "Payments",
+        to: "/finance/payments",
+        icon: Banknote,
+        permission: "finance.payment.view",
+      },
+      {
+        label: "Bank accounts",
+        to: "/finance/bank-accounts",
+        icon: Vault,
         permission: "finance.coa.view",
       },
     ],

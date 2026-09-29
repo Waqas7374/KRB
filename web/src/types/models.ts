@@ -203,3 +203,16 @@ export type VendorInvoiceListItem = S["VendorInvoiceListItem"];
 export type VendorInvoiceRead = S["VendorInvoiceRead"];
 export type AgeingBucketRead = S["AgeingBucketRead"];
 export type PayablesAgingRead = S["PayablesAgingRead"];
+
+export type BankAccountCreate = S["BankAccountCreate"];
+export type BankAccountEdit = S["BankAccountEdit"];
+export type BankAccountRead = S["BankAccountRead"];
+export type PaymentRequestCreate = S["PaymentRequestCreate"];
+export type PaymentRequestListItem = S["PaymentRequestListItem"];
+export type PaymentRequestRead = S["PaymentRequestRead"];
+export type PaymentCreate = S["PaymentCreate"];
+export type PaymentListItem = S["PaymentListItem"];
+export type PaymentRead = S["PaymentRead"];
+export type AllocationIn = S["AllocationIn"];
+export type AllocateBody = S["AllocateBody"];
+export type PaymentAllocationRead = S["PaymentAllocationRead"];

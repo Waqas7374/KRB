@@ -4,6 +4,7 @@ import { useCan } from "@/features/auth/use-can";
 import { api, type Page } from "@/lib/api";
 import type {
   AccountRead,
+  BankAccountRead,
   CostCenterRead,
   DepartmentRead,
   MaterialCategoryRead,
@@ -191,6 +192,14 @@ export const useTaxCodeOptions = () =>
     "finance.coa.view",
     (t) => ({ value: t.id, label: `${t.code} — ${t.name} (${Number(t.rate_pct)}%)` }),
     { is_active: "true" },
+  );
+
+export const useBankAccountOptions = () =>
+  useLookup<BankAccountRead>(
+    "bank-accounts",
+    "/finance/bank-accounts",
+    "finance.coa.view",
+    (b) => ({ value: b.id, label: `${b.account_title} — ${b.bank_name}` }),
   );
 
 export const useTruckTypeOptions = () =>

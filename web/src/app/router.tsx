@@ -195,6 +195,18 @@ const PayablesAgingPage = page(
   () => import("@/features/finance/PayablesAgingPage"),
   "PayablesAgingPage",
 );
+const BankAccountsPage = page(
+  () => import("@/features/finance/BankAccountsPage"),
+  "BankAccountsPage",
+);
+const prPages = () => import("@/features/finance/PaymentRequestPages");
+const PaymentRequestListPage = page(prPages, "PaymentRequestListPage");
+const PaymentRequestFormPage = page(prPages, "PaymentRequestFormPage");
+const PaymentRequestDetailPage = page(prPages, "PaymentRequestDetailPage");
+const paymentPages = () => import("@/features/finance/PaymentPages");
+const PaymentListPage = page(paymentPages, "PaymentListPage");
+const PaymentFormPage = page(paymentPages, "PaymentFormPage");
+const PaymentDetailPage = page(paymentPages, "PaymentDetailPage");
 
 const gate = (permission: string, element: ReactNode) => (
   <RequirePermission permission={permission}>{element}</RequirePermission>
@@ -357,6 +369,35 @@ export const router = createBrowserRouter([
       {
         path: "finance/payables/aging",
         element: gate("finance.ap.view", <PayablesAgingPage />),
+      },
+      {
+        path: "finance/bank-accounts",
+        element: gate("finance.coa.view", <BankAccountsPage />),
+      },
+      {
+        path: "finance/payment-requests",
+        element: gate("finance.payment.view", <PaymentRequestListPage />),
+      },
+      {
+        path: "finance/payment-requests/new",
+        element: gate("finance.payment.request", <PaymentRequestFormPage />),
+      },
+      {
+        path: "finance/payment-requests/:requestId",
+        element: gate("finance.payment.view", <PaymentRequestDetailPage />),
+      },
+      {
+        path: "finance/payment-requests/:requestId/edit",
+        element: gate("finance.payment.request", <PaymentRequestFormPage />),
+      },
+      { path: "finance/payments", element: gate("finance.payment.view", <PaymentListPage />) },
+      {
+        path: "finance/payments/new",
+        element: gate("finance.payment.execute", <PaymentFormPage />),
+      },
+      {
+        path: "finance/payments/:paymentId",
+        element: gate("finance.payment.view", <PaymentDetailPage />),
       },
       { path: "rfqs", element: gate("procurement.rfq.view", <RfqsListPage />) },
       { path: "rfqs/new", element: gate("procurement.rfq.create", <RfqFormPage />) },
