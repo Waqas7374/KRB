@@ -634,7 +634,7 @@ export function RfqDetailPage() {
               </Button>
             )}
             {canCompare && r.status !== "DRAFT" && (
-              <Button variant={r.status === "ISSUED" ? "primary" : "default"} asChild>
+              <Button variant={r.status === "ISSUED" ? "primary" : undefined} asChild>
                 <Link to={`/rfqs/${r.id}/comparison`}>
                   <GitCompareArrows /> Compare quotations
                 </Link>

@@ -14,7 +14,16 @@ import { NotFound, RouteError } from "./route-states";
  * shell loads under 200 KB gzipped).
  */
 
-function page<T extends Record<string, ComponentType>>(loader: () => Promise<T>, name: keyof T) {
+// `ComponentType<any>`, not the bare (props-less) `ComponentType`: a lazily
+// loaded module may also export a plain helper component with required props
+// (e.g. RateGridPage's `Sparkline`) alongside the page itself, and the
+// constraint only needs to admit that shape — the cast below already narrows
+// to the one export this actually renders.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- see the comment above
+function page<T extends Record<string, ComponentType<any>>>(
+  loader: () => Promise<T>,
+  name: keyof T,
+) {
   return lazy(async () => ({ default: (await loader())[name] as ComponentType }));
 }
 
